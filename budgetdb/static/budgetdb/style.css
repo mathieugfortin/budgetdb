@@ -1,0 +1,26 @@
+
+#sidebar {
+  position: absolute;
+  top: 20px;
+  left: 10px;
+  width: 150px;
+}
+
+#navtools {
+  position: absolute;
+  top: 20px;
+  right: 16px;
+}
+
+#content {
+  position: absolute;
+  top: 50px;
+  margin-left: 170px;
+  width: 500px;
+}
+
+#footer {
+  position: absolute;
+  top: 500px;
+  margin-left: 140px;
+}

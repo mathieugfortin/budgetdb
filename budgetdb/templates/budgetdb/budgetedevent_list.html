@@ -1,0 +1,16 @@
+{% extends "budgetdb/base.html" %}
+{% block content %}
+    <!--budgetedevent_list v2-->
+
+    {% if budgetedevent_list %}
+    <h2>Budgeted Event List</h2>
+    <ul>
+    {% for budgetedevent in budgetedevent_list %}
+        <li><a href="{% url 'budgetdb:details_be' budgetedevent.id %}">{{ budgetedevent.description }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No budgeted Events are available.</p>
+{% endif %}
+
+{% endblock %}

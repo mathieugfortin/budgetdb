@@ -1,0 +1,23 @@
+{% extends "budgetdb/base.html" %}
+
+{% block navtools %}
+<ul>
+    <li><a href="/next">next</a></li>
+    <li><a href="/previous">previous</a></li>
+</ul>
+{% endblock %}
+
+{% block content %}
+    <!--budgetedevent_detail-->
+    <h2>Budgeted Event Details</h2>
+    <ul>
+       <li> {{ object.description }}</li>
+       <li> {{ object.amount_planned }}</li>
+       <li> {{ object.account_source }}</li>
+       <li> {{ object.account_destination }}</li>
+       <li> {{ object.cat1 }}</li>
+       <li> {{ object.cat2 }}</li>
+       <li> {{ object.vendor }}</li>
+        
+    </ul>
+{% endblock %}

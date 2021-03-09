@@ -1,0 +1,17 @@
+<h1>{{ transaction.description }}</h1>
+
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+{% for subcategory in transaction.cat2.all %}
+      <li>subcategory {{ subcategory.name }}</li>
+{% endfor %}
+
+
+<form action="{% url 'budgetdb:saveTransaction' transaction.id %}" method="post">
+{% csrf_token %}
+{% for subcategory in transaction.cat2.all %}
+    <input type="radio" name="SubCategory" id="subcategory{{ forloop.counter }}" value="{{ subcategory.id }}">
+    <label for="subcategory{{ forloop.counter }}">{{ subcategory.name }}</label><br>
+{% endfor %}
+<input type="submit" value="subcategory">
+</form>

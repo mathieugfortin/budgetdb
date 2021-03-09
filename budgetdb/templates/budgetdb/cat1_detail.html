@@ -1,0 +1,8 @@
+<h1>{{ cat1.name }}</h1>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<ul>
+{% for subcategory in cat1.cat2_set.all %}
+    <li>subcategory {{ subcategory.name }}</li>
+{% endfor %}
+</ul>

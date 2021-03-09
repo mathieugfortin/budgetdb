@@ -1,0 +1,24 @@
+django 101
+https://docs.djangoproject.com/en/3.1/intro/tutorial01/
+https://code.visualstudio.com/docs/python/tutorial-django#_work-with-data-data-models-and-migrations
+https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Generic_views
+
+# Don't forget to filter out results depending on the visitor !
+
+Take care to escape anything you put in HTML code to avoid XSS attacks when displaying data that may have been input by a user! format_html helps.
+
+autocomplete:
+https://django-autocomplete-light.readthedocs.io/en/master/tutorial.html#filtering-results-based-on-the-value-of-other-fields-in-the-form)
+
+add-another
+https://github.com/jonashaag/django-addanother
+
+crispy bootstrap
+https://simpleisbetterthancomplex.com/tutorial/2018/08/13/how-to-use-bootstrap-4-forms-with-django.html
+
+using DB views in Django
+https://resources.rescale.com/using-database-views-in-django-orm/
+
+Django Calendar
+https://paulgrajewski.medium.com/django-and-python-calendar-e647a8eccff6
+https://alexpnt.github.io/2017/07/15/django-calendar/

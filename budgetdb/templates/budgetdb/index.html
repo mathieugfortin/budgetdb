@@ -1,0 +1,20 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+{% block title %}My dysfunctional budget{% endblock %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+
+{% block content %}
+
+{% if categories_list %}
+    <ul>
+    {% for category in categories_list %}
+        <li><a href="{% url 'budgetdb:category' category.id %}">{{ category.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No Categories are available.</p>
+{% endif %}
+
+{% endblock %}
