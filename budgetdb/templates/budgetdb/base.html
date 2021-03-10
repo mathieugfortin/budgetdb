@@ -4,6 +4,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    {% block headblock %}{% endblock %}
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
@@ -13,11 +14,11 @@
 <body>
     <div id="sidebar">
         {% block sidebar %}
-        <ul>
-            <li><a href="{% url 'budgetdb:index' %}">Home</a></li>
-            <li><a href="{% url 'budgetdb:list_be' %}">Budgeted Events</a></li>
-            <li><a href="{% url 'budgetdb:add_be' %}">add</a></li>
-        </ul>
+        <div class="clearfix">
+            <a class="btn btn-info top" href="{% url 'budgetdb:index' %}">Home</a>
+            <a class="btn btn-info top" href="{% url 'budgetdb:list_be' %}">Budgeted Events</a>
+            <a class="btn btn-info top I1" href="{% url 'budgetdb:add_be' %}">add</a>
+        </div>
         {% endblock %}
     </div>
 

@@ -416,3 +416,5 @@ class CalendarView(models.Model):
     db_date = models.DateField()
     budgetedevent = models.ForeignKey(BudgetedEvent, on_delete=models.DO_NOTHING)
     transaction = models.ForeignKey(Transaction, on_delete=models.DO_NOTHING)
+    BE_description = models.TextField()
+    T_description = models.TextField()

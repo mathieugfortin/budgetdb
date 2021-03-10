@@ -16,11 +16,15 @@
   position: absolute;
   top: 50px;
   margin-left: 170px;
-  width: 500px;
 }
 
 #footer {
   position: absolute;
-  top: 500px;
+  top: 85%;
   margin-left: 140px;
+}
+
+.I1 {
+    position: absolute;
+    left: 20%;   
 }
