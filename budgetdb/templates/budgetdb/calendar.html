@@ -1,0 +1,30 @@
+{% extends 'budgetdb/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block headblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/calstyles.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="clearfix">
+        <a class="btn btn-info left" href="{% url 'budgetdb:calendar' %}?year={{ prev_year }}&month={{ prev_month }}"> Previous Month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:calendar' %}?year={{ now_year }}&month={{ now_month }}"> Now </a>
+        <a class="btn btn-info right" href="{% url 'budgetdb:calendar' %}?year={{ next_year }}&month={{ next_month }}"> Next Month </a>
+    </div>
+
+    {{ calendar }}
+
+{% endblock %}
+
+{% block footer %}
+    {{ form.media }}
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+    crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+{% endblock %}

@@ -20,5 +20,11 @@ using DB views in Django
 https://resources.rescale.com/using-database-views-in-django-orm/
 
 Django Calendar
-https://paulgrajewski.medium.com/django-and-python-calendar-e647a8eccff6
-https://alexpnt.github.io/2017/07/15/django-calendar/
+https://www.huiwenteo.com/normal/2018/07/24/django-calendar.html
+https://www.huiwenteo.com/normal/2018/07/29/django-calendar-ii.html
+
+git 101
+https://rogerdudler.github.io/git-guide/
+
+I can't believe google gave me such a hard time finding this...
+https://realpython.com/python-f-strings/

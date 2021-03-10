@@ -1,15 +1,18 @@
 CREATE OR REPLACE VIEW calendar_view AS (
 SELECT 
 row_number() OVER () as id
-,b.db_date
-,b.id AS budgetedevent_id
+,c.db_date
+,be.budgetedevent_id AS budgetedevent_id
 ,t.id as transaction_id
-,t.description
+,be.description AS BE_description
+,t.description AS T_description
 
-FROM calendar_view_p b
+FROM budgetdb.budgetdb_mycalendar c
+left join calendar_view_be be ON c.db_date = be.db_date
 LEFT JOIN budgetdb.budgetdb_transaction t 
-	ON COALESCE(t.date_actual,t.date_planned) = b.db_date
---		AND t.BudgetedEvent_id IS null
-WHERE b.db_date BETWEEN '2021-01-01' AND '2021-05-01'
-
-ORDER BY db_date
+	ON COALESCE(t.date_actual,t.date_planned) = c.db_date
+WHERE (be.budgetedevent_id is not null or t.id is not NULL)
+ AND c.db_date BETWEEN '2021-01-01' AND '2021-05-01'
+ 
+ ORDER BY c.db_date
+ )
