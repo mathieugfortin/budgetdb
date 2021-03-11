@@ -121,6 +121,37 @@ class budgetedEventsListView(ListView):
 
 class CalendarListView(ListView):
     model = CalendarView
+    context_object_name = 'calendar_list'
+    template_name = 'budgetdb/calendarview_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        month = self.request.GET.get('month', None)
+        year = self.request.GET.get('year', None)
+
+        # use today's date for the calendar
+        if year is None:
+            d = datetime.today()
+        else:
+            d = datetime(int(year), int(month), 1)
+
+        # Instantiate our calendar class with today's year and date
+        cal = Calendar(d.year, d.month)
+
+        # Call the formatmonth method, which returns our calendar as a table
+        html_cal = cal.formatmonthlist(withyear=True)
+        context['calendar'] = mark_safe(html_cal)
+        context['prev_month'] = (d + relativedelta(months=-1)).month
+        context['prev_year'] = (d + relativedelta(months=-1)).year
+        context['next_month'] = (d + relativedelta(months=+1)).month
+        context['next_year'] = (d + relativedelta(months=+1)).year
+        context['now_month'] = datetime.today().month
+        context['now_year'] = datetime.today().year
+        return context
+
+
+class CalendarTableView(ListView):
+    model = CalendarView
     template_name = 'budgetdb/calendar.html'
 
     def get_context_data(self, **kwargs):

@@ -39,7 +39,9 @@ urlpatterns = [
          name='autocomplete_cat1'),
     path('cat2/ac/', views.AutocompleteCat2.as_view(),
          name='autocomplete_cat2'),
-    path('calendar/', views.CalendarListView.as_view(),
+    path('calendar/', views.CalendarTableView.as_view(),
          name='calendar'),
+    path('list/', views.CalendarListView.as_view(),
+         name='list_full'),
 
 ]
