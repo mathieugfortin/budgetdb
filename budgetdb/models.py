@@ -279,7 +279,7 @@ class Transaction(models.Model):
     # index could be hard to calculate for complex repetition patterns...
     date_actual = models.DateField('date of the transaction')
     amount_actual = models.DecimalField(
-        'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.0000')
+        'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
     )
     description = models.CharField('transaction description', max_length=200)
     comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
@@ -418,3 +418,17 @@ class CalendarView(models.Model):
     transaction = models.ForeignKey(Transaction, on_delete=models.DO_NOTHING)
     BE_description = models.TextField()
     T_description = models.TextField()
+    BE_source = models.ForeignKey(Account, on_delete=models.DO_NOTHING, related_name='cbe_account_source',
+                                  blank=True, null=True)
+    BE_destination = models.ForeignKey(Account, on_delete=models.DO_NOTHING,
+                                       related_name='cbe_account_destination',
+                                       blank=True, null=True)
+    BE_ammount = models.DecimalField('Budgeted amount', decimal_places=2, max_digits=10,
+                                     blank=True, null=True)
+    T_source = models.ForeignKey(Account, on_delete=models.DO_NOTHING, related_name='ct_account_source',
+                                 blank=True, null=True)
+    T_destination = models.ForeignKey(Account, on_delete=models.DO_NOTHING,
+                                      related_name='ct_account_destination',
+                                      blank=True, null=True)
+    T_ammount = models.DecimalField('Transaction amount', decimal_places=2, max_digits=10,
+                                    blank=True, null=True)

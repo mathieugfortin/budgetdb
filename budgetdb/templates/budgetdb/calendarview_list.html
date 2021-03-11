@@ -1,0 +1,88 @@
+{% extends 'budgetdb/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+
+{% block content %}
+    <style>
+        .calendar th {
+  padding: 1px 9px 0px 9px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.calendar td {
+  width: 200px;
+  padding: 1px 0px 0px 9px;
+}
+    </style>
+    <div class="clearfix">
+        <a class="btn btn-info left" href="{% url 'budgetdb:list_full' %}?year={{ prev_year }}&month={{ prev_month }}"> Previous Month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:list_full' %}?year={{ now_year }}&month={{ now_month }}"> Now </a>
+        <a class="btn btn-info right" href="{% url 'budgetdb:list_full' %}?year={{ next_year }}&month={{ next_month }}"> Next Month </a>
+    </div>
+    
+    {{ calendar }}
+
+{% endblock %}
+
+{% block script %}
+<script>
+    function filter(input, index) {
+      var filter, table, tr, td, i, txtValue;
+      filter = input.value.toUpperCase();
+      table = document.getElementById("calendarlist");
+      tr = table.getElementsByTagName("tr");
+      for (i = 3; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[index];
+        if (td) {
+          txtValue = td.textContent || td.innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }       
+      }
+    }
+
+    function myFunctionDate() {
+      var input;
+      input = document.getElementById("myDate");
+      filter(input,0)
+    }
+    function myFunctionDesc() {
+      var input;
+      input = document.getElementById("myDesc");
+      filter(input,1)
+    }
+    function myFunctionAmm() {
+      var input;
+      input = document.getElementById("myAmm");
+      filter(input,2)
+    }
+    function myFunctionSource() {
+      var input;
+      input = document.getElementById("mySource");
+      filter(input,3)
+    }
+    function myFunctionDest() {
+      var input;
+      input = document.getElementById("myDest");
+      filter(input,4)
+    }
+    </script>
+{% endblock %}
+
+
+{% block footer %}
+    {{ form.media }}
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+    crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+{% endblock %}
