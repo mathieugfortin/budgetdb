@@ -2,15 +2,78 @@
 
 {% block content %}
 
-<h1>{{ account_name }}</h1>
-account_value_at_start is {{ account_value_at_start }}
+<style>
+tbody>tr>:nth-child(1){
+ width:130px;
+ text-align:left;
+}
+tbody>tr>:nth-child(2){
+ width:300px;
+ text-align:left;
+}
+tbody>tr>:nth-child(3){
+ width:120px;
+ text-align:left;
+}
+tbody>tr>:nth-child(4){
+ width:120px;
+ text-align:left;
+}
+tbody>tr>:nth-child(5){
+ width:100px;
+ text-align:right;
+}
+tbody>tr>:nth-child(6){
+ width:100px;
+ text-align:right;
+}
+
+</style>
+<div class="clearfix">
+    {% for account in account_list  %}
+    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' account.id %}?begin={{ begin }}&end={{ end }}"> {{account.name}} </a>
+    {% endfor %}
+</div>
+
+
+<h1>Account {{ account_name }}</h1>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
+<div class="clearfix">
+    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ month|date:'Y-m-d' }}&end={{ now|date:'Y-m-d' }}"> last 30 days </a>
+    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ 3month|date:'Y-m-d' }}&end={{ now|date:'Y-m-d' }}"> last 90 days </a>
+</div>
 
-<ul>
-{% for transaction in object_list  %}
-    <li><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.description }}</a></li>
-{% endfor %}
-</ul>
+
+
+<table style="width:100%">
+    <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Subcategory</th>
+        <th>Amount</th>
+        <th>Balance</th>
+    </tr>
+    <tr>
+        <td>{{ begin|date:"Y-m-d"}}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>{{ account_value_at_start }}$</td>
+    </tr>
+
+    {% for transaction in object_list  %}
+    <tr>
+        <td>{{ transaction.date_actual|date:"Y-m-d" }}</td>
+        <td><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.description }}</a></td>
+        <td>{{ transaction.cat1 }}</td>
+        <td>{{ transaction.cat2 }}</td>
+        <td money>{{ transaction.amount }}$</td>
+        <td money>{{ transaction.balance }}$</td>
+    </tr>
+    {% endfor %}
+</table> 
 
 {% endblock %}
