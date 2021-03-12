@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
-from django.db.models import Sum
+from django.db.models import Sum, Q
 
 
 class MyBoolMap(models.IntegerField):
@@ -154,15 +154,15 @@ class Account(models.Model):
         return self.name
 
     def balance_by_EOD(self, dateCheck):
-        closestAudit = AccountAudit.objects.filter(account_id=self.account_number, audit_date__lte=dateCheck).order_by('audit_date')[:1]
+        closestAudit = AccountAudit.objects.filter(account_id=self.id, audit_date__lte=dateCheck).order_by('audit_date')[:1]
         if closestAudit.count() == 0:
             transactions = Transaction.objects.filter(date_actual__lte=dateCheck)
         else:
             transactions = Transaction.objects.filter(date_actual__gt=closestAudit.first().audit_date, date_actual__lte=dateCheck)
-        deltap = transactions.filter(account_destination_id=self.account_number).aggregate(Sum('amount_actual'))["amount_actual__sum"]
+        deltap = transactions.filter(account_destination_id=self.id).aggregate(Sum('amount_actual'))["amount_actual__sum"]
         if deltap is None:
             deltap = 0
-        deltam = transactions.filter(account_source_id=self.account_number).aggregate(Sum('amount_actual'))["amount_actual__sum"]
+        deltam = transactions.filter(account_source_id=self.id).aggregate(Sum('amount_actual'))["amount_actual__sum"]
         if deltam is None:
             deltam = 0
 
@@ -170,8 +170,25 @@ class Account(models.Model):
             return deltap - deltam
         return closestAudit.first().audit_amount + deltap - deltam
 
+    def build_report_with_balance(self, start_date, end_date):
+        transactions = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual')
+        transactions = transactions.filter(Q(account_destination_id=self.id) | Q(account_source_id=self.id))
+        balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD(start_date))
+        for item in transactions:
+            amount = Decimal(0.00)
+            if item.account_destination_id == self.id:
+                amount += item.amount_actual
+            if item.account_source_id == self.id:
+                amount -= item.amount_actual
+            balance = balance + amount
+            item.balance = balance
+            item.amount = amount
+
+        return transactions
+
 
 class AccountAudit(models.Model):
+    # Force an account to a specific balance on a given date.
     class Meta:
         verbose_name = 'Account audit point'
         verbose_name_plural = 'Account audit points'
@@ -320,6 +337,8 @@ class Transaction(models.Model):
     account_destination = models.ForeignKey(
         Account, on_delete=models.CASCADE, related_name='t_account_destination', blank=True, null=True
     )
+
+    # verify in init that cat1 and cat2 fit together
 
     def __str__(self):
         return self.description

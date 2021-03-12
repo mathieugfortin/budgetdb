@@ -8,12 +8,13 @@ from django.views.generic import ListView, CreateView, UpdateView
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from dal import autocomplete
-from datetime import datetime
+from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, CalendarView
 from .forms import BudgetedEventForm
 from .utils import Calendar
 import pytz
+from decimal import *
 
 
 class AutocompleteAccount(autocomplete.Select2QuerySetView):
@@ -134,21 +135,28 @@ class AccountperiodicView(ListView):
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
         if begin is None:
-            end = datetime.today()
+            end = date.today()
             begin = end + relativedelta(months=-1)
-
-        transactions = Transaction.objects.filter(date_actual__gt=begin, date_actual__lte=end)
-        transactions = transactions.filter(account_destination_id=pk) | transactions.filter(account_source_id=pk)
-
+        transactions = Account.objects.get(id=pk).build_report_with_balance(begin,end)
         return transactions
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
         begin = self.request.GET.get('begin', None)
+        end = self.request.GET.get('end', None)
+        if end is None:
+            end = date.today()
         if begin is None:
-            begin = datetime.today() + relativedelta(months=-1)
+            begin = end + relativedelta(months=-1)
 
+        context['account_list'] = Account.objects.all()
+        context['begin'] = begin
+        context['end'] = end
+        context['pk'] = pk
+        context['now'] = date.today()
+        context['month'] = date.today() + relativedelta(months=-1)
+        context['3month'] = date.today() + relativedelta(months=-3)
         context['account_name'] = Account.objects.get(id=pk).name
         context['account_value_at_start'] = Account.objects.get(id=pk).balance_by_EOD(begin)
         return context
@@ -174,9 +182,9 @@ class CalendarListView(ListView):
 
         # use today's date for the calendar
         if year is None:
-            d = datetime.today()
+            d = date.today()
         else:
-            d = datetime(int(year), int(month), 1)
+            d = date(int(year), int(month), 1)
 
         # Instantiate our calendar class with today's year and date
         cal = Calendar(d.year, d.month)
@@ -188,8 +196,8 @@ class CalendarListView(ListView):
         context['prev_year'] = (d + relativedelta(months=-1)).year
         context['next_month'] = (d + relativedelta(months=+1)).month
         context['next_year'] = (d + relativedelta(months=+1)).year
-        context['now_month'] = datetime.today().month
-        context['now_year'] = datetime.today().year
+        context['now_month'] = date.today().month
+        context['now_year'] = date.today().year
         return context
 
 
@@ -204,9 +212,9 @@ class CalendarTableView(ListView):
 
         # use today's date for the calendar
         if year is None:
-            d = datetime.today()
+            d = date.today()
         else:
-            d = datetime(int(year), int(month), 1)
+            d = date(int(year), int(month), 1)
 
         # Instantiate our calendar class with today's year and date
         cal = Calendar(d.year, d.month)
@@ -218,8 +226,8 @@ class CalendarTableView(ListView):
         context['prev_year'] = (d + relativedelta(months=-1)).year
         context['next_month'] = (d + relativedelta(months=+1)).month
         context['next_year'] = (d + relativedelta(months=+1)).year
-        context['now_month'] = datetime.today().month
-        context['now_year'] = datetime.today().year
+        context['now_month'] = date.today().month
+        context['now_year'] = date.today().year
         return context
 
 
