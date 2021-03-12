@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
+from django.db.models import Sum
 
 
 class MyBoolMap(models.IntegerField):
@@ -152,6 +153,33 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
+    def balance_by_EOD(self, dateCheck):
+        closestAudit = AccountAudit.objects.filter(account_id=self.account_number, audit_date__lte=dateCheck).order_by('audit_date')[:1]
+        if closestAudit.count() == 0:
+            transactions = Transaction.objects.filter(date_actual__lte=dateCheck)
+        else:
+            transactions = Transaction.objects.filter(date_actual__gt=closestAudit.first().audit_date, date_actual__lte=dateCheck)
+        deltap = transactions.filter(account_destination_id=self.account_number).aggregate(Sum('amount_actual'))["amount_actual__sum"]
+        if deltap is None:
+            deltap = 0
+        deltam = transactions.filter(account_source_id=self.account_number).aggregate(Sum('amount_actual'))["amount_actual__sum"]
+        if deltam is None:
+            deltam = 0
+
+        if closestAudit.count() == 0:
+            return deltap - deltam
+        return closestAudit.first().audit_amount + deltap - deltam
+
+
+class AccountAudit(models.Model):
+    class Meta:
+        verbose_name = 'Account audit point'
+        verbose_name_plural = 'Account audit points'
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='audit_account')
+    audit_date = models.DateField('date of the audit')
+    audit_amount = models.DecimalField('audit amount', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
+    comment = models.CharField(max_length=200)
+
 
 class Vendor(models.Model):
     name = models.CharField(max_length=200)
@@ -274,9 +302,8 @@ class Transaction(models.Model):
         'event index, nth repetition of that budgeted event', blank=True, null=True
     )  # is this really needed?
     date_planned = models.DateField('planned date', blank=True, null=True)
-    # not modifiable if linked to a budgeted event -- HOW?
-    # not sure what option is better.  Just use date planned to match the budgeted event or use the index?
-    # index could be hard to calculate for complex repetition patterns...
+    # date_planned only populated if linked to a budgeted_event
+    # will break if repetition pattern of BE changes... so it can't change?
     date_actual = models.DateField('date of the transaction')
     amount_actual = models.DecimalField(
         'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
@@ -296,16 +323,6 @@ class Transaction(models.Model):
 
     def __str__(self):
         return self.description
-
-
-class AccountAudit(models.Model):
-    class Meta:
-        verbose_name = 'Account audit point'
-        verbose_name_plural = 'Account audit points'
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='audit_account')
-    audit_date = models.DateField('date of the audit')
-    audit_amount = models.DecimalField('audit amount', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
-    comment = models.CharField(max_length=200)
 
 
 class Statement (models.Model):

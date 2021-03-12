@@ -1,0 +1,16 @@
+{% extends "budgetdb/base.html" %}
+
+{% block content %}
+
+<h1>{{ account_name }}</h1>
+account_value_at_start is {{ account_value_at_start }}
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+
+<ul>
+{% for transaction in object_list  %}
+    <li><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.description }}</a></li>
+{% endfor %}
+</ul>
+
+{% endblock %}
