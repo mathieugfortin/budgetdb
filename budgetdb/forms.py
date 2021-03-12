@@ -34,7 +34,7 @@ class BudgetedEventForm(forms.ModelForm):
                 autocomplete.ModelSelect2(url='budgetdb:autocomplete_account'), reverse_lazy('budgetdb:create_account')
                 ),
             'cat1': AddAnotherWidgetWrapper(
-                autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat1'), reverse_lazy('budgetdb:create_cat1')
+                autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat1'), reverse_lazy('budgetdb:create_cat')
                 ),
             'cat2': AddAnotherWidgetWrapper(
                 autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat2', forward=['cat1']), reverse_lazy('budgetdb:create_cat2')

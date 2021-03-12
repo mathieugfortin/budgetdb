@@ -13,6 +13,7 @@ from dateutil.relativedelta import relativedelta
 from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, CalendarView
 from .forms import BudgetedEventForm
 from .utils import Calendar
+import pytz
 
 
 class AutocompleteAccount(autocomplete.Select2QuerySetView):
@@ -80,6 +81,11 @@ class CategoryDetailView(DetailView):
     template_name = 'budgetdb/cat1_detail.html'
 
 
+class SubCategoryDetailView(DetailView):
+    model = Cat2
+    template_name = 'budgetdb/cat2_detail.html'
+
+
 class TransactionDetailView(DetailView):
     model = Transaction
     template_name = 'budgetdb/transact_detail.html'
@@ -109,6 +115,43 @@ class IndexView(ListView):
 
     def get_queryset(self):
         return Cat1.objects.order_by('name')[:5]
+
+
+class CategoryListView(ListView):
+    template_name = 'budgetdb/cat_list.html'
+    context_object_name = 'categories_list'
+
+    def get_queryset(self):
+        return Cat1.objects.order_by('name')
+
+
+class AccountperiodicView(ListView):
+    model = Account
+    template_name = 'budgetdb/AccountperiodicView.html'
+
+    def get_queryset(self):
+        pk = self.kwargs['pk']
+        begin = self.request.GET.get('begin', None)
+        end = self.request.GET.get('end', None)
+        if begin is None:
+            end = datetime.today()
+            begin = end + relativedelta(months=-1)
+
+        transactions = Transaction.objects.filter(date_actual__gt=begin, date_actual__lte=end)
+        transactions = transactions.filter(account_destination_id=pk) | transactions.filter(account_source_id=pk)
+
+        return transactions
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
+        begin = self.request.GET.get('begin', None)
+        if begin is None:
+            begin = datetime.today() + relativedelta(months=-1)
+
+        context['account_name'] = Account.objects.get(id=pk).name
+        context['account_value_at_start'] = Account.objects.get(id=pk).balance_by_EOD(begin)
+        return context
 
 
 class budgetedEventsListView(ListView):
