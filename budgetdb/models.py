@@ -154,37 +154,51 @@ class Account(models.Model):
         return self.name
 
     def balance_by_EOD(self, dateCheck):
+        now = datetime.date.today()
         closestAudit = AccountAudit.objects.filter(account_id=self.id, audit_date__lte=dateCheck).order_by('audit_date')[:1]
         if closestAudit.count() == 0:
-            transactions = Transaction.objects.filter(date_actual__lte=dateCheck)
+            balance = Decimal(0.00)
+            events = CalendarView.objects.filter(db_date__lte=dateCheck)
         else:
-            transactions = Transaction.objects.filter(date_actual__gt=closestAudit.first().audit_date, date_actual__lte=dateCheck)
-        deltap = transactions.filter(account_destination_id=self.id).aggregate(Sum('amount_actual'))["amount_actual__sum"]
-        if deltap is None:
-            deltap = 0
-        deltam = transactions.filter(account_source_id=self.id).aggregate(Sum('amount_actual'))["amount_actual__sum"]
-        if deltam is None:
-            deltam = 0
+            balance = Decimal(closestAudit.first().audit_amount)
+            events = CalendarView.objects.filter(db_date__gt=closestAudit.first().audit_date, db_date__lte=dateCheck)
 
-        if closestAudit.count() == 0:
-            return deltap - deltam
-        return closestAudit.first().audit_amount + deltap - deltam
+        events.exclude(future_only=True, db_date__gte=now).order_by('db_date')
+
+        for event in events:
+            amount = Decimal(0.00)
+            if event.e_type == 'accountaudit':
+                # check if audit is the last event of the day...  order them so
+                balance = event.amount
+            else:
+                if event.account_destination_id == self.id:
+                    amount += event.amount
+                if event.account_source_id == self.id:
+                    amount -= event.amount
+                balance = balance + amount
+
+        return balance
 
     def build_report_with_balance(self, start_date, end_date):
-        transactions = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual')
-        transactions = transactions.filter(Q(account_destination_id=self.id) | Q(account_source_id=self.id))
+        now = datetime.date.today()
+        events = CalendarView.objects.filter(db_date__gt=start_date, db_date__lte=end_date).order_by('db_date')
+        events = events.filter(account_destination_id=self.id) | events.filter(account_source_id=self.id)
+        events.exclude(future_only=True, db_date__gte=now)
         balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD(start_date))
-        for item in transactions:
+        for event in events:
             amount = Decimal(0.00)
-            if item.account_destination_id == self.id:
-                amount += item.amount_actual
-            if item.account_source_id == self.id:
-                amount -= item.amount_actual
-            balance = balance + amount
-            item.balance = balance
-            item.amount = amount
-
-        return transactions
+            if event.e_type == 'accountaudit':
+                balance = event.amount
+                event.calc_amount = ""
+            else:
+                if event.account_destination_id == self.id:
+                    amount += event.amount
+                if event.account_source_id == self.id:
+                    amount -= event.amount
+                balance = balance + amount
+                event.calc_amount = str(amount) + "$"
+            event.balance = str(balance) + "$"
+        return events
 
 
 class AccountAudit(models.Model):
@@ -449,22 +463,23 @@ class CalendarView(models.Model):
         verbose_name_plural = 'Calendars'
         managed = False
         db_table = 'calendar_view'
+    e_type = models.TextField()
     db_date = models.DateField()
-    budgetedevent = models.ForeignKey(BudgetedEvent, on_delete=models.DO_NOTHING)
-    transaction = models.ForeignKey(Transaction, on_delete=models.DO_NOTHING)
-    BE_description = models.TextField()
-    T_description = models.TextField()
-    BE_source = models.ForeignKey(Account, on_delete=models.DO_NOTHING, related_name='cbe_account_source',
-                                  blank=True, null=True)
-    BE_destination = models.ForeignKey(Account, on_delete=models.DO_NOTHING,
-                                       related_name='cbe_account_destination',
-                                       blank=True, null=True)
-    BE_ammount = models.DecimalField('Budgeted amount', decimal_places=2, max_digits=10,
-                                     blank=True, null=True)
-    T_source = models.ForeignKey(Account, on_delete=models.DO_NOTHING, related_name='ct_account_source',
+    e_id = models.IntegerField()
+    description = models.TextField()
+    amount = models.DecimalField('Budgeted amount', decimal_places=2, max_digits=10,
                                  blank=True, null=True)
-    T_destination = models.ForeignKey(Account, on_delete=models.DO_NOTHING,
-                                      related_name='ct_account_destination',
-                                      blank=True, null=True)
-    T_ammount = models.DecimalField('Transaction amount', decimal_places=2, max_digits=10,
-                                    blank=True, null=True)
+    account_source = models.ForeignKey(Account, on_delete=models.DO_NOTHING, related_name='ct_account_source',
+                                       blank=True, null=True)
+    account_destination = models.ForeignKey(Account, on_delete=models.DO_NOTHING,
+                                            related_name='ct_account_destination',
+                                            blank=True, null=True)
+    future_only = models.BooleanField()
+    cat1 = models.ForeignKey(Cat1, on_delete=models.DO_NOTHING,
+                             verbose_name='Category')
+    cat2 = models.ForeignKey(Cat2, on_delete=models.DO_NOTHING,
+                             verbose_name='Subcategory')
+    
+    def __str__(self):
+        return self.description
+

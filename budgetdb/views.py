@@ -137,8 +137,8 @@ class AccountperiodicView(ListView):
         if begin is None:
             end = date.today()
             begin = end + relativedelta(months=-1)
-        transactions = Account.objects.get(id=pk).build_report_with_balance(begin,end)
-        return transactions
+        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
+        return events
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -158,7 +158,6 @@ class AccountperiodicView(ListView):
         context['month'] = date.today() + relativedelta(months=-1)
         context['3month'] = date.today() + relativedelta(months=-3)
         context['account_name'] = Account.objects.get(id=pk).name
-        context['account_value_at_start'] = Account.objects.get(id=pk).balance_by_EOD(begin)
         return context
 
 

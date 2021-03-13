@@ -42,3 +42,4 @@ env.bak/
 venv.bak/
 
 /secrets.json
+secret*.sql

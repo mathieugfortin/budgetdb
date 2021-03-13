@@ -22,7 +22,7 @@ urlpatterns = [
 
     # Cat2
     path('subcategory/<int:pk>/', views.SubCategoryDetailView.as_view(),
-         name='details_subcat'),  
+         name='details_subcat'),
     path('cat2/add/', views.CreateCat2.as_view(),
          name='create_cat2'),
     path('cat2/ac/', views.AutocompleteCat2.as_view(),
@@ -49,7 +49,7 @@ urlpatterns = [
          name='autocomplete_vendor'),
     path('vendor/add/', views.CreateVendor.as_view(),
          name='create_vendor'),
- 
+
     # Account
     path('account/add/', views.CreateVendor.as_view(),
          name='create_account'),

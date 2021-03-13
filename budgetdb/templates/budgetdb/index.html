@@ -1,6 +1,6 @@
 {% extends "budgetdb/base.html" %}
 {% load static %}
-
+{% block head_comment %}<!--index template-->{% endblock %}
 {% block title %}My dysfunctional budget{% endblock %}
 
 <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
@@ -10,7 +10,7 @@
 {% if categories_list %}
     <ul>
     {% for category in categories_list %}
-        <li><a href="{% url 'budgetdb:category' category.id %}">{{ category.name }}</a></li>
+        <li><a href="{% url 'budgetdb:details_cat' category.id %}">{{ category.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
