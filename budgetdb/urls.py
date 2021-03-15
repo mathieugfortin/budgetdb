@@ -22,7 +22,7 @@ urlpatterns = [
 
     # Cat2
     path('subcategory/<int:pk>/', views.SubCategoryDetailView.as_view(),
-         name='details_subcat'),  
+         name='details_subcat'),
     path('cat2/add/', views.CreateCat2.as_view(),
          name='create_cat2'),
     path('cat2/ac/', views.AutocompleteCat2.as_view(),
@@ -33,6 +33,17 @@ urlpatterns = [
          name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
          name='details_transaction'),
+    path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
+         name='details_transaction_Audit'),
+    path('calendar/', views.TransactionCalendarView.as_view(),
+         name='calendar_transaction'),
+    path('list/', views.TransactionListView.as_view(),
+         name='list_transaction'),
+
+
+    # AccountAudit
+    path('accountaudit/<int:pk>/', views.TransactionDetailView.as_view(),
+         name='details_accountaudit'),
 
     # BudgetedEvent
     path('budgetedEvent/', views.budgetedEventsListView.as_view(),
@@ -49,19 +60,13 @@ urlpatterns = [
          name='autocomplete_vendor'),
     path('vendor/add/', views.CreateVendor.as_view(),
          name='create_vendor'),
- 
+
     # Account
     path('account/add/', views.CreateVendor.as_view(),
          name='create_account'),
     path('account/ac/', views.AutocompleteAccount.as_view(),
          name='autocomplete_account'),
-    path('account/<int:pk>/', views.AccountperiodicView.as_view(),
+    path('account/<int:pk>/', views.AccountperiodicView3.as_view(),
          name='list_account_activity'),
-
-    # Calendar_view
-    path('calendar/', views.CalendarTableView.as_view(),
-         name='table_calendar'),
-    path('list/', views.CalendarListView.as_view(),
-         name='list_calendar'),
 
 ]

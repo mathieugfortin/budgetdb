@@ -1,9 +1,16 @@
 CREATE OR REPLACE VIEW calendar_view_be AS (
 	SELECT distinct
-	row_number() OVER () as id
-	,c.db_date
-	,be.id as budgetedevent_id
-	,be.description
+		row_number() OVER () as id
+		,'be' AS e_type
+		,c.db_date
+		,be.id AS e_id
+		,be.description
+		,be.amount_planned AS amount
+		,be.account_destination_id
+		,be.account_source_id
+		,be.cat1_id
+		,be.cat2_id
+		,be.budget_only AS future_only
 
 	FROM budgetdb.budgetdb_mycalendar c
 	LEFT JOIN budgetdb.budgetdb_transaction tb ON tb.date_planned = c.db_date
@@ -15,7 +22,7 @@ CREATE OR REPLACE VIEW calendar_view_be AS (
 		AND 1<<(c.month-1) & be.repeat_months_mask
 		AND 1<<weekday(c.db_date) & be.repeat_weekday_mask
 		AND 1<<(floor((datediff(c.db_date,STR_TO_DATE(CONCAT(c.year,'-',c.month,'-01'), '%Y-%m-%d'))+1)/7)) & be.repeat_weekofmonth_mask
-		AND (tb.id is null or not ( tb.BudgetedEvent_id=be.id )) -- AND tb.date_actual != c.db_date))
+		AND (tb.id is null or not ( tb.BudgetedEvent_id=be.id ))
 	)
 	AND (
 		be.repeat_start=c.db_date

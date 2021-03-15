@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, CalendarView
+from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account
 from .forms import BudgetedEventForm
 from .utils import Calendar
 import pytz
@@ -126,9 +126,9 @@ class CategoryListView(ListView):
         return Cat1.objects.order_by('name')
 
 
-class AccountperiodicView(ListView):
+class AccountperiodicView3(ListView):
     model = Account
-    template_name = 'budgetdb/AccountperiodicView.html'
+    template_name = 'budgetdb/AccountperiodicView3.html'
 
     def get_queryset(self):
         pk = self.kwargs['pk']
@@ -137,8 +137,8 @@ class AccountperiodicView(ListView):
         if begin is None:
             end = date.today()
             begin = end + relativedelta(months=-1)
-        transactions = Account.objects.get(id=pk).build_report_with_balance(begin,end)
-        return transactions
+        events = Account.objects.get(id=pk).build_report_with_balance3(begin, end)
+        return events
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -158,7 +158,6 @@ class AccountperiodicView(ListView):
         context['month'] = date.today() + relativedelta(months=-1)
         context['3month'] = date.today() + relativedelta(months=-3)
         context['account_name'] = Account.objects.get(id=pk).name
-        context['account_value_at_start'] = Account.objects.get(id=pk).balance_by_EOD(begin)
         return context
 
 
@@ -170,8 +169,8 @@ class budgetedEventsListView(ListView):
         return BudgetedEvent.objects.order_by('description')[:5]
 
 
-class CalendarListView(ListView):
-    model = CalendarView
+class TransactionListView(ListView):
+    model = Transaction
     context_object_name = 'calendar_list'
     template_name = 'budgetdb/calendarview_list.html'
 
@@ -201,8 +200,8 @@ class CalendarListView(ListView):
         return context
 
 
-class CalendarTableView(ListView):
-    model = CalendarView
+class TransactionCalendarView(ListView):
+    model = Transaction
     template_name = 'budgetdb/calendar.html'
 
     def get_context_data(self, **kwargs):

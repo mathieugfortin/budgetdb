@@ -146,6 +146,8 @@ class Account(models.Model):
         verbose_name = 'Account'
         verbose_name_plural = 'Accounts'
 
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
     AccountHost = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     account_number = models.CharField(max_length=200)
@@ -153,38 +155,48 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-    def balance_by_EOD(self, dateCheck):
-        closestAudit = AccountAudit.objects.filter(account_id=self.id, audit_date__lte=dateCheck).order_by('audit_date')[:1]
+    def balance_by_EOD3(self, dateCheck):
+        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('date_actual')[:1]
         if closestAudit.count() == 0:
-            transactions = Transaction.objects.filter(date_actual__lte=dateCheck)
+            balance = Decimal(0.00)
+            events = Transaction.objects.filter(date_actual__lte=dateCheck)
         else:
-            transactions = Transaction.objects.filter(date_actual__gt=closestAudit.first().audit_date, date_actual__lte=dateCheck)
-        deltap = transactions.filter(account_destination_id=self.id).aggregate(Sum('amount_actual'))["amount_actual__sum"]
-        if deltap is None:
-            deltap = 0
-        deltam = transactions.filter(account_source_id=self.id).aggregate(Sum('amount_actual'))["amount_actual__sum"]
-        if deltam is None:
-            deltam = 0
+            balance = Decimal(closestAudit.first().amount_actual)
+            events = Transaction.objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck)
 
-        if closestAudit.count() == 0:
-            return deltap - deltam
-        return closestAudit.first().audit_amount + deltap - deltam
-
-    def build_report_with_balance(self, start_date, end_date):
-        transactions = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual')
-        transactions = transactions.filter(Q(account_destination_id=self.id) | Q(account_source_id=self.id))
-        balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD(start_date))
-        for item in transactions:
+        for event in events:
             amount = Decimal(0.00)
-            if item.account_destination_id == self.id:
-                amount += item.amount_actual
-            if item.account_source_id == self.id:
-                amount -= item.amount_actual
-            balance = balance + amount
-            item.balance = balance
-            item.amount = amount
+            if event.audit is True:
+                balance = event.amount_actual
+            else:
+                if event.account_destination_id == self.id:
+                    amount += event.amount_actual
+                if event.account_source_id == self.id:
+                    amount -= event.amount_actual
+                balance = balance + amount
 
-        return transactions
+        return balance
+
+    def build_report_with_balance3(self, start_date, end_date):
+        events = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual')
+        events = events.filter(account_destination_id=self.id) | events.filter(account_source_id=self.id)
+        balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD3(start_date))
+        for event in events:
+            amount = Decimal(0.00)
+            if event.audit is True:
+                balance = event.amount_actual
+                event.calc_amount = ""
+                event.viewname = f'{event._meta.app_label}:details_transaction_Audit'
+            else:
+                if event.account_destination_id == self.id:
+                    amount += event.amount_actual
+                if event.account_source_id == self.id:
+                    amount -= event.amount_actual
+                balance = balance + amount
+                event.calc_amount = str(amount) + "$"
+                event.viewname = f'{event._meta.app_label}:details_transaction'
+            event.balance = str(balance) + "$"
+        return events
 
 
 class AccountAudit(models.Model):
@@ -192,10 +204,16 @@ class AccountAudit(models.Model):
     class Meta:
         verbose_name = 'Account audit point'
         verbose_name_plural = 'Account audit points'
+
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='audit_account')
     audit_date = models.DateField('date of the audit')
     audit_amount = models.DecimalField('audit amount', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
     comment = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.audit_amount
 
 
 class Vendor(models.Model):
@@ -211,6 +229,8 @@ class BudgetedEvent(models.Model):
         verbose_name = 'Budgeted Event'
         verbose_name_plural = 'Budgeted Events'
 
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
     amount_planned = models.DecimalField('Budgeted amount', decimal_places=2, max_digits=10,
                                          blank=True, null=True)
     percent_planned = models.DecimalField('percent of another event.  say 10% of pay goes to RRSP',
@@ -307,20 +327,38 @@ class BudgetedEvent(models.Model):
             return True
 
 
-# description of a transaction.  Can be linked to a budgeted event or not
+class Statement (models.Model):
+    class Meta:
+        verbose_name = 'Statement'
+        verbose_name_plural = 'Statements'
+
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='statement_account')
+    balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
+    statement_date = models.DateField('date of the statement')
+    statement_due_date = models.DateField('date where payment is due', blank=True, null=True)
+    comment = models.CharField(max_length=200)
+    payment_transaction = models.ForeignKey('Transaction', on_delete=models.CASCADE, related_name='payment_transaction',
+                                            blank=True, null=True)
+
+    def __str__(self):
+        return self.comment
+
+
 class Transaction(models.Model):
     class Meta:
         verbose_name = 'Transaction'
         verbose_name_plural = 'Transactions'
 
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+
     BudgetedEvent = models.ForeignKey(BudgetedEvent, on_delete=models.CASCADE, blank=True,
                                       null=True)
-    BudgetedEvent_index = models.IntegerField(
-        'event index, nth repetition of that budgeted event', blank=True, null=True
-    )  # is this really needed?
     date_planned = models.DateField('planned date', blank=True, null=True)
     # date_planned only populated if linked to a budgeted_event
-    # will break if repetition pattern of BE changes... so it can't change?
+    # will break if repetition pattern of BE changes... so BE can't change if it has attached Ts
     date_actual = models.DateField('date of the transaction')
     amount_actual = models.DecimalField(
         'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
@@ -337,20 +375,13 @@ class Transaction(models.Model):
     account_destination = models.ForeignKey(
         Account, on_delete=models.CASCADE, related_name='t_account_destination', blank=True, null=True
     )
-
-    # verify in init that cat1 and cat2 fit together
+    statement = models.ForeignKey(Statement, on_delete=models.CASCADE, blank=True, null=True)
+    verified = models.BooleanField('confirmed in a statement.  Prevents deletion in case of budgetedEvent change', default=False)
+    audit = models.BooleanField('Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id', default=False)
+    # how do I ensure the audit transaction is always last for a day?
 
     def __str__(self):
         return self.description
-
-
-class Statement (models.Model):
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='statement_account')
-    balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
-    statement_date = models.DateField('date of the statement')
-    statement_due_date = models.DateField('date where payment is due', blank=True, null=True)
-    comment = models.CharField(max_length=200)
-    payment_transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, blank=True, null=True)
 
 
 class BitmapWeeksPerMonth(models.Model):
@@ -441,30 +472,3 @@ class BitmapDayPerMonth(models.Model):
                + 2**19*self.bit20 + 2**20*self.bit21 + 2**21*self.bit22 + 2**22*self.bit23 + 2**23*self.bit24 \
                + 2**24*self.bit25 + 2**25*self.bit26 + 2**26*self.bit27 + 2**27*self.bit28 + 2**28*self.bit29 \
                + 2 ** 29 * self.bit30 + 2 ** 30 * self.bit31
-
-
-class CalendarView(models.Model):
-    class Meta:
-        verbose_name = 'Calendar'
-        verbose_name_plural = 'Calendars'
-        managed = False
-        db_table = 'calendar_view'
-    db_date = models.DateField()
-    budgetedevent = models.ForeignKey(BudgetedEvent, on_delete=models.DO_NOTHING)
-    transaction = models.ForeignKey(Transaction, on_delete=models.DO_NOTHING)
-    BE_description = models.TextField()
-    T_description = models.TextField()
-    BE_source = models.ForeignKey(Account, on_delete=models.DO_NOTHING, related_name='cbe_account_source',
-                                  blank=True, null=True)
-    BE_destination = models.ForeignKey(Account, on_delete=models.DO_NOTHING,
-                                       related_name='cbe_account_destination',
-                                       blank=True, null=True)
-    BE_ammount = models.DecimalField('Budgeted amount', decimal_places=2, max_digits=10,
-                                     blank=True, null=True)
-    T_source = models.ForeignKey(Account, on_delete=models.DO_NOTHING, related_name='ct_account_source',
-                                 blank=True, null=True)
-    T_destination = models.ForeignKey(Account, on_delete=models.DO_NOTHING,
-                                      related_name='ct_account_destination',
-                                      blank=True, null=True)
-    T_ammount = models.DecimalField('Transaction amount', decimal_places=2, max_digits=10,
-                                    blank=True, null=True)

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from calendar import HTMLCalendar
 from django.urls import reverse, reverse_lazy
-from .models import CalendarView
+from .models import Transaction
 
 
 class Calendar(HTMLCalendar):
@@ -11,13 +11,12 @@ class Calendar(HTMLCalendar):
         super(Calendar, self).__init__()
 
     def formatday(self, day, events):
-        events_per_day = events.filter(db_date__day=day)
+        events_per_day = events.filter(date_actual__day=day, audit=0)
         d = ''
         for event in events_per_day:
-            if event.budgetedevent_id is not None:
-                d += F"<li> <a href=\"{reverse('budgetdb:details_be',args=[event.budgetedevent_id])}\"> {event.BE_description} </a></li>"
-            if event.transaction_id is not None:
-                d += F"<li> <a href=\"{reverse('budgetdb:details_transaction',args=[event.transaction_id])}\"> {event.T_description} </a></li>"
+            url = reverse(f'{event._meta.app_label}:details_transaction', args=[event.id])
+            d += f'<li> <a href="{url}"> {event.description} </a></li>'
+            d = d
 
         if day != 0:
             return f"<td><span class='date'>{day}</span><ul> {d} </ul></td>"
@@ -33,7 +32,7 @@ class Calendar(HTMLCalendar):
     # formats a month as a table
     # filter events by year and month
     def formatmonth(self, withyear=True):
-        events = CalendarView.objects.filter(db_date__year=self.year, db_date__month=self.month)
+        events = Transaction.objects.filter(date_actual__year=self.year, date_actual__month=self.month)
 
         cal = f'<table border="0" cellpadding="0" cellspacing="0" class="calendar">\n'
         cal += f'{self.formatmonthname(self.year, self.month, withyear=withyear)}\n'
@@ -43,17 +42,12 @@ class Calendar(HTMLCalendar):
         return cal
 
     def formatdaylist(self, day, events):
-        events_per_day = events.filter(db_date__day=day)
+        events_per_day = events.filter(date_actual__day=day)
         d = ''
         for event in events_per_day:
-            if event.budgetedevent_id is not None:
-                d += f'<td>{event.db_date}</td>'
-                d += f'<td>{event.BE_description}</td><td>{event.BE_ammount}$</td>'
-                d += f'<td>{event.BE_source}</td><td>{event.BE_destination}</td></tr>\n'
-            if event.transaction_id is not None:
-                d += f'<td>{event.db_date}</td>'
-                d += f'<td>{event.T_description}</td><td>{event.T_ammount}$</td>'
-                d += f'<td>{event.T_source}</td><td>{event.T_destination}</td></tr>\n'
+            d += f'<td>{event.date_actual}</td>'
+            d += f'<td>{event.description}</td><td>{event.amount_actual}$</td>'
+            d += f'<td>{event.account_source}</td><td>{event.account_destination}</td></tr>\n'
 
         if day != 0:
             return d
@@ -62,7 +56,7 @@ class Calendar(HTMLCalendar):
     # formats a month as a list
     # filter events by year and month
     def formatmonthlist(self, withyear=True):
-        events_per_month = CalendarView.objects.filter(db_date__year=self.year, db_date__month=self.month)
+        events_per_month = Transaction.objects.filter(date_actual__year=self.year, date_actual__month=self.month)
         cal = f'<table border="0" cellpadding="0" cellspacing="0" class="calendar" id="calendarlist">\n'
         cal += f'{self.formatmonthname(self.year, self.month, withyear=withyear)}\n'
         cal += f'<tr><th class="date">Date</th><th class="description">Description</th><th class="Ammount">Ammount</th><th class="source">Source</th><th class="destination">Destination</th></tr>\n'
@@ -74,8 +68,8 @@ class Calendar(HTMLCalendar):
         day = 0
 
         for event in events_per_month:
-            if event.db_date.day != day:
-                day = event.db_date.day
+            if event.date_actual.day != day:
+                day = event.date_actual.day
                 cal += self.formatdaylist(day, events_per_month)
 
         return cal

@@ -1,5 +1,6 @@
 {% extends "budgetdb/base.html" %}
 
+{% block head_comment %}<!--AccountperiodicView3 template-->{% endblock %}
 {% block content %}
 
 <style>
@@ -27,6 +28,13 @@ tbody>tr>:nth-child(6){
  width:100px;
  text-align:right;
 }
+tr.AUDIT {
+  background-color: lightsalmon
+}
+tr.BUDGET {
+  background-color: rgb(78, 167, 240)
+}
+
 
 </style>
 <div class="clearfix">
@@ -42,6 +50,8 @@ tbody>tr>:nth-child(6){
 <div class="clearfix">
     <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ month|date:'Y-m-d' }}&end={{ now|date:'Y-m-d' }}"> last 30 days </a>
     <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ 3month|date:'Y-m-d' }}&end={{ now|date:'Y-m-d' }}"> last 90 days </a>
+    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin=2020-01-01&end=2021-12-31"> all </a>
+    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin=2020-01-01&end=2020-04-01"> begin </a>
 </div>
 
 
@@ -55,23 +65,17 @@ tbody>tr>:nth-child(6){
         <th>Amount</th>
         <th>Balance</th>
     </tr>
-    <tr>
-        <td>{{ begin|date:"Y-m-d"}}</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td>{{ account_value_at_start }}$</td>
-    </tr>
 
-    {% for transaction in object_list  %}
-    <tr>
-        <td>{{ transaction.date_actual|date:"Y-m-d" }}</td>
-        <td><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.description }}</a></td>
-        <td>{{ transaction.cat1 }}</td>
-        <td>{{ transaction.cat2 }}</td>
-        <td money>{{ transaction.amount }}$</td>
-        <td money>{{ transaction.balance }}$</td>
+    {% for event in object_list  %}
+    <tr {% if event.audit == 1 %} class="AUDIT" {% endif %}
+    {% if event.budgetedevent_id != None and event.verified == 0 %} class="BUDGET" {% endif %}
+    >
+        <td>{{ event.date_actual|date:"Y-m-d" }}</td>
+        <td><a href="{% url event.viewname event.id %}">{{ event.description }}</a></td>
+        <td>{% if event.audit == 0 %} {{ event.cat1 }} {% endif %}</td>
+        <td>{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>
+        <td money>{{ event.calc_amount }}</td>
+        <td money>{{ event.balance }}$</td>
     </tr>
     {% endfor %}
 </table> 
