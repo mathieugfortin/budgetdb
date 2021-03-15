@@ -17,9 +17,9 @@
 }
     </style>
     <div class="clearfix">
-        <a class="btn btn-info left" href="{% url 'budgetdb:list_calendar' %}?year={{ prev_year }}&month={{ prev_month }}"> Previous Month </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:list_calendar' %}?year={{ now_year }}&month={{ now_month }}"> Now </a>
-        <a class="btn btn-info right" href="{% url 'budgetdb:list_calendar' %}?year={{ next_year }}&month={{ next_month }}"> Next Month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:list_transaction' %}?year={{ prev_year }}&month={{ prev_month }}"> Previous Month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:list_transaction' %}?year={{ now_year }}&month={{ now_month }}"> Now </a>
+        <a class="btn btn-info right" href="{% url 'budgetdb:list_transaction' %}?year={{ next_year }}&month={{ next_month }}"> Next Month </a>
     </div>
     
     {{ calendar }}

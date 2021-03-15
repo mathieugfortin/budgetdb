@@ -9,8 +9,8 @@ CREATE OR REPLACE VIEW calendar_view_A AS (
 		,a.account_id AS account_destination_id
 		,a.account_id AS account_source_id
 		,NULL AS cat1_id
-		,NULL AS cat2s_id
-		,0
+		,NULL AS cat2_id
+		,0 as future_only
 	
 	FROM budgetdb.budgetdb_mycalendar c
 	JOIN budgetdb.budgetdb_accountaudit a ON c.db_date = a.audit_date

@@ -10,7 +10,7 @@ CREATE OR REPLACE VIEW calendar_view_T AS (
 		,t.account_source_id
 		,t.cat1_id
 		,t.cat2_id
-		,0
+		,0 AS future_only
 	
 	FROM budgetdb.budgetdb_mycalendar c
 	JOIN budgetdb.budgetdb_transaction t ON t.date_actual = c.db_date

@@ -1,6 +1,6 @@
 {% extends "budgetdb/base.html" %}
 
-{% block head_comment %}<!--AccountperiodicView2 template-->{% endblock %}
+{% block head_comment %}<!--AccountperiodicView3 template-->{% endblock %}
 {% block content %}
 
 <style>
@@ -32,7 +32,7 @@ tr.AUDIT {
   background-color: lightsalmon
 }
 tr.BUDGET {
-  background-color: lightsalmon
+  background-color: rgb(78, 167, 240)
 }
 
 
@@ -67,13 +67,13 @@ tr.BUDGET {
     </tr>
 
     {% for event in object_list  %}
-    <tr {% if event.e_type == "accountaudit" %} class="AUDIT" {% endif %}
-        {% if event.e_type == "be" %} class="BUDGET" {% endif %}
+    <tr {% if event.audit == 1 %} class="AUDIT" {% endif %}
+    {% if event.budgetedevent_id != None and event.verified == 0 %} class="BUDGET" {% endif %}
     >
-        <td>{{ event.db_date|date:"Y-m-d" }}</td>
-        <td><a href="{% url 'budgetdb:details_transaction' event.e_id %}">{{ event.description }}</a></td>
-        <td>{{ event.cat1 }}</td>
-        <td>{{ event.cat2 }}</td>
+        <td>{{ event.date_actual|date:"Y-m-d" }}</td>
+        <td><a href="{% url event.viewname event.id %}">{{ event.description }}</a></td>
+        <td>{% if event.audit == 0 %} {{ event.cat1 }} {% endif %}</td>
+        <td>{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>
         <td money>{{ event.calc_amount }}</td>
         <td money>{{ event.balance }}$</td>
     </tr>
