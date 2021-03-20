@@ -73,3 +73,18 @@ class Calendar(HTMLCalendar):
                 cal += self.formatdaylist(day, events_per_month)
 
         return cal
+
+
+class Bitmap():
+    bits = []
+    n = 0
+
+    def __init__(self, n):
+        self.n = n
+        self.bits = [False for i in range(n)]
+
+    def __str__(self):
+        intvalue = 0
+        for i in range(n):
+            intvalue += 2**n*bits[n]
+        return intvalue

@@ -4,7 +4,7 @@ from django.forms import ModelForm
 from django.shortcuts import get_object_or_404, render
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
-from django.views.generic import ListView, CreateView, UpdateView
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from dal import autocomplete
@@ -15,6 +15,73 @@ from .forms import BudgetedEventForm
 from .utils import Calendar
 import pytz
 from decimal import *
+from chartjs.views.lines import BaseLineChartView
+
+
+class FirstGraph(TemplateView):
+    template_name = 'budgetdb/firstgraph.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        begin = self.request.GET.get('begin', None)
+        end = self.request.GET.get('end', None)
+        ac = self.request.GET.get('ac', None)
+        account_ID_List = [int(e) if e.isdigit() else e for e in ac.split(',')]
+        accounts = Account.objects.filter(pk__in=account_ID_List)
+
+        context['accounts'] = accounts
+        context['begin'] = begin
+        context['end'] = end
+        context['ac'] = ac
+        return context
+
+
+class FirstGraphJSON(BaseLineChartView):
+    x_labels = []
+    data = []
+    line_labels = []
+
+    def get_labels(self):
+        return self.x_labels
+
+    def get_providers(self):
+        return self.line_labels
+
+    def get_data(self):
+        return self.data
+
+    def get_context_data(self, **kwargs):
+        self.line_labels = []
+        self.x_labels = []
+        balance = 0
+
+        begin = self.request.GET.get('begin', None)
+        end = self.request.GET.get('end', None)
+        ac = self.request.GET.get('ac', None)
+        account_ID_List = [int(e) if e.isdigit() else e for e in ac.split(',')]
+
+        if begin is None:
+            end = date.today()
+            begin = end + relativedelta(months=-1)
+
+        accounts = Account.objects.filter(pk__in=account_ID_List)
+        self.data = [[] for i in range(accounts.count())]
+        account_counter = 0
+        for account in accounts:
+            balances_array = account.build_balance_array(begin, end)
+            self.line_labels.append(account.name)
+            for day in balances_array:
+                if account_counter == 0:
+                    self.x_labels.append(day.db_date)
+                if day.audit is not None:
+                    balance = day.audit
+                else:
+                    if day.rel is not None:
+                        balance += day.rel
+                self.data[account_counter].append(balance)
+            account_counter += 1
+        context = super().get_context_data(**kwargs)
+        return context
 
 
 class AutocompleteAccount(autocomplete.Select2QuerySetView):
@@ -63,6 +130,12 @@ class AutocompleteCat2(autocomplete.Select2QuerySetView):
         return qs
 
 
+def load_cat2(request):
+    cat1_id = request.GET.get('cat1')
+    cat2s = Cat2.objects.filter(cat1=cat1_id).order_by('name')
+    return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
+
+
 class AutocompleteVendor(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Don't forget to filter out results depending on the visitor !
@@ -103,10 +176,12 @@ class BudgetedEventDetailView(DetailView):
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
         # Add in a QuerySet of all the books
         context['vendor_list'] = Vendor.objects.all()
         context['cat1_list'] = Cat1.objects.all()
         context['cat2_list'] = Cat2.objects.all()
+        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=10)
         return context
 
 
@@ -124,6 +199,15 @@ class CategoryListView(ListView):
 
     def get_queryset(self):
         return Cat1.objects.order_by('name')
+
+
+class AccountListView(ListView):
+    context_object_name = 'account_list'
+
+    def get_queryset(self):
+        return Account.objects.order_by('name')
+
+
 
 
 class AccountperiodicView3(ListView):
@@ -239,7 +323,7 @@ class BudgetedEventView(UpdateView):
 class BudgetedEventCreateView(CreateView):
     model = BudgetedEvent
     form_class = BudgetedEventForm
-    success_url = reverse_lazy('budgetdb:be_list')
+    success_url = reverse_lazy('budgetdb:list_be')
 
 
 class CreateCat1(CreatePopupMixin, CreateView):

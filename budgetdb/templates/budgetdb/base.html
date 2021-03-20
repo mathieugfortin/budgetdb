@@ -16,6 +16,11 @@
 <body>
     <div id="sidebar">
         {% block sidebar %}
+        {% if user.is_authenticated %}
+            <p>Welcome, {{ user.get_username }}. Thanks for logging in.</p>
+        {% else %}
+            <p>Welcome, new user. Please log in.</p>
+        {% endif %}
         <div class="clearfix">
             <a class="btn btn-info top" href="{% url 'budgetdb:home' %}">Home</a>
             <a class="btn btn-info top" href="{% url 'budgetdb:list_cat' %}">Categories</a>
@@ -23,6 +28,7 @@
             <a class="btn btn-info top" href="{% url 'budgetdb:add_be' %}">add</a>
             <a class="btn btn-info top" href="{% url 'budgetdb:calendar_transaction' %}">Calendar View</a>
             <a class="btn btn-info top" href="{% url 'budgetdb:list_transaction' %}">List View</a>
+            <a class="btn btn-info top" href="{% url 'budgetdb:list_account' %}">Accounts</a>
         </div>
         {% endblock %}
     </div>

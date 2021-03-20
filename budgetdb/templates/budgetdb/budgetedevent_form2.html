@@ -3,11 +3,10 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <!--budgetedevent_form v3.0-->
-  <h2>Budgeted Event Form</h2>
-  {% load crispy_forms_tags %}
+  <!--test crispy-->
   {% crispy form %}
 {% endblock %}
+
 {% block footer %}
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 
@@ -32,21 +31,5 @@
         newTable.slideDown()
     })
 })($)
-
-$("#id_cat1").change(function () {
-      var url = $("#BudgetedEventForm").attr("data-cat2-url");  // get the url of the `load_cities` view
-      var cat1Id = $(this).val();  // get the selected country ID from the HTML input
-
-      $.ajax({                       // initialize an AJAX request
-        url: url,                    // set the url of the request (= localhost:8000/hr/ajax/load-cities/)
-        data: {
-          'cat1': cat1Id       // add the country id to the GET parameters
-        },
-        success: function (data) {   // `data` is the return of the `load_cities` view function
-          $("#id_cat2").html(data);  // replace the contents of the city input with the data that came from the server
-        }
-      });
-
-    });
 </script>
 {% endblock %}

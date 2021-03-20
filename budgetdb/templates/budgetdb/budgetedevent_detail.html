@@ -9,15 +9,27 @@
 
 {% block content %}
     <!--budgetedevent_detail-->
-    <h2>Budgeted Event Details</h2>
-    <ul>
-       <li> {{ object.description }}</li>
-       <li> {{ object.amount_planned }}</li>
-       <li> {{ object.account_source }}</li>
-       <li> {{ object.account_destination }}</li>
-       <li> {{ object.cat1 }}</li>
-       <li> {{ object.cat2 }}</li>
-       <li> {{ object.vendor }}</li>
+    <div id="details">
+        <h2>Budgeted Event Details</h2>
+        <ul>
+            <li>Description: {{ object.description }}</li>
+            <li>Amount Planned: {{ object.amount_planned }}</li>
+            <li>Source: {{ object.account_source }}</li>
+            <li>Destination: {{ object.account_destination }}</li>
+            <li>Category: {{ object.cat1 }}</li>
+            <li>SubCategory: {{ object.cat2 }}</li>
+            <li>Vendor: {{ object.vendor }}</li>    
+        </ul>
+    </div>
+    <div id="transactionlist">
+        {% for transaction in next_transactions %}
+            {{next_transactions.date_actual}}
+            <li><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.date_actual }}</a> - 
+                {{ transaction.amount_actual }}$ - 
+                {% if transaction.account_source != None %} {{transaction.account_source}} {% endif %}
+                {% if transaction.account_destination != None %} {{transaction.account_destination}} {% endif %}
+                 </li>
+        {% endfor %}
         
-    </ul>
+    </div>
 {% endblock %}

@@ -1,10 +1,25 @@
 import datetime
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal
-
 from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
+
+
+class AccountTotals(models.Model):
+    db_date = models.DateField(blank=True)
+    account = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
+    audit = models.DecimalField('audited amount', decimal_places=2, max_digits=10,
+                                blank=True, null=True)
+    rel = models.DecimalField('relative change for the day', decimal_places=2, max_digits=10,
+                              blank=True, null=True)
+    balance = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
+                                  blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'budgetdb_accounttotal'
 
 
 class MyBoolMap(models.IntegerField):
@@ -15,7 +30,7 @@ class MyBoolMap(models.IntegerField):
         return 'integer'
 
 
-class MyCalendar (models.Model):
+class MyCalendar(models.Model):
     class Meta:
         verbose_name = 'Calendar'
         verbose_name_plural = 'Calendars'
@@ -31,6 +46,9 @@ class MyCalendar (models.Model):
     holiday_flag = models.BooleanField('Holiday Flag', default=False)
     weekend_flag = models.BooleanField('Weekend Flag', default=False)
     event = models.CharField('Event name', max_length=50)
+
+    def __str__(self):
+        return f'{self.db_date.year}-{self.db_date.month}-{self.db_date.day}'
 
 
 class CatBudget(models.Model):
@@ -54,19 +72,14 @@ class CatBudget(models.Model):
 
     def budget_daily(self):
         if self.amount_frequency == 'D':
-            # print(self.get_amount_frequency_display())
             return self.amount
         elif self.amount_frequency == 'W':
-            print('weekly')
             return self.amount/7
         elif self.amount_frequency == 'M':
-            print('monthly')
             return self.amount/30
         elif self.amount_frequency == 'Y':
-            print('yearly')
             return self.amount/365
         else:
-            print('nothing')
             return 0
 
     def budget_weekly(self):
@@ -198,6 +211,30 @@ class Account(models.Model):
             event.balance = str(balance) + "$"
         return events
 
+    def build_balance_array(self, start_date, end_date):
+        # don't do the sql = thing in prod
+        sqlst = f"SELECT " \
+                f"row_number() OVER () as id, " \
+                f"c.db_date, " \
+                f"{self.id} as account_id, " \
+                f"ta.amount_actual AS audit, " \
+                f"sum(case " \
+                f"  when t.account_source_id={self.id} Then -t.amount_actual " \
+                f"  when t.account_destination_id={self.id} then t.amount_actual " \
+                f"END) AS rel " \
+                f"FROM budgetdb.budgetdb_mycalendar c " \
+                f"left join budgetdb.budgetdb_transaction t ON c.db_date = t.date_actual " \
+                f"    AND (t.account_source_id={self.id} OR t.account_destination_id={self.id}) AND t.audit = 0 " \
+                f"LEFT JOIN budgetdb.budgetdb_transaction ta ON c.db_date = ta.date_actual " \
+                f"    AND ta.audit = 1 AND ta.account_source_id = {self.id} " \
+                f"WHERE c.db_date BETWEEN '{start_date}' AND '{end_date}' " \
+                f"GROUP BY c.db_date " \
+                f"ORDER BY c.db_date "
+
+        accounttotals = AccountTotals.objects.raw(sqlst)
+        print(accounttotals)
+        return accounttotals
+
 
 class AccountAudit(models.Model):
     # Force an account to a specific balance on a given date.
@@ -259,8 +296,9 @@ class BudgetedEvent(models.Model):
     repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
     repeat_interval_weeks = models.IntegerField('period in weeks, 0 if not applicable', default=0)
 
-    # binary masks are ALWAYS APPLICABLE
-    months_mask = MyBoolMap(default=4095)
+    ######################################
+    # binary masks are ALWAYS APPLICABLE #
+    ######################################
 
     repeat_months_mask = models.IntegerField(
         'binary mask of applicable months. Always Applicable jan=1 feb=2 mar=4 ... dec=2048 ALL=4095',
@@ -274,6 +312,7 @@ class BudgetedEvent(models.Model):
     repeat_weekday_mask = models.IntegerField('binary mask of applicable week day. Always Applicable ALL=127',
                                               default=127)
     # Mon=1, Tue=2,Wed=4, Thu=8, Fri=16, Sat=32, Sun=64, all=127
+    # workweek=31   weekend=96
 
     def __str__(self):
         return self.description
@@ -325,6 +364,25 @@ class BudgetedEvent(models.Model):
             return False
         else:
             return True
+
+    def listPotentialTransactionDates(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
+        end_interval = begin_interval+relativedelta(months=interval_length_months)
+        calendar = MyCalendar.objects.filter(db_date__gte=begin_interval, db_date__lte=end_interval)
+        event_date_list = []
+        i = n
+        print(f'begin_interval {begin_interval} end_interval {end_interval} n={n}             ')
+        for day in calendar:
+            if (self.checkDate(day.db_date)):
+                event_date_list.append(day.db_date)
+                i -= 1
+                if (i == 0):
+                    break
+        return event_date_list
+
+    def listNextTransactions(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
+        end_interval = begin_interval+relativedelta(months=interval_length_months)
+        transactions = Transaction.objects.filter(BudgetedEvent=self.id)[:n]
+        return transactions
 
 
 class Statement (models.Model):
@@ -382,93 +440,3 @@ class Transaction(models.Model):
 
     def __str__(self):
         return self.description
-
-
-class BitmapWeeksPerMonth(models.Model):
-    bit1 = models.BooleanField('1st', default=True)
-    bit2 = models.BooleanField('2nd', default=True)
-    bit3 = models.BooleanField('3rd', default=True)
-    bit4 = models.BooleanField('4th', default=True)
-    bit5 = models.BooleanField('5th', default=True)
-    budgeted_event = models.OneToOneField(BudgetedEvent, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return 1*self.bit1 + 2*self.bit2 + 4*self.bit3 + 8*self.bit4 + 16*self.bit5
-
-
-class BitmapWeekdays(models.Model):
-    bit1 = models.BooleanField('Mondays', default=True)
-    bit2 = models.BooleanField('Tuesdays', default=True)
-    bit3 = models.BooleanField('Wednesdays', default=True)
-    bit4 = models.BooleanField('Thursdays', default=True)
-    bit5 = models.BooleanField('Fridays', default=True)
-    bit6 = models.BooleanField('Saturdays', default=True)
-    bit7 = models.BooleanField('Sundays', default=True)
-    budgeted_event = models.OneToOneField(BudgetedEvent, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return 1*self.bit1 + 2*self.bit2 + 4*self.bit3 + 8*self.bit4 + 16*self.bit5 + 32*self.bit6 + 64*self.bit7
-
-
-class BitmapMonths(models.Model):
-    bit1 = models.BooleanField('Jan', default=True)
-    bit2 = models.BooleanField('Feb', default=True)
-    bit3 = models.BooleanField('Mar', default=True)
-    bit4 = models.BooleanField('Apr', default=True)
-    bit5 = models.BooleanField('May', default=True)
-    bit6 = models.BooleanField('Jun', default=True)
-    bit7 = models.BooleanField('Jul', default=True)
-    bit8 = models.BooleanField('Aug', default=True)
-    bit9 = models.BooleanField('Sep', default=True)
-    bit10 = models.BooleanField('Oct', default=True)
-    bit11 = models.BooleanField('Nov', default=True)
-    bit12 = models.BooleanField('Dec', default=True)
-    budgeted_event = models.OneToOneField(BudgetedEvent, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return 1*self.bit1 + 2*self.bit2 + 4*self.bit3 + 8*self.bit4 + 16*self.bit5 + 32*self.bit6 \
-               + 64*self.bit7 + 128*self.bit8 + 256*self.bit9 + 512*self.bit10 + 1024*self.bit11 + 2048*self.bit12
-
-
-class BitmapDayPerMonth(models.Model):
-    bit1 = models.BooleanField('1', default=True)
-    bit2 = models.BooleanField('2', default=True)
-    bit3 = models.BooleanField('3', default=True)
-    bit4 = models.BooleanField('4', default=True)
-    bit5 = models.BooleanField('5', default=True)
-    bit6 = models.BooleanField('6', default=True)
-    bit7 = models.BooleanField('7', default=True)
-    bit8 = models.BooleanField('8', default=True)
-    bit9 = models.BooleanField('9', default=True)
-    bit10 = models.BooleanField('10', default=True)
-    bit11 = models.BooleanField('11', default=True)
-    bit12 = models.BooleanField('12', default=True)
-    bit13 = models.BooleanField('13', default=True)
-    bit14 = models.BooleanField('14', default=True)
-    bit15 = models.BooleanField('15', default=True)
-    bit16 = models.BooleanField('16', default=True)
-    bit17 = models.BooleanField('17', default=True)
-    bit18 = models.BooleanField('18', default=True)
-    bit19 = models.BooleanField('19', default=True)
-    bit20 = models.BooleanField('20', default=True)
-    bit21 = models.BooleanField('21', default=True)
-    bit22 = models.BooleanField('22', default=True)
-    bit23 = models.BooleanField('23', default=True)
-    bit24 = models.BooleanField('24', default=True)
-    bit25 = models.BooleanField('25', default=True)
-    bit26 = models.BooleanField('26', default=True)
-    bit27 = models.BooleanField('27', default=True)
-    bit28 = models.BooleanField('28', default=True)
-    bit29 = models.BooleanField('29', default=True)
-    bit30 = models.BooleanField('30', default=True)
-    bit31 = models.BooleanField('31', default=True)
-    budgeted_event = models.OneToOneField(BudgetedEvent, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return 2**0*self.bit1 + 2**1*self.bit2 + 2**2*self.bit3 + 2**3*self.bit4 + 2**4*self.bit5 \
-               + 2**5*self.bit6 + 2**6*self.bit7 + 2**7*self.bit8 + 2**8*self.bit9 \
-               + 2**9*self.bit10 + 2**10*self.bit11 + 2**11*self.bit12 + 2**12*self.bit13 + 2**13*self.bit14 \
-               + 2**14*self.bit15 + 2**15*self.bit16 + 2**16*self.bit17 + 2**17*self.bit18 + 2**18*self.bit19 \
-               + 2**19*self.bit20 + 2**20*self.bit21 + 2**21*self.bit22 + 2**22*self.bit23 + 2**23*self.bit24 \
-               + 2**24*self.bit25 + 2**25*self.bit26 + 2**26*self.bit27 + 2**27*self.bit28 + 2**28*self.bit29 \
-               + 2 ** 29 * self.bit30 + 2 ** 30 * self.bit31

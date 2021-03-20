@@ -3,7 +3,8 @@ from dal import autocomplete
 from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor
 from django.urls import reverse_lazy
 from django_addanother.widgets import AddAnotherWidgetWrapper, AddAnotherEditSelectedWidgetWrapper
-
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
 
 class BudgetedEventForm(forms.ModelForm):
     class Meta:
@@ -27,20 +28,35 @@ class BudgetedEventForm(forms.ModelForm):
             'repeat_interval_years',
         )
         widgets = {
-            'account_source': AddAnotherWidgetWrapper(
-                autocomplete.ModelSelect2(url='budgetdb:autocomplete_account'), reverse_lazy('budgetdb:create_account')
-                ),
-            'account_destination': AddAnotherWidgetWrapper(
-                autocomplete.ModelSelect2(url='budgetdb:autocomplete_account'), reverse_lazy('budgetdb:create_account')
-                ),
-            'cat1': AddAnotherWidgetWrapper(
-                autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat1'), reverse_lazy('budgetdb:create_cat')
-                ),
-            'cat2': AddAnotherWidgetWrapper(
-                autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat2', forward=['cat1']), reverse_lazy('budgetdb:create_cat2')
-                ),
-            'vendor': AddAnotherWidgetWrapper(
-                autocomplete.ModelSelect2(url='budgetdb:autocomplete_vendor'), reverse_lazy('budgetdb:create_vendor')
-                ),
+#            'account_source': AddAnotherWidgetWrapper(
+ #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_account'), reverse_lazy('budgetdb:create_account')
+  #              ),
+   #         'account_destination': AddAnotherWidgetWrapper(
+    #            autocomplete.ModelSelect2(url='budgetdb:autocomplete_account'), reverse_lazy('budgetdb:create_account')
+     #           ),
+#            'cat1': AddAnotherWidgetWrapper(
+ #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat1'), reverse_lazy('budgetdb:create_cat')
+  #              ),
+#            'cat2': AddAnotherWidgetWrapper(
+ #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat2', forward=['cat1']), reverse_lazy('budgetdb:create_cat2')
+  #              ),
+#            'vendor': AddAnotherWidgetWrapper(
+ #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_vendor'), reverse_lazy('budgetdb:create_vendor')
+  #              ),
             'repeat_start': forms.widgets.DateInput(attrs={'type': 'date'}),
+            'repeat_stop': forms.widgets.DateInput(attrs={'type': 'date'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'BudgetedEventForm'
+        self.helper.form_class = 'blueForms'
+        self.helper.form_method = 'post'
+ #       self.helper.form_action = 'submit_survey'
+
+        self.helper.add_input(Submit('submit', 'Submit'))
+        self.fields['cat2'].queryset = Cat2.objects.none()
+        urlstr = reverse_lazy('budgetdb:ajax_load_cat2')
+        self.helper.attrs = {'data-cat2-url': f'{urlstr}'}
+         

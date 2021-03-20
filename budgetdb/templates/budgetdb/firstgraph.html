@@ -1,0 +1,22 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+{% block content %}
+    <!--firstgraph v2-->
+    <h1>Some Line Charts loaded in Ajax!</h1>
+
+    <canvas id="myChart" width="500" height="400"></canvas>
+
+{% endblock %}
+
+{% block script %}
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+    <script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+    <script type="text/javascript">
+        $.get('{% url "budgetdb:line_chart_json" %}?begin={{ begin }}&end={{ end }}&ac={{ ac }}', function(data) {
+            var ctx = $("#myChart").get(0).getContext("2d");
+            new Chart(ctx, {
+                type: 'line', data: data
+            });
+        });
+    </script>
+{% endblock %}

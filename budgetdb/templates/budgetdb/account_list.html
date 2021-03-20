@@ -1,0 +1,19 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+
+{% block content %}
+
+{% if account_list %}
+    <ul>
+    {% for account in account_list %}
+        <li><a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No accounts are available.</p>
+    <p><li><a href="{% url 'budgetdb:create_account' account.id %}">Create an account</a></li></p>
+{% endif %}
+
+{% endblock %}

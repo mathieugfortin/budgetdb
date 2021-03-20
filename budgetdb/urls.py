@@ -10,6 +10,10 @@ urlpatterns = [
     path('', views.IndexView.as_view(),
          name='home'),
 
+    # chart JS
+    path('chart/', views.FirstGraph.as_view(), name='line_chart'),
+    path('chartJSON', views.FirstGraphJSON.as_view(), name='line_chart_json'),
+
     # Cat1
     path('category', views.CategoryListView.as_view(),
          name='list_cat'),
@@ -27,6 +31,8 @@ urlpatterns = [
          name='create_cat2'),
     path('cat2/ac/', views.AutocompleteCat2.as_view(),
          name='autocomplete_cat2'),
+    path('ajax/load-cat2/', views.load_cat2, 
+         name='ajax_load_cat2'),
 
     # Transaction
     path('<int:pk>/saveTransaction/', views.saveTransaction,
@@ -62,11 +68,17 @@ urlpatterns = [
          name='create_vendor'),
 
     # Account
-    path('account/add/', views.CreateVendor.as_view(),
+    path('account/', views.AccountListView.as_view(),
+         name='list_account'),
+    path('account/add/', views.CreateAccount.as_view(),
          name='create_account'),
     path('account/ac/', views.AutocompleteAccount.as_view(),
          name='autocomplete_account'),
-    path('account/<int:pk>/', views.AccountperiodicView3.as_view(),
+    path('account/list/<int:pk>/', views.AccountperiodicView3.as_view(),
          name='list_account_activity'),
+
+    # Graph
+    path('graph/', views.FirstGraph.as_view(),
+         name='graph'),
 
 ]

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import Cat1, Cat2, CatBudget, AccountHost, Account
-from .models import Vendor, Transaction, BudgetedEvent,BitmapWeeksPerMonth, BitmapWeekdays, BitmapMonths, BitmapDayPerMonth
+from .models import Vendor, Transaction, BudgetedEvent
 
 admin.site.site_header = "My Family Budget admin"
 
@@ -57,26 +57,6 @@ admin.site.register(Vendor)
 admin.site.register(Transaction)
 
 
-class BitmapWeeksPerMonthinline(admin.TabularInline):
-    model = BitmapWeeksPerMonth
-    extra = 1
-
-
-class BitmapWeekdaysinline(admin.TabularInline):
-    model = BitmapWeekdays
-    extra = 1
-
-
-class BitmapMonthsinline(admin.TabularInline):
-    model = BitmapMonths
-    extra = 1
-
-
-class BitmapDayPerMonthinline(admin.TabularInline):
-    model = BitmapDayPerMonth
-    extra = 1
-
-
 class BudgetedEventAdmin(admin.ModelAdmin):
     fieldsets = [
         (None,              {'fields': ['description',
@@ -102,6 +82,5 @@ class BudgetedEventAdmin(admin.ModelAdmin):
 #                                        'repeat_weekofmonth_mask',
                                         ]}),
     ]
-    inlines = [BitmapWeeksPerMonthinline,BitmapWeekdaysinline,BitmapMonthsinline,BitmapDayPerMonthinline]
-
+    
 admin.site.register(BudgetedEvent, BudgetedEventAdmin)
