@@ -4,11 +4,11 @@ from datetime import date
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import BudgetedEvent, CatBudget, BitmapWeekdays
+from .models import BudgetedEvent, CatBudget
 
 
 class BudgetedEventTests(TestCase):
-#    fixtures = ["budgetdb/fixtures/calendarfixture.json"]
+    # fixtures = ["budgetdb/fixtures/calendarfixture.json"]
 
     def test_BudgetedEvent_recurring_match(self):
         dateCheck = datetime.date.today()
@@ -300,9 +300,3 @@ class BudgetedEventTests(TestCase):
     def test_CatBudget_4D(self):
         cb1 = CatBudget(amount=10, amount_frequency='Y')
         self.assertTrue(cb1.budget_yearly() == 10)
-
-    def test_BitmapWeekdays(self):
-        bm = BitmapWeekdays()
-        bm.bit6 = False  # Saturday
-        bm.bit7 = False  # Sunday
-        self.assertTrue(bm == 31)

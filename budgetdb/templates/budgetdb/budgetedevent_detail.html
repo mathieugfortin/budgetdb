@@ -22,12 +22,13 @@
         </ul>
     </div>
     <div id="transactionlist">
+        <h2>List of transactions</h2>
         {% for transaction in next_transactions %}
             {{next_transactions.date_actual}}
             <li><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.date_actual }}</a> - 
                 {{ transaction.amount_actual }}$ - 
-                {% if transaction.account_source != None %} {{transaction.account_source}} {% endif %}
-                {% if transaction.account_destination != None %} {{transaction.account_destination}} {% endif %}
+                {% if transaction.account_source != None %} From {{transaction.account_source}} {% endif %}
+                {% if transaction.account_destination != None %} To {{transaction.account_destination}} {% endif %}
                  </li>
         {% endfor %}
         

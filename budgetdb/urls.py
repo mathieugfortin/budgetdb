@@ -15,9 +15,9 @@ urlpatterns = [
     path('chartJSON', views.FirstGraphJSON.as_view(), name='line_chart_json'),
 
     # Cat1
-    path('category', views.CategoryListView.as_view(),
+    path('cat1/', views.CategoryListView.as_view(),
          name='list_cat'),
-    path('category/<int:pk>/', views.CategoryDetailView.as_view(),
+    path('cat1/<int:pk>/', views.CategoryDetailView.as_view(),
          name='details_cat'),
     path('cat1/add/', views.CreateCat1.as_view(),
          name='create_cat'),
@@ -25,13 +25,13 @@ urlpatterns = [
          name='autocomplete_cat1'),
 
     # Cat2
-    path('subcategory/<int:pk>/', views.SubCategoryDetailView.as_view(),
+    path('cat2/<int:pk>/', views.SubCategoryDetailView.as_view(),
          name='details_subcat'),
     path('cat2/add/', views.CreateCat2.as_view(),
          name='create_cat2'),
     path('cat2/ac/', views.AutocompleteCat2.as_view(),
          name='autocomplete_cat2'),
-    path('ajax/load-cat2/', views.load_cat2, 
+    path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
 
     # Transaction
@@ -58,6 +58,8 @@ urlpatterns = [
          name='details_be'),
     path('budgetedEvent/add/', views.BudgetedEventCreateView.as_view(),
          name='add_be'),
+    path('budgetedEvent/add/submit/', views.BudgetedEventSubmit,
+         name='submit_be'),
     path('budgetedEvent/mod/<int:pk>/', views.BudgetedEventView.as_view(),
          name='change_be'),
 

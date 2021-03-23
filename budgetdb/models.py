@@ -7,13 +7,13 @@ from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 
 
-class AccountTotals(models.Model):
+class AccountBalances(models.Model):
     db_date = models.DateField(blank=True)
     account = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
     audit = models.DecimalField('audited amount', decimal_places=2, max_digits=10,
                                 blank=True, null=True)
-    rel = models.DecimalField('relative change for the day', decimal_places=2, max_digits=10,
-                              blank=True, null=True)
+    delta = models.DecimalField('relative change for the day', decimal_places=2, max_digits=10,
+                                blank=True, null=True)
     balance = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
                                   blank=True, null=True)
 
@@ -170,12 +170,15 @@ class Account(models.Model):
 
     def balance_by_EOD3(self, dateCheck):
         closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('date_actual')[:1]
+
         if closestAudit.count() == 0:
             balance = Decimal(0.00)
             events = Transaction.objects.filter(date_actual__lte=dateCheck)
         else:
             balance = Decimal(closestAudit.first().amount_actual)
             events = Transaction.objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck)
+
+        events = events.filter(account_source_id=self.id) | events.filter(account_destination_id=self.id)
 
         for event in events:
             amount = Decimal(0.00)
@@ -221,7 +224,7 @@ class Account(models.Model):
                 f"sum(case " \
                 f"  when t.account_source_id={self.id} Then -t.amount_actual " \
                 f"  when t.account_destination_id={self.id} then t.amount_actual " \
-                f"END) AS rel " \
+                f"END) AS delta " \
                 f"FROM budgetdb.budgetdb_mycalendar c " \
                 f"left join budgetdb.budgetdb_transaction t ON c.db_date = t.date_actual " \
                 f"    AND (t.account_source_id={self.id} OR t.account_destination_id={self.id}) AND t.audit = 0 " \
@@ -231,9 +234,22 @@ class Account(models.Model):
                 f"GROUP BY c.db_date " \
                 f"ORDER BY c.db_date "
 
-        accounttotals = AccountTotals.objects.raw(sqlst)
-        print(accounttotals)
-        return accounttotals
+        accountbalances = AccountBalances.objects.raw(sqlst)
+        # print(accountbalances)
+        return accountbalances
+
+
+class AccountCategory(models.Model):
+    class Meta:
+        verbose_name = 'Account Category'
+        verbose_name_plural = 'Account Categories'
+    accounts = models.ManyToManyField(Account, related_name='account_categories')
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+    name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
 
 
 class AccountAudit(models.Model):
@@ -260,6 +276,52 @@ class Vendor(models.Model):
         return self.name
 
 
+class Transaction(models.Model):
+    class Meta:
+        verbose_name = 'Transaction'
+        verbose_name_plural = 'Transactions'
+
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+
+    BudgetedEvent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True,
+                                      null=True)
+    date_planned = models.DateField('planned date', blank=True, null=True)
+    # date_planned only populated if linked to a budgeted_event
+    # will break if repetition pattern of BE changes... so BE can't change if it has attached Ts
+    date_actual = models.DateField('date of the transaction')
+    amount_actual = models.DecimalField(
+        'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
+    )
+    description = models.CharField('transaction description', max_length=200)
+    comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
+    cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
+    cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True)
+    # should be null if it is linked to a budgeted event
+    account_source = models.ForeignKey(
+        Account, on_delete=models.CASCADE, related_name='t_account_source', blank=True, null=True
+    )
+    account_destination = models.ForeignKey(
+        Account, on_delete=models.CASCADE, related_name='t_account_destination', blank=True, null=True
+    )
+    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
+    verified = models.BooleanField('confirmed in a statement.  Prevents deletion in case of budgetedEvent change', default=False)
+    audit = models.BooleanField('Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id', default=False)
+    # how do I ensure the audit transaction is always last for a day?
+
+    def __str__(self):
+        return self.description
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            if Transaction.objects.filter(BudgetedEvent=self.BudgetedEvent, date_planned=self.date_planned).exists():
+                # don't save a duplicate
+                pass
+            else:
+                super(Transaction, self).save(*args, **kwargs)
+
+
 class BudgetedEvent(models.Model):
     # description of budgeted events
     class Meta:
@@ -268,6 +330,8 @@ class BudgetedEvent(models.Model):
 
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
+    generated_interval_start = models.DateTimeField('begining of the generated events interval', blank=True, null=True)
+    generated_interval_stop = models.DateTimeField('end of the generated events interval', blank=True, null=True)
     amount_planned = models.DecimalField('Budgeted amount', decimal_places=2, max_digits=10,
                                          blank=True, null=True)
     percent_planned = models.DecimalField('percent of another event.  say 10% of pay goes to RRSP',
@@ -285,8 +349,8 @@ class BudgetedEvent(models.Model):
                              verbose_name='Subcategory')
     description = models.CharField(max_length=200, default='Description')
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
-    budget_only = models.BooleanField('only for budgeting, no actual expense planned', default=False)
-    isrecurring = models.BooleanField('Is this a recurring event?', default=True)  # is this useful?
+    budget_only = models.BooleanField('only for budgeting, no actual expense planned', default=False)  # is this useful?
+    isrecurring = models.BooleanField('Is this a recurring event?', default=True)
     repeat_start = models.DateField('date of the first event')
     repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
     nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
@@ -366,11 +430,9 @@ class BudgetedEvent(models.Model):
             return True
 
     def listPotentialTransactionDates(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
-        end_interval = begin_interval+relativedelta(months=interval_length_months)
-        calendar = MyCalendar.objects.filter(db_date__gte=begin_interval, db_date__lte=end_interval)
+        calendar = MyCalendar.objects.filter(db_date__gte=begin_interval, db_date__lte=begin_interval+relativedelta(months=interval_length_months))
         event_date_list = []
         i = n
-        print(f'begin_interval {begin_interval} end_interval {end_interval} n={n}             ')
         for day in calendar:
             if (self.checkDate(day.db_date)):
                 event_date_list.append(day.db_date)
@@ -380,9 +442,29 @@ class BudgetedEvent(models.Model):
         return event_date_list
 
     def listNextTransactions(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
-        end_interval = begin_interval+relativedelta(months=interval_length_months)
-        transactions = Transaction.objects.filter(BudgetedEvent=self.id)[:n]
+        transactions = Transaction.objects.filter(BudgetedEvent_id=self.id)
+        transactions = transactions.filter(date_actual__gt=begin_interval)
+        end_date = begin_interval + relativedelta(months=interval_length_months)
+        transactions = transactions.filter(date_actual__lte=end_date)[:n]
         return transactions
+
+    def createTransactions(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
+        transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
+        for date in transaction_dates:
+            new_transaction = Transaction.objects.create(date_planned=date,
+                                                         date_actual=date,
+                                                         amount_actual=self.amount_planned,
+                                                         description=self.description,
+                                                         BudgetedEvent_id=self.id,
+                                                         account_destination=self.account_destination_id,
+                                                         account_source=self.account_source,
+                                                         cat1=self.cat1,
+                                                         cat2=self.cat2,
+                                                         vendor=self.vendor
+                                                         )
+            new_transaction.save()
+            # Needs a lot more work with these interval management  #######
+            self.generated_interval_stop = date
 
 
 class Statement (models.Model):
@@ -402,41 +484,3 @@ class Statement (models.Model):
 
     def __str__(self):
         return self.comment
-
-
-class Transaction(models.Model):
-    class Meta:
-        verbose_name = 'Transaction'
-        verbose_name_plural = 'Transactions'
-
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
-
-    BudgetedEvent = models.ForeignKey(BudgetedEvent, on_delete=models.CASCADE, blank=True,
-                                      null=True)
-    date_planned = models.DateField('planned date', blank=True, null=True)
-    # date_planned only populated if linked to a budgeted_event
-    # will break if repetition pattern of BE changes... so BE can't change if it has attached Ts
-    date_actual = models.DateField('date of the transaction')
-    amount_actual = models.DecimalField(
-        'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
-    )
-    description = models.CharField('transaction description', max_length=200)
-    comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
-    cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
-    cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True)
-    # should be null if it is linked to a budgeted event
-    account_source = models.ForeignKey(
-        Account, on_delete=models.CASCADE, related_name='t_account_source', blank=True, null=True
-    )
-    account_destination = models.ForeignKey(
-        Account, on_delete=models.CASCADE, related_name='t_account_destination', blank=True, null=True
-    )
-    statement = models.ForeignKey(Statement, on_delete=models.CASCADE, blank=True, null=True)
-    verified = models.BooleanField('confirmed in a statement.  Prevents deletion in case of budgetedEvent change', default=False)
-    audit = models.BooleanField('Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id', default=False)
-    # how do I ensure the audit transaction is always last for a day?
-
-    def __str__(self):
-        return self.description
