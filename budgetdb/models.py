@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
+from django.urls import reverse
 
 
 class AccountBalances(models.Model):
@@ -380,6 +381,9 @@ class BudgetedEvent(models.Model):
 
     def __str__(self):
         return self.description
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_be', kwargs={'pk': self.pk})
 
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns

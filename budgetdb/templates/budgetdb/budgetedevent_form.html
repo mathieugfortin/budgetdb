@@ -14,6 +14,7 @@
 {{ form.media }}
 
 <script>
+
 (function($) {
     $('#add-form').click(function() {
         var index = $('#id_inline_test_models-TOTAL_FORMS').val()
@@ -33,8 +34,10 @@
     })
 })($)
 
+
+
 $("#id_cat1").change(function () {
-      var url = $("#BudgetedEventForm").attr("data-cat2-url");  // get the url of the `load_cities` view
+      var url = "{% url 'budgetdb:ajax_load_cat2' %}";
       var cat1Id = $(this).val();  // get the selected country ID from the HTML input
 
       $.ajax({                       // initialize an AJAX request

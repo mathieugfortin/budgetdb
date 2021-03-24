@@ -52,11 +52,10 @@ class BudgetedEventForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_id = 'BudgetedEventForm'
-        self.helper.form_class = 'blueForms'
+        # self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal'
         self.helper.form_action = 'submit/'
 
         self.helper.add_input(Submit('submit', 'Submit'))
-        self.fields['cat2'].queryset = Cat2.objects.none()
-        urlstr = reverse_lazy('budgetdb:ajax_load_cat2')
-        self.helper.attrs = {'data-cat2-url': f'{urlstr}'}
+        # self.fields['cat2'].queryset = Cat2.objects.none()

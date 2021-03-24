@@ -14,11 +14,14 @@
         <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin=2020-03-01&end=2021-03-15&ac={{ ac }}"> all </a>
         <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin=2019-12-31&end=2020-12-31&ac={{ ac }}"> 2020 </a>
         <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin=2020-12-31&end=2021-12-31&ac={{ ac }}"> 2021 </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ begin }}&end={{ end }}&ac={{ ac }}"> past year </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ begin }}&end={{ end }}&ac={{ ac }}"> past 3 months </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ begin }}&end={{ end }}&ac={{ ac }}"> past month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ yearago }}&end={{ now }}&ac={{ ac }}"> past year </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ 3monthsago }}&end={{ now }}&ac={{ ac }}"> past 3 months </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ monthago }}&end={{ now }}&ac={{ ac }}"> past month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ now }}&end={{ inamonth }}&ac={{ ac }}"> next month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ now }}&end={{ in3months }}&ac={{ ac }}"> next 3 months </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ now }}&end={{ inayear }}&ac={{ ac }}"> next year </a>
     </div>
-    <h1>Time overview</h1>
+    <h1>{{ begin }} to {{ end }}</h1>
 
     <canvas id="myChart" width="900" height="500"></canvas>
 

@@ -56,12 +56,12 @@ urlpatterns = [
          name='list_be'),
     path('budgetedEvent/<int:pk>/', views.BudgetedEventDetailView.as_view(),
          name='details_be'),
-    path('budgetedEvent/add/', views.BudgetedEventCreateView.as_view(),
+    path('budgetedEvent/create/', views.BudgetedEventCreateView.as_view(),
          name='add_be'),
-    path('budgetedEvent/add/submit/', views.BudgetedEventSubmit,
+    path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
          name='submit_be'),
-    path('budgetedEvent/mod/<int:pk>/', views.BudgetedEventView.as_view(),
-         name='change_be'),
+    path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
+         name='update_be'),
 
     # Vendor
     path('vendor/ac/', views.AutocompleteVendor.as_view(),

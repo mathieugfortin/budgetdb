@@ -39,3 +39,14 @@ ToDo:
 many cat1, cat2, views to finish
 check if audit is the last event of the day...  order them so
 TransactionListView uses calendars and it's slow, refactor like AccountperiodicView3 but for all accounts
+
+When BE changes, delete linked unverified transaction and create new ones. May fuck up the date_planned.  
+    Do I even need date_planned?  Yes, to avoid creating a transaction on a transaction that was moved.  
+    I will probably need a form to correct the orphan ones.  yerk
+
+Feels like I'm calculating balances at 4 different places.  Am I?  Can I pull all that in the model?
+
+****chart has bad data if audit is not in the range  account view looks OK
+
+Dynamic Total on chart?  
+a chart with a running total per account category would be nice.  cashflow, savings, mortgage...
