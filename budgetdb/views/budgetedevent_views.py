@@ -46,7 +46,7 @@ class BudgetedEventDetailView(DetailView):
         context['cat1_list'] = Cat1.objects.all()
         context['cat2_list'] = Cat2.objects.all()
         begin_interval = datetime.today().date() + relativedelta(months=-12)
-        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=10, begin_interval=begin_interval, interval_length_months=18)
+        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=10, begin_interval=begin_interval, interval_length_months=60)
         return context
 
 
@@ -72,8 +72,6 @@ class BudgetedEventUpdate(UpdateView):
         )
 
     def form_valid(self, form):
-#        self.object.validate()
-#        self.object.save()
         return super().form_valid(form)
 
     def get_form(self, form_class=None):

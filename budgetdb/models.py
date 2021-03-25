@@ -132,6 +132,9 @@ class Cat1(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_cat1', kwargs={'pk': self.pk})
+
 
 class Cat2(models.Model):
     class Meta:
@@ -144,6 +147,9 @@ class Cat2(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_cat2', kwargs={'pk': self.pk})
 
 
 class AccountHost(models.Model):
@@ -169,6 +175,9 @@ class Account(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_account', kwargs={'pk': self.pk})
 
     def balance_by_EOD(self, dateCheck):
         closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('date_actual')[:1]
@@ -289,6 +298,10 @@ class Vendor(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_vendor', kwargs={'pk': self.pk})
+
+
 
 class Transaction(models.Model):
     class Meta:
@@ -298,7 +311,7 @@ class Transaction(models.Model):
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 
-    BudgetedEvent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True,
+    budgetedevent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True,
                                       null=True)
     date_planned = models.DateField('planned date', blank=True, null=True)
     # date_planned only populated if linked to a budgeted_event
@@ -329,11 +342,13 @@ class Transaction(models.Model):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            if Transaction.objects.filter(BudgetedEvent=self.BudgetedEvent, date_planned=self.date_planned).exists():
+            if Transaction.objects.filter(budgetedevent=self.budgetedevent, date_planned=self.date_planned).exists():
                 # don't save a duplicate
                 pass
             else:
                 super(Transaction, self).save(*args, **kwargs)
+        else:
+            super(Transaction, self).save(*args, **kwargs)
 
 
 class BudgetedEvent(models.Model):
@@ -350,7 +365,7 @@ class BudgetedEvent(models.Model):
                                          blank=True, null=True)
     percent_planned = models.DecimalField('percent of another event.  say 10% of pay goes to RRSP',
                                           decimal_places=2, max_digits=10, blank=True, null=True)
-    BudgetedEvent_percent_ref = models.ForeignKey('self', on_delete=models.CASCADE, blank=True,
+    budgetedevent_percent_ref = models.ForeignKey('self', on_delete=models.CASCADE, blank=True,
                                                   null=True)
     account_source = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='b_account_source',
                                        blank=True, null=True)
@@ -397,6 +412,11 @@ class BudgetedEvent(models.Model):
 
     def get_absolute_url(self):
         return reverse('budgetdb:details_be', kwargs={'pk': self.pk})
+
+    def save(self, *args, **kwargs):
+        super(BudgetedEvent, self).save(*args, **kwargs)
+        self.deleteUnverifiedTransaction()
+        self.createTransactions()
 
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns
@@ -458,21 +478,24 @@ class BudgetedEvent(models.Model):
                     break
         return event_date_list
 
-    def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=12):
-        transactions = Transaction.objects.filter(BudgetedEvent_id=self.id)
+    def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date)[:n]
         return transactions
 
-    def createTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=12):
+    def createTransactions(self, n=20, begin_interval=None, interval_length_months=60):
+        if begin_interval is None:
+            begin_interval = self.repeat_start
         transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
+        self.generated_interval_start = transaction_dates[0]
         for date in transaction_dates:
             new_transaction = Transaction.objects.create(date_planned=date,
                                                          date_actual=date,
                                                          amount_actual=self.amount_planned,
                                                          description=self.description,
-                                                         BudgetedEvent_id=self.id,
+                                                         budgetedevent_id=self.id,
                                                          account_destination=self.account_destination_id,
                                                          account_source=self.account_source,
                                                          cat1=self.cat1,
@@ -482,6 +505,12 @@ class BudgetedEvent(models.Model):
             new_transaction.save()
             # Needs a lot more work with these interval management  #######
             self.generated_interval_stop = date
+
+    def deleteUnverifiedTransaction(self):
+        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False)
+        transactions.delete()
+        self.generated_interval_start = None
+        self.generated_interval_stop = None
 
 
 class Statement (models.Model):

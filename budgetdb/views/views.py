@@ -14,7 +14,7 @@ import pytz
 from decimal import *
 from chartjs.views.lines import BaseLineChartView
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
+from crispy_forms.layout import Submit, Layout, Field
 
 
 class FirstGraph(TemplateView):
@@ -171,14 +171,88 @@ class AutocompleteVendor(autocomplete.Select2QuerySetView):
         return qs
 
 
-class CategoryDetailView(DetailView):
+class Cat1DetailView(DetailView):
     model = Cat1
     template_name = 'budgetdb/cat1_detail.html'
 
 
-class SubCategoryDetailView(DetailView):
+class Cat1UpdateView(UpdateView):
+    model = Cat1
+    fields = ('name',)
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
+class Cat2UpdateView(UpdateView):
+    model = Cat2
+    fields = ('name',)
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
+class VendorUpdateView(UpdateView):
+    model = Vendor
+    fields = ('name',)
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
+class AccountUpdateView(UpdateView):
+    model = Account
+    fields = (
+        'name', 
+        'AccountHost' ,
+        'account_number',
+        )
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
+class Cat2DetailView(DetailView):
     model = Cat2
     template_name = 'budgetdb/cat2_detail.html'
+
+
+class VendorDetailView(DetailView):
+    model = Vendor
+    template_name = 'budgetdb/vendor_detail.html'
+
+
+class AccountDetailView(DetailView):
+    model = Account
+    template_name = 'budgetdb/account_detail.html'
 
 
 class IndexView(ListView):
@@ -189,19 +263,36 @@ class IndexView(ListView):
         return Cat1.objects.order_by('name')
 
 
-class CategoryListView(ListView):
-    template_name = 'budgetdb/cat_list.html'
+class Cat1ListView(ListView):
+    model = Cat1
     context_object_name = 'categories_list'
 
     def get_queryset(self):
         return Cat1.objects.order_by('name')
 
 
+class Cat2ListView(ListView):
+    model = Cat2
+    context_object_name = 'categories_list'
+
+    def get_queryset(self):
+        return Cat2.objects.order_by('name')
+
+
 class AccountListView(ListView):
+    model = Account
     context_object_name = 'account_list'
 
     def get_queryset(self):
-        return Account.objects.order_by('name')
+        return Account.objects.all().order_by('name')
+
+
+class VendorListView(ListView):
+    model = Vendor
+    context_object_name = 'vendor_list'
+
+    def get_queryset(self):
+        return Vendor.objects.order_by('name')
 
 
 class AccountperiodicView(ListView):
@@ -239,21 +330,68 @@ class AccountperiodicView(ListView):
         return context
 
 
-class CreateCat1(CreatePopupMixin, CreateView):
+class Cat1CreateView(CreateView):
     model = Cat1
     fields = ['name']
 
+    def form_valid(self, form):
+        return super().form_valid(form)
 
-class CreateAccount(CreatePopupMixin, CreateView):
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
+class AccountCreateView(CreateView):
     model = Account
     fields = ['name', 'AccountHost', 'account_number']
 
+    def form_valid(self, form):
+        return super().form_valid(form)
 
-class CreateCat2(CreatePopupMixin, CreateView):
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
+class Cat2Create(CreateView):
     model = Cat2
-    fields = ['name']
+    fields = ['name', 'cat1']
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.layout = Layout(
+           Field('cat1', type="hidden"),
+           Field('name', type="")
+           )
+        cat1_id = self.kwargs['cat1_id']
+        cat1 = Cat1.objects.get(id=cat1_id)
+        form.initial['cat1'] = cat1
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
 
 
-class CreateVendor(CreatePopupMixin, CreateView):
+class VendorCreate(CreatePopupMixin, CreateView):
     model = Vendor
     fields = ['name']
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
