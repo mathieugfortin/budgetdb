@@ -1,0 +1,12 @@
+{% extends "budgetdb/base.html" %}
+
+{% block content %}
+
+<h1>{{ vendor.name }}</h1>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:update_vendor' vendor.id %}">Modify</a>
+</div>
+
+{% endblock %}

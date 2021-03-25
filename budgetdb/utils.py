@@ -50,11 +50,11 @@ class Calendar(HTMLCalendar):
             d += f'<td> <a href="{url1}"> {event.description} </a></td>'
             d += f'<td>{event.amount_actual}$</td>'
             d += f'<td>{event.account_source}</td><td>{event.account_destination}</td>'
-            if event.BudgetedEvent_id is None:
+            if event.budgetedevent_id is None:
                 d += f'<td>None</td>'
             else:
-                url2 = reverse(f'{event._meta.app_label}:details_be', args=[event.BudgetedEvent_id])
-                d += f'<td> <a href="{url2}"> {event.BudgetedEvent} </a></td>'
+                url2 = reverse(f'{event._meta.app_label}:details_be', args=[event.budgetedevent_id])
+                d += f'<td> <a href="{url2}"> {event.budgetedevent} </a></td>'
             d += f'</tr>\n'
 
         if day != 0:

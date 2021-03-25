@@ -10,7 +10,7 @@
 {% if categories_list %}
     <ul>
     {% for category in categories_list %}
-        <li><a href="{% url 'budgetdb:details_cat' category.id %}">{{ category.name }}</a></li>
+        <li><a href="{% url 'budgetdb:details_cat1' category.id %}">{{ category.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}

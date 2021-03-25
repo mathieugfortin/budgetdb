@@ -1,0 +1,13 @@
+{% extends "budgetdb/base.html" %}
+
+{% block content %}
+
+<h1>{{ cat2.name }}</h1>
+<h5>part of category <a href="{% url 'budgetdb:details_cat1' cat2.cat1.id %}"> {{ cat2.cat1.name }}</a>  </h5>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:update_cat2' cat2.id %}">Modify</a>
+</div>
+
+{% endblock %}

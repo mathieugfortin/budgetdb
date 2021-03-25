@@ -13,7 +13,10 @@
     </ul>
 {% else %}
     <p>No accounts are available.</p>
-    <p><li><a href="{% url 'budgetdb:create_account' account.id %}">Create an account</a></li></p>
 {% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_account' %}">Create new account</a>
+</div>
 
 {% endblock %}

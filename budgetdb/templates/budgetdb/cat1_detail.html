@@ -5,11 +5,20 @@
 <h1>{{ cat1.name }}</h1>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:update_cat1' cat1.id %}">Modify</a>
+</div>
 
 <ul>
+    <h2>Subcategories</h2>
 {% for subcategory in cat1.cat2_set.all %}
-    <li><a href="{% url 'budgetdb:details_subcat' subcategory.id %}">{{ subcategory.name }}</a></li>
+    <li><a href="{% url 'budgetdb:details_cat2' subcategory.id %}">{{ subcategory.name }}</a></li>
 {% endfor %}
 </ul>
+
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_cat2' cat1.id%}">Create new subcategory</a>
+</div>
 
 {% endblock %}

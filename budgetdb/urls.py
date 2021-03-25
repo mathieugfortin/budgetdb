@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 
-# from budgetdb.views import CategoryDetailView, TransactionDetailView,
+# from budgetdb.views import Cat1DetailView, TransactionDetailView,
 # # saveTransaction, BudgetedEventList
 
 app_name = 'budgetdb'
@@ -15,20 +15,24 @@ urlpatterns = [
     path('chartJSON', views.FirstGraphJSON.as_view(), name='line_chart_json'),
 
     # Cat1
-    path('cat1/', views.CategoryListView.as_view(),
+    path('cat1/', views.Cat1ListView.as_view(),
          name='list_cat'),
-    path('cat1/<int:pk>/', views.CategoryDetailView.as_view(),
-         name='details_cat'),
-    path('cat1/add/', views.CreateCat1.as_view(),
-         name='create_cat'),
+    path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
+         name='details_cat1'),
+    path('cat1/add/', views.Cat1CreateView.as_view(),
+         name='create_cat1'),
+    path('cat1/update/<int:pk>/', views.Cat1UpdateView.as_view(),
+         name='update_cat1'),
     path('cat1/ac/', views.AutocompleteCat1.as_view(),
          name='autocomplete_cat1'),
 
     # Cat2
-    path('cat2/<int:pk>/', views.SubCategoryDetailView.as_view(),
-         name='details_subcat'),
-    path('cat2/add/', views.CreateCat2.as_view(),
+    path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
+         name='details_cat2'),
+    path('cat2/add/<int:cat1_id>', views.Cat2Create.as_view(),
          name='create_cat2'),
+    path('cat2/update/<int:pk>/', views.Cat2UpdateView.as_view(),
+         name='update_cat2'),
     path('cat2/ac/', views.AutocompleteCat2.as_view(),
          name='autocomplete_cat2'),
     path('ajax/load-cat2/', views.load_cat2,
@@ -46,11 +50,6 @@ urlpatterns = [
     path('list/', views.TransactionListView.as_view(),
          name='list_transaction'),
 
-
-    # AccountAudit
-    path('accountaudit/<int:pk>/', views.TransactionDetailView.as_view(),
-         name='details_accountaudit'),
-
     # BudgetedEvent
     path('budgetedEvent/', views.budgetedEventsListView.as_view(),
          name='list_be'),
@@ -64,23 +63,30 @@ urlpatterns = [
          name='update_be'),
 
     # Vendor
+    path('vendor/', views.VendorListView.as_view(),
+         name='list_vendor'),
+    path('vendor/<int:pk>', views.VendorDetailView.as_view(),
+         name='details_vendor'),
+    path('vendor/add/', views.VendorCreate.as_view(),
+         name='create_vendor'),
+    path('vendor/update/<int:pk>/', views.VendorUpdateView.as_view(),
+         name='update_vendor'),
     path('vendor/ac/', views.AutocompleteVendor.as_view(),
          name='autocomplete_vendor'),
-    path('vendor/add/', views.CreateVendor.as_view(),
-         name='create_vendor'),
 
     # Account
     path('account/', views.AccountListView.as_view(),
          name='list_account'),
-    path('account/add/', views.CreateAccount.as_view(),
+    path('account/<int:pk>/', views.AccountDetailView.as_view(),
+         name='details_account'),
+    path('account/add/', views.AccountCreateView.as_view(),
          name='create_account'),
+    path('account/update/<int:pk>/', views.AccountUpdateView.as_view(),
+         name='update_account'),
     path('account/ac/', views.AutocompleteAccount.as_view(),
          name='autocomplete_account'),
+
     path('account/list/<int:pk>/', views.AccountperiodicView.as_view(),
          name='list_account_activity'),
-
-    # Graph
-    path('graph/', views.FirstGraph.as_view(),
-         name='graph'),
 
 ]

@@ -12,5 +12,7 @@
 {% else %}
     <p>No budgeted Events are available.</p>
 {% endif %}
-
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:add_be' %}">Create new event</a>
+</div>
 {% endblock %}
