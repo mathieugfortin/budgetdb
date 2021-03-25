@@ -1,6 +1,5 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
-from budgetdb.forms import BudgetedEventForm
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper

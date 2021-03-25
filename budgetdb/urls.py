@@ -56,7 +56,7 @@ urlpatterns = [
          name='list_be'),
     path('budgetedEvent/<int:pk>/', views.BudgetedEventDetailView.as_view(),
          name='details_be'),
-    path('budgetedEvent/create/', views.BudgetedEventCreateView.as_view(),
+    path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
          name='add_be'),
     path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
          name='submit_be'),
@@ -76,7 +76,7 @@ urlpatterns = [
          name='create_account'),
     path('account/ac/', views.AutocompleteAccount.as_view(),
          name='autocomplete_account'),
-    path('account/list/<int:pk>/', views.AccountperiodicView3.as_view(),
+    path('account/list/<int:pk>/', views.AccountperiodicView.as_view(),
          name='list_account_activity'),
 
     # Graph

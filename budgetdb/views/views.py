@@ -8,8 +8,7 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
-from budgetdb.forms import BudgetedEventForm
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
@@ -25,6 +24,8 @@ class FirstGraph(TemplateView):
         context = super().get_context_data(**kwargs)
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
+        begin = datetime.strptime(begin, "%Y-%m-%d").date()
+        end = datetime.strptime(end, "%Y-%m-%d").date()
         accountcategoryID = self.request.GET.get('ac', None)
         if accountcategoryID is not None:
             accountcategory = AccountCategory.objects.filter(id=accountcategoryID)
@@ -32,8 +33,15 @@ class FirstGraph(TemplateView):
         accountcategories = AccountCategory.objects.all()
 
         context['accountcategories'] = accountcategories
-        context['begin'] = begin
-        context['end'] = end
+
+        if end is None or end == 'None':
+            end = date.today()
+
+        if begin is None or begin == 'None':
+            begin = end + relativedelta(months=-1)
+
+        context['begin'] = begin.strftime("%Y-%m-%d")
+        context['end'] = end.strftime("%Y-%m-%d")
         mydate = date.today()
         context['now'] = mydate.strftime("%Y-%m-%d")
         mydate = date.today() + relativedelta(months=-1)
@@ -72,35 +80,27 @@ class FirstGraphJSON(BaseLineChartView):
         end = self.request.GET.get('end', None)
         accountcategoryID = self.request.GET.get('ac', None)
 
-        if begin is None or begin == 'None':
-            end = date.today()
-            begin = end + relativedelta(months=-1)
-
         if accountcategoryID is None or accountcategoryID == 'None':
             accounts = Account.objects.all()
         else:
             accounts = Account.objects.filter(account_categories=accountcategoryID)
 
-        self.line_labels = []
-        self.x_labels = []
-        self.data = [[] for i in range(accounts.count())]
+        self.line_labels = []  # Account names
+        self.x_labels = []  # Dates
+        self.data = [[] for i in range(accounts.count())]  # balances data points
+      
+        for day in MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date'):
+            self.x_labels.append(f'{day}')
+
         account_counter = 0
         for account in accounts:
-            balance = account.balance_by_EOD3(begin)
-            balances_array = account.build_balance_array(begin, end)
             self.line_labels.append(account.name)
-            for day in balances_array:
-                if account_counter == 0:
-                    self.x_labels.append(day.db_date)
+            balances = account.build_balance_array(begin, end)
+            for day in balances:
+                self.data[account_counter].append(day.balance)
 
-                if day.audit is not None:
-                    balance = day.audit
-                else:
-                    if day.delta is not None:
-                        balance += day.delta
-
-                self.data[account_counter].append(balance)
             account_counter += 1
+
         context = super().get_context_data(**kwargs)
         return context
 
@@ -204,9 +204,9 @@ class AccountListView(ListView):
         return Account.objects.order_by('name')
 
 
-class AccountperiodicView3(ListView):
+class AccountperiodicView(ListView):
     model = Account
-    template_name = 'budgetdb/AccountperiodicView3.html'
+    template_name = 'budgetdb/AccountperiodicView.html'
 
     def get_queryset(self):
         pk = self.kwargs['pk']
@@ -215,7 +215,7 @@ class AccountperiodicView3(ListView):
         if begin is None:
             end = date.today()
             begin = end + relativedelta(months=-1)
-        events = Account.objects.get(id=pk).build_report_with_balance3(begin, end)
+        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
         return events
 
     def get_context_data(self, **kwargs):

@@ -9,7 +9,7 @@
         {% endfor %}
         <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin={{ begin }}&end={{ end }}"> All </a>
     </div>
-    <h1>Time Range</h1>
+    <h3>Time Range</h3>
     <div class="clearfix">
         <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin=2020-03-01&end=2021-03-15&ac={{ ac }}"> all </a>
         <a class="btn btn-info left" href="{% url 'budgetdb:line_chart' %}?begin=2019-12-31&end=2020-12-31&ac={{ ac }}"> 2020 </a>

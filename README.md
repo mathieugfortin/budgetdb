@@ -13,3 +13,19 @@ I used to have an excel sheet that did that pretty well but at over 12MB, debugg
 ToDo list:
 Dynamic budgetedEvents are killing performance.  They should create unverified Transactions.  Handling of budgetedEvents change will be tricky
 
+NEXT*****When BE changes, delete linked unverified transaction and create new ones. May fuck up the date_planned.  
+    Do I even need date_planned?  Yes, to avoid creating a transaction on a transaction that was moved.  
+    I will probably need a form to correct the orphan ones.  yerk
+
+
+many cat1, cat2, views to finish
+check if audit is the last event of the day...  order them so
+TransactionListView uses calendars and it's slow, refactor like AccountperiodicView but for all accounts
+
+
+Dynamic Total on chart?  
+a chart with a running total per account category would be nice.  cashflow, savings, mortgage...
+
+
+
+
