@@ -9,12 +9,12 @@
 #navtools {
   position: absolute;
   top: 20px;
-  right: 16px;
+  left: 170px;
 }
 
 #content {
   position: absolute;
-  top: 50px;
+  top: 70px;
   margin-left: 170px;
 }
 

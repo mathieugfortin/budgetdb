@@ -1,18 +1,17 @@
 {% extends "budgetdb/base.html" %}
 
 {% block navtools %}
-<ul>
-    <li><a href="/next">next</a></li>
-    <li><a href="/previous">previous</a></li>
-</ul>
+<div class="clearfix">
+    <a class="btn btn-info left" href="{% url 'budgetdb:details_be' previous_be.id %}"> Previous: {{ previous_be.description }} </a>
+    <a class="btn btn-info left" href="{% url 'budgetdb:details_be' next_be.id %} "> Next: {{ next_be.description }} </a>
+</div>
 {% endblock %}
 
 {% block content %}
     <!--budgetedevent_detail-->
     <div id="details">
-        <h2>Budgeted Event Details</h2>
+        <h2>{{ object.description }}</h2>
         <ul>
-            <li>Description: {{ object.description }}</li>
             <li>Amount Planned: {{ object.amount_planned }}</li>
             <li>Source: {{ object.account_source }}</li>
             <li>Destination: {{ object.account_destination }}</li>
@@ -20,6 +19,9 @@
             <li>SubCategory: {{ object.cat2 }}</li>
             <li>Vendor: {{ object.vendor }}</li>    
         </ul>
+    </div>
+    <div class="clearfix">
+        <a class="btn btn-info left" href="{% url 'budgetdb:update_be' object.id %}"> Modify </a>
     </div>
     <div id="transactionlist">
         <h2>List of transactions</h2>
@@ -29,6 +31,7 @@
                 {{ transaction.amount_actual }}$ - 
                 {% if transaction.account_source != None %} From {{transaction.account_source}} {% endif %}
                 {% if transaction.account_destination != None %} To {{transaction.account_destination}} {% endif %}
+                {% if transaction.verified == False %} Not verified {% else %} Verified {% endif %}
                  </li>
         {% endfor %}
         

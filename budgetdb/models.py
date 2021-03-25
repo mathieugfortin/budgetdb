@@ -1,10 +1,12 @@
-import datetime
+# import datetime
+from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
+from django.urls import reverse
 
 
 class AccountBalances(models.Model):
@@ -168,7 +170,7 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-    def balance_by_EOD3(self, dateCheck):
+    def balance_by_EOD(self, dateCheck):
         closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('date_actual')[:1]
 
         if closestAudit.count() == 0:
@@ -193,10 +195,10 @@ class Account(models.Model):
 
         return balance
 
-    def build_report_with_balance3(self, start_date, end_date):
+    def build_report_with_balance(self, start_date, end_date):
         events = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual')
         events = events.filter(account_destination_id=self.id) | events.filter(account_source_id=self.id)
-        balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD3(start_date))
+        balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD(start_date))
         for event in events:
             amount = Decimal(0.00)
             if event.audit is True:
@@ -234,9 +236,21 @@ class Account(models.Model):
                 f"GROUP BY c.db_date " \
                 f"ORDER BY c.db_date "
 
-        accountbalances = AccountBalances.objects.raw(sqlst)
-        # print(accountbalances)
-        return accountbalances
+        # fetch audits and deltas
+        dailybalances = AccountBalances.objects.raw(sqlst)
+
+        # add the balances
+        previous_day = datetime.strptime(start_date, "%Y-%m-%d").date() + relativedelta(days=-1)
+        balance = self.balance_by_EOD(previous_day)
+        for day in dailybalances:
+            if day.audit is not None:
+                balance = day.audit
+            else:
+                if day.delta is not None:
+                    balance += day.delta
+            day.balance = balance
+
+        return dailybalances
 
 
 class AccountCategory(models.Model):
@@ -381,6 +395,9 @@ class BudgetedEvent(models.Model):
     def __str__(self):
         return self.description
 
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_be', kwargs={'pk': self.pk})
+
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns
         # not before first event
@@ -429,7 +446,7 @@ class BudgetedEvent(models.Model):
         else:
             return True
 
-    def listPotentialTransactionDates(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
+    def listPotentialTransactionDates(self, n=20, begin_interval=datetime.today().date(), interval_length_months=12):
         calendar = MyCalendar.objects.filter(db_date__gte=begin_interval, db_date__lte=begin_interval+relativedelta(months=interval_length_months))
         event_date_list = []
         i = n
@@ -441,14 +458,14 @@ class BudgetedEvent(models.Model):
                     break
         return event_date_list
 
-    def listNextTransactions(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
+    def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=12):
         transactions = Transaction.objects.filter(BudgetedEvent_id=self.id)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date)[:n]
         return transactions
 
-    def createTransactions(self, n=20, begin_interval=datetime.date.today(), interval_length_months=12):
+    def createTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=12):
         transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
         for date in transaction_dates:
             new_transaction = Transaction.objects.create(date_planned=date,

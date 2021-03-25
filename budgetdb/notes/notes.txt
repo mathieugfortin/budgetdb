@@ -34,8 +34,3 @@ https://pypi.org/project/django-chartjs/
 
 subcategories dropdown
 https://simpleisbetterthancomplex.com/tutorial/2018/01/29/how-to-implement-dependent-or-chained-dropdown-list-with-django.html
-
-ToDo:
-many cat1, cat2, views to finish
-check if audit is the last event of the day...  order them so
-TransactionListView uses calendars and it's slow, refactor like AccountperiodicView3 but for all accounts
