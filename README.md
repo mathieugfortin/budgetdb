@@ -20,7 +20,7 @@ TransactionListView uses calendars and it's slow, refactor like AccountperiodicV
 Dynamic Total on chart?  
 a chart with a running total per account category would be nice.  cashflow, savings, mortgage...
 
-Users, families
+Users, families, sharing
 
 make configurable how far in the future budgeted transactions will go
 
@@ -28,6 +28,15 @@ budget only BE are not addressed
 
 account categories don't have a way to be set in the app
 
+budgeted events growth, % per month, % per year...
+
+Pay stubs with multiple transactions, related to each other
+    deductions that stops after a maximum
+    check taxes forms
+
+taxes datasheets.  per category, make recap sheets for income and deductions
+
+budgeted events bitfields
 
 
 

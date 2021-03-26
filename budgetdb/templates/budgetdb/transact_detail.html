@@ -1,17 +1,26 @@
+{% extends "budgetdb/base.html" %}
+
+{% block content %}
+
 <h1>{{ transaction.description }}</h1>
 
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
-{% for subcategory in transaction.cat2.all %}
-      <li>subcategory {{ subcategory.name }}</li>
-{% endfor %}
+<div id="details">
+    <ul>
+        <li>Amount Planned: {{ transaction.amount_actual }}</li>
+        <li>Source: {{ transaction.account_source }}</li>
+        <li>Destination: {{ transaction.account_destination }}</li>
+        <li>Category: {{ transaction.cat1 }}</li>
+        <li>SubCategory: {{ transaction.cat2 }}</li>
+        <li>Vendor: {{ transaction.vendor }}</li>  
+        <li>budgetedevent: {{ transaction.budgetedevent }}</li>  
+        <li>Verified ?: {{ transaction.verified }}</li>  
+          
+    </ul>
+</div>
+<div class="clearfix">
+    <a class="btn btn-info left" href="{% url 'budgetdb:update_transaction' transaction.id %}"> Modify </a>
+</div>
 
-
-<form action="{% url 'budgetdb:saveTransaction' transaction.id %}" method="post">
-{% csrf_token %}
-{% for subcategory in transaction.cat2.all %}
-    <input type="radio" name="SubCategory" id="subcategory{{ forloop.counter }}" value="{{ subcategory.id }}">
-    <label for="subcategory{{ forloop.counter }}">{{ subcategory.name }}</label><br>
-{% endfor %}
-<input type="submit" value="subcategory">
-</form>
+{% endblock %}

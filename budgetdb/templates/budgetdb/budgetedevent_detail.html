@@ -8,16 +8,23 @@
 {% endblock %}
 
 {% block content %}
+
+    <style>
+        li.UNVERIFIED {
+        background-color: rgb(191, 199, 120)
+        }
+    </style>
+
     <!--budgetedevent_detail-->
     <div id="details">
         <h2>{{ object.description }}</h2>
         <ul>
             <li>Amount Planned: {{ object.amount_planned }}</li>
-            <li>Source: {{ object.account_source }}</li>
-            <li>Destination: {{ object.account_destination }}</li>
+            <li>Source: {% if object.account_source != None %}  {{ object.account_source }} {% endif %}</li>
+            <li>Destination: {% if object.account_destination != None %}  {{ object.account_destination }} {% endif %} </li>
             <li>Category: {{ object.cat1 }}</li>
             <li>SubCategory: {{ object.cat2 }}</li>
-            <li>Vendor: {{ object.vendor }}</li>    
+            <li>Vendor:  {% if object.vendor != None %}  {{ object.vendor }} {% endif %}</li>    
         </ul>
     </div>
     <div class="clearfix">
@@ -25,15 +32,17 @@
     </div>
     <div id="transactionlist">
         <h2>List of transactions</h2>
+        <ol>
         {% for transaction in next_transactions %}
-            {{next_transactions.date_actual}}
-            <li><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.date_actual }}</a> - 
+            
+            <li  {% if transaction.verified == 0 %} class="UNVERIFIED" {% endif %}
+            >
+            <a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.date_actual }}</a> - 
                 {{ transaction.amount_actual }}$ - 
                 {% if transaction.account_source != None %} From {{transaction.account_source}} {% endif %}
-                {% if transaction.account_destination != None %} To {{transaction.account_destination}} {% endif %}
-                {% if transaction.verified == False %} Not verified {% else %} Verified {% endif %}
+                {% if transaction.account_destination != None %} To {{transaction.account_destination}} {% endif %}                
                  </li>
         {% endfor %}
-        
+        </ol>
     </div>
 {% endblock %}

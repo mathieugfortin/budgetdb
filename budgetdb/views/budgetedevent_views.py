@@ -30,6 +30,7 @@ class BudgetedEventDetailView(DetailView):
         all_be = BudgetedEvent.objects.all().order_by('description')
         grab_next = False
         previous = all_be.last()
+        next_be = all_be.first()
         for be in all_be:
             if grab_next is True:
                 next_be = be
@@ -46,7 +47,7 @@ class BudgetedEventDetailView(DetailView):
         context['cat1_list'] = Cat1.objects.all()
         context['cat2_list'] = Cat2.objects.all()
         begin_interval = datetime.today().date() + relativedelta(months=-12)
-        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=10, begin_interval=begin_interval, interval_length_months=60)
+        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=25, begin_interval=begin_interval, interval_length_months=60)
         return context
 
 

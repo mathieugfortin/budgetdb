@@ -22,11 +22,11 @@ class FirstGraph(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
-        begin = datetime.strptime(begin, "%Y-%m-%d").date()
-        end = datetime.strptime(end, "%Y-%m-%d").date()
         accountcategoryID = self.request.GET.get('ac', None)
+
         if accountcategoryID is not None:
             accountcategory = AccountCategory.objects.filter(id=accountcategoryID)
             context['accountcategory'] = accountcategory
@@ -36,9 +36,13 @@ class FirstGraph(TemplateView):
 
         if end is None or end == 'None':
             end = date.today()
+        else:
+            end = datetime.strptime(end, "%Y-%m-%d").date()
 
         if begin is None or begin == 'None':
             begin = end + relativedelta(months=-1)
+        else:
+            begin = datetime.strptime(begin, "%Y-%m-%d").date()
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
@@ -88,7 +92,7 @@ class FirstGraphJSON(BaseLineChartView):
         self.line_labels = []  # Account names
         self.x_labels = []  # Dates
         self.data = [[] for i in range(accounts.count())]  # balances data points
-      
+
         for day in MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date'):
             self.x_labels.append(f'{day}')
 
@@ -224,8 +228,8 @@ class VendorUpdateView(UpdateView):
 class AccountUpdateView(UpdateView):
     model = Account
     fields = (
-        'name', 
-        'AccountHost' ,
+        'name',
+        'AccountHost',
         'account_number',
         )
 

@@ -302,7 +302,6 @@ class Vendor(models.Model):
         return reverse('budgetdb:details_vendor', kwargs={'pk': self.pk})
 
 
-
 class Transaction(models.Model):
     class Meta:
         verbose_name = 'Transaction'
@@ -482,21 +481,25 @@ class BudgetedEvent(models.Model):
         transactions = Transaction.objects.filter(budgetedevent_id=self.id)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
-        transactions = transactions.filter(date_actual__lte=end_date)[:n]
+        transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
-    def createTransactions(self, n=20, begin_interval=None, interval_length_months=60):
+    def createTransactions(self, n=80, begin_interval=None, interval_length_months=60):
         if begin_interval is None:
             begin_interval = self.repeat_start
         transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
-        self.generated_interval_start = transaction_dates[0]
+        if transaction_dates:
+            self.generated_interval_start = transaction_dates[0]
+        else:
+            return
+
         for date in transaction_dates:
             new_transaction = Transaction.objects.create(date_planned=date,
                                                          date_actual=date,
                                                          amount_actual=self.amount_planned,
                                                          description=self.description,
                                                          budgetedevent_id=self.id,
-                                                         account_destination=self.account_destination_id,
+                                                         account_destination=self.account_destination,
                                                          account_source=self.account_source,
                                                          cat1=self.cat1,
                                                          cat2=self.cat2,
@@ -505,6 +508,7 @@ class BudgetedEvent(models.Model):
             new_transaction.save()
             # Needs a lot more work with these interval management  #######
             self.generated_interval_stop = date
+
 
     def deleteUnverifiedTransaction(self):
         transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False)
