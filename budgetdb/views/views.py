@@ -27,11 +27,11 @@ class FirstGraph(TemplateView):
         end = self.request.GET.get('end', None)
         accountcategoryID = self.request.GET.get('ac', None)
 
-        if accountcategoryID is not None:
-            accountcategory = AccountCategory.objects.filter(id=accountcategoryID)
+        if accountcategoryID is not None and accountcategoryID != 'None':
+            accountcategory = AccountCategory.objects.get(id=accountcategoryID)
             context['accountcategory'] = accountcategory
-        accountcategories = AccountCategory.objects.all()
 
+        accountcategories = AccountCategory.objects.all()
         context['accountcategories'] = accountcategories
 
         if end is None or end == 'None':
@@ -54,11 +54,11 @@ class FirstGraph(TemplateView):
         context['3monthsago'] = mydate.strftime("%Y-%m-%d")
         mydate = date.today() + relativedelta(months=-12)
         context['yearago'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-1)
+        mydate = date.today() + relativedelta(months=1)
         context['inamonth'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-3)
+        mydate = date.today() + relativedelta(months=3)
         context['in3months'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-12)
+        mydate = date.today() + relativedelta(months=12)
         context['inayear'] = mydate.strftime("%Y-%m-%d")
 
         context['ac'] = accountcategoryID
@@ -316,20 +316,25 @@ class AccountperiodicView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
-        begin = self.request.GET.get('begin', None)
-        end = self.request.GET.get('end', None)
-        if end is None:
+        beginstr = self.request.GET.get('begin', None)
+        endstr = self.request.GET.get('end', None)
+        if endstr is not None and endstr != 'None':
+            end = datetime.strptime(endstr, "%Y-%m-%d")
+        else: 
             end = date.today()
-        if begin is None:
+
+        if beginstr is not None and beginstr != 'None':
+            begin = datetime.strptime(beginstr, "%Y-%m-%d")
+        else:
             begin = end + relativedelta(months=-1)
 
-        context['account_list'] = Account.objects.all()
-        context['begin'] = begin
-        context['end'] = end
+        context['account_list'] = Account.objects.all().order_by('name')
+        context['begin'] = begin.strftime("%Y-%m-%d")
+        context['end'] = end.strftime("%Y-%m-%d")
         context['pk'] = pk
-        context['now'] = date.today()
-        context['month'] = date.today() + relativedelta(months=-1)
-        context['3month'] = date.today() + relativedelta(months=-3)
+        context['now'] = date.today().strftime("%Y-%m-%d")
+        context['month'] = (date.today() + relativedelta(months=-1)).strftime("%Y-%m-%d")
+        context['3month'] = (date.today() + relativedelta(months=-3)).strftime("%Y-%m-%d")
         context['account_name'] = Account.objects.get(id=pk).name
         return context
 

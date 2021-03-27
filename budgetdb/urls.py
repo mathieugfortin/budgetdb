@@ -10,6 +10,21 @@ urlpatterns = [
     path('', views.IndexView.as_view(),
          name='home'),
 
+    # Account
+    path('account/', views.AccountListView.as_view(),
+         name='list_account'),
+    path('account/<int:pk>/', views.AccountDetailView.as_view(),
+         name='details_account'),
+    path('account/add/', views.AccountCreateView.as_view(),
+         name='create_account'),
+    path('account/update/<int:pk>/', views.AccountUpdateView.as_view(),
+         name='update_account'),
+    path('account/ac/', views.AutocompleteAccount.as_view(),
+         name='autocomplete_account'),
+
+    path('account/list/<int:pk>/', views.AccountperiodicView.as_view(),
+         name='list_account_activity'),
+
     # chart JS
     path('chart/', views.FirstGraph.as_view(), name='line_chart'),
     path('chartJSON', views.FirstGraphJSON.as_view(), name='line_chart_json'),
@@ -38,6 +53,20 @@ urlpatterns = [
     path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
 
+    # BudgetedEvent
+    path('budgetedEvent/', views.budgetedEventsListView.as_view(),
+         name='list_be'),
+    path('budgetedEvent/<int:pk>/', views.BudgetedEventDetailView.as_view(),
+         name='details_be'),
+    path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
+         name='create_be'),
+    path('budgetedEvent/createfromt/<int:transaction_id>/', views.BudgetedEventCreateFromTransaction.as_view(),
+         name='create_be_from_t'),
+    path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
+         name='submit_be'),
+    path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
+         name='update_be'),
+
     # Transaction
     path('<int:pk>/saveTransaction/', views.saveTransaction,
          name='saveTransaction'),
@@ -54,18 +83,6 @@ urlpatterns = [
     path('list/', views.TransactionListView.as_view(),
          name='list_transaction'),
 
-    # BudgetedEvent
-    path('budgetedEvent/', views.budgetedEventsListView.as_view(),
-         name='list_be'),
-    path('budgetedEvent/<int:pk>/', views.BudgetedEventDetailView.as_view(),
-         name='details_be'),
-    path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
-         name='add_be'),
-    path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
-         name='submit_be'),
-    path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
-         name='update_be'),
-
     # Vendor
     path('vendor/', views.VendorListView.as_view(),
          name='list_vendor'),
@@ -77,20 +94,4 @@ urlpatterns = [
          name='update_vendor'),
     path('vendor/ac/', views.AutocompleteVendor.as_view(),
          name='autocomplete_vendor'),
-
-    # Account
-    path('account/', views.AccountListView.as_view(),
-         name='list_account'),
-    path('account/<int:pk>/', views.AccountDetailView.as_view(),
-         name='details_account'),
-    path('account/add/', views.AccountCreateView.as_view(),
-         name='create_account'),
-    path('account/update/<int:pk>/', views.AccountUpdateView.as_view(),
-         name='update_account'),
-    path('account/ac/', views.AutocompleteAccount.as_view(),
-         name='autocomplete_account'),
-
-    path('account/list/<int:pk>/', views.AccountperiodicView.as_view(),
-         name='list_account_activity'),
-
 ]

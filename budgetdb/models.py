@@ -460,7 +460,7 @@ class BudgetedEvent(models.Model):
         # if weeks interval is used, check if the difference is a repeat of interval. Weekday must match
         elif self.repeat_interval_weeks != 0 and \
                 (dateCheck.weekday() != self.repeat_start.weekday() or
-                 ((dateCheck - self.repeat_start).days / 7) % self.repeat_interval_weeks == 0):
+                 ((dateCheck - self.repeat_start).days / 7) % self.repeat_interval_weeks != 0):
             return False
         else:
             return True

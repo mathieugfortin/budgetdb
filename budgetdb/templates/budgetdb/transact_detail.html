@@ -1,5 +1,8 @@
 {% extends "budgetdb/base.html" %}
 
+{% block title %}Transaction - {{ transaction.description }}{% endblock %}
+
+
 {% block content %}
 
 <h1>{{ transaction.description }}</h1>
@@ -8,19 +11,34 @@
 
 <div id="details">
     <ul>
-        <li>Amount Planned: {{ transaction.amount_actual }}</li>
-        <li>Source: {{ transaction.account_source }}</li>
-        <li>Destination: {{ transaction.account_destination }}</li>
+        <li>Date: {{ transaction.date_actual }}</li>        
+        <li>Amount Planned: {{ transaction.amount_actual }}</li>        
+        <li>Source: 
+            {% if transaction.account_source != None %} 
+                <a href="{% url 'budgetdb:details_account' transaction.account_source.id %}"> {{ transaction.account_source }} </a> 
+            {% endif %}
+        </li>
+        <li>Destination: 
+            {% if transaction.account_destination != None %} 
+                <a href="{% url 'budgetdb:details_account' transaction.account_destination.id %}"> {{ transaction.account_destination }} </a>
+                {% endif %}
+        </li>
         <li>Category: {{ transaction.cat1 }}</li>
         <li>SubCategory: {{ transaction.cat2 }}</li>
         <li>Vendor: {{ transaction.vendor }}</li>  
-        <li>budgetedevent: {{ transaction.budgetedevent }}</li>  
+        <li>budgetedevent: 
+            {% if transaction.budgetedevent != None %} 
+                <a href="{% url 'budgetdb:details_be' transaction.budgetedevent.id %}"> {{ transaction.budgetedevent }} </a>
+            {% endif %}
+        </li>  
         <li>Verified ?: {{ transaction.verified }}</li>  
-          
     </ul>
 </div>
 <div class="clearfix">
     <a class="btn btn-info left" href="{% url 'budgetdb:update_transaction' transaction.id %}"> Modify </a>
+    {% if transaction.budgetedevent == None %} 
+    <a class="btn btn-info left" href="{% url 'budgetdb:create_be_from_t' transaction.id %}"> Create a recurring pattern </a>
+    {% endif %}
 </div>
 
 {% endblock %}

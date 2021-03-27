@@ -1,5 +1,7 @@
 {% extends "budgetdb/base.html" %}
 
+{% block title %}Recurring Transaction - {{ object.description }}{% endblock %}
+
 {% block navtools %}
 <div class="clearfix">
     <a class="btn btn-info left" href="{% url 'budgetdb:details_be' previous_be.id %}"> Previous: {{ previous_be.description }} </a>

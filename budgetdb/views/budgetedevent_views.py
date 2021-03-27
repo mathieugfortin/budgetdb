@@ -115,6 +115,50 @@ class BudgetedEventCreate(CreateView):
         return form
 
 
+class BudgetedEventCreateFromTransaction(CreateView):
+    # template_name = 'budgetdb/budgetedeventmod_form.html'
+    model = BudgetedEvent
+    fields = (
+            'description',
+            'amount_planned',
+            'cat1',
+            'cat2',
+            'repeat_start',
+            'repeat_stop',
+            'vendor',
+            'account_source',
+            'account_destination',
+            'budget_only',
+            'isrecurring',
+            'repeat_interval_days',
+            'repeat_interval_weeks',
+            'repeat_interval_months',
+            'repeat_interval_years',
+        )
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        transaction_id = self.kwargs['transaction_id']
+        transaction = Transaction.objects.get(id=transaction_id)
+        form.initial['description'] = transaction.description
+        form.initial['amount_planned'] = transaction.amount_actual
+        form.initial['cat1'] = transaction.cat1
+        form.initial['cat2'] = transaction.cat2
+        form.initial['repeat_start'] = transaction.date_actual
+        form.initial['vendor'] = transaction.vendor
+        form.initial['account_source'] = transaction.account_source
+        form.initial['account_destination'] = transaction.account_destination
+        form.initial['isrecurring'] = True
+
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
 class BudgetedEventCreateView(CreateView):
     model = BudgetedEvent
     form_class = BudgetedEventForm

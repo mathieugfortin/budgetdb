@@ -38,6 +38,8 @@ taxes datasheets.  per category, make recap sheets for income and deductions
 
 budgeted events bitfields
 
+pull interval creation in a function.  past3 months, 2020, 2020, next3months...
+
 
 
 
