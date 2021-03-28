@@ -11,11 +11,8 @@ I used to have an excel sheet that did that pretty well but at over 12MB, debugg
 
 
 ToDo list:
-Dynamic budgetedEvents are killing performance.  They should create unverified Transactions.  Handling of budgetedEvents change will be tricky
 
-check if audit is the last event of the day...  order them so
-
-TransactionListView uses calendars and it's slow, refactor like AccountperiodicView but for all accounts
+*****Start working on the budget graphs ***
 
 Dynamic Total on chart?  
 a chart with a running total per account category would be nice.  cashflow, savings, mortgage...
@@ -36,10 +33,9 @@ Pay stubs with multiple transactions, related to each other
 
 taxes datasheets.  per category, make recap sheets for income and deductions
 
-budgeted events bitfields
+show the budgeted events bitfields in the forms
 
 pull interval creation in a function.  past3 months, 2020, 2020, next3months...
-
 
 
 

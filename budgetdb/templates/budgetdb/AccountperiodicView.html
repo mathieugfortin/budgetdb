@@ -7,15 +7,15 @@
 
 <style>
 tbody>tr>:nth-child(1){
- width:130px;
+ width:10px;
  text-align:left;
 }
 tbody>tr>:nth-child(2){
- width:300px;
+ width:130px;
  text-align:left;
 }
 tbody>tr>:nth-child(3){
- width:120px;
+ width:300px;
  text-align:left;
 }
 tbody>tr>:nth-child(4){
@@ -23,20 +23,30 @@ tbody>tr>:nth-child(4){
  text-align:left;
 }
 tbody>tr>:nth-child(5){
+ width:120px;
+ text-align:left;
+}
+tbody>tr>:nth-child(6){
+ width:120px;
+ text-align:left;
+}
+tbody>tr>:nth-child(7){
  width:100px;
  text-align:right;
 }
-tbody>tr>:nth-child(6){
+tbody>tr>:nth-child(8){
  width:100px;
  text-align:right;
 }
 tr.AUDIT {
-  background-color: lightsalmon
+  background-color: rgb(44, 61, 141)
 }
 tr.BUDGET {
   background-color: rgb(78, 167, 240)
 }
-
+tr.UNVERIFIED {
+  background-color: rgb(252, 221, 156)
+}
 
 </style>
 <div class="clearfix">
@@ -50,18 +60,20 @@ tr.BUDGET {
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <div class="clearfix">
-    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ month|date:'Y-m-d' }}&end={{ now|date:'Y-m-d' }}"> last 30 days </a>
-    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ 3month|date:'Y-m-d' }}&end={{ now|date:'Y-m-d' }}"> last 90 days </a>
+    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ month }}&end={{ now }}"> last 30 days </a>
+    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ 3month }}&end={{ now }}"> last 90 days </a>
     <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin=2020-01-01&end=2021-12-31"> all </a>
     <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin=2020-01-01&end=2020-04-01"> begin </a>
 </div>
 
 
 
-<table style="width:100%">
+<table >
     <tr>
+        <th></th>
         <th>Date</th>
         <th>Description</th>
+        <th>Recurrence</th>
         <th>Category</th>
         <th>Subcategory</th>
         <th>Amount</th>
@@ -69,15 +81,21 @@ tr.BUDGET {
     </tr>
 
     {% for event in object_list  %}
-    <tr {% if event.audit == 1 %} class="AUDIT" {% endif %}
-    {% if event.budgetedevent_id != None and event.verified == 0 %} class="BUDGET" {% endif %}
+    <tr {% if event.audit == 1 %} class="AUDIT" 
+        {% elif event.budgetedevent_id != None and event.verified == 0 %} class="BUDGET" 
+        {% elif event.verified == 0 %} class="UNVERIFIED" 
+        {% endif %}
     >
-        <td>{{ event.date_actual|date:"Y-m-d" }}</td>
-        <td><a href="{% url event.viewname event.id %}">{{ event.description }}</a></td>
+        <td><a href="{% url 'budgetdb:create_transaction_from_date_account' event.date_actual|date:'Y-m-d' pk %}">+</a></td>
+        <td>{{ event.date_actual|date:'Y-m-d' }}</td>
+        <td><a href="{% url 'budgetdb:update_transaction' event.id %}">{{ event.description }}</a></td>
+        <td>{% if event.budgetedevent_id != None %} 
+            <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> REP
+            {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat1 }} {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>
         <td money>{{ event.calc_amount }}</td>
-        <td money>{{ event.balance }}$</td>
+        <td money>{{ event.balance }}</td>
     </tr>
     {% endfor %}
 </table> 

@@ -41,6 +41,42 @@ class TransactionCreateView(CreateView):
         return form
 
 
+class TransactionCreateViewFromDateAccount(CreateView):
+    model = Transaction
+    fields = [
+        'description',
+        'cat1',
+        'cat2',
+        'account_source',
+        'account_destination',
+        'statement',
+        'verified',
+        'audit',
+        'vendor',
+        'amount_actual',
+        'date_actual',
+        'date_planned',
+        'budgetedevent',
+        'comment',
+        ]
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        date = self.kwargs['date']
+        account_id = self.kwargs['account_pk']
+        account = Account.objects.get(id=account_id)
+        form.initial['date_actual'] = date
+        form.initial['account_source'] = account
+
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
 class TransactionUpdateView(UpdateView):
     model = Transaction
     fields = [

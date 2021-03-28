@@ -205,7 +205,7 @@ class Account(models.Model):
         return balance
 
     def build_report_with_balance(self, start_date, end_date):
-        events = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual')
+        events = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual', 'audit')
         events = events.filter(account_destination_id=self.id) | events.filter(account_source_id=self.id)
         balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD(start_date))
         for event in events:
@@ -339,8 +339,11 @@ class Transaction(models.Model):
     def __str__(self):
         return self.description
 
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_transaction', kwargs={'pk': self.pk})
+
     def save(self, *args, **kwargs):
-        if self._state.adding:
+        if self._state.adding and self.budgetedevent is not None and self.date_planned is not None:
             if Transaction.objects.filter(budgetedevent=self.budgetedevent, date_planned=self.date_planned).exists():
                 # don't save a duplicate
                 pass
