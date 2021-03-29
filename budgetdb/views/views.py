@@ -8,13 +8,63 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, Cat1Sums, CatType
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
 from chartjs.views.lines import BaseLineChartView
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
+
+
+def pie_chart(request):
+    labels = []
+    data = []
+
+    end = datetime.today()
+    begin = end + relativedelta(years=-1)
+
+    # dailybalances = AccountBalances.objects.raw(sqlst)
+    account_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+
+    for cat in account_totals:
+        if cat.cat1type_id == 2:
+            labels.append(cat.cat1.name)
+            data.append(f'{cat.total}')
+
+    return render(request, 'budgetdb/pie_chart.html', {
+        'labels': labels,
+        'data': data,
+        'type': 'Dépenses'
+    })
+
+
+class PieChartView(TemplateView):
+    template_name = 'budgetdb/pie_chart.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
+        cat1type = CatType.objects.get(pk=pk)
+
+        labels = []
+        data = []
+
+        end = datetime.today()
+        begin = end + relativedelta(years=-1)
+
+        # dailybalances = AccountBalances.objects.raw(sqlst)
+        account_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+
+        for cat in account_totals:
+            if cat.cat1type_id == cat1type.id:
+                labels.append(cat.cat1.name)
+                data.append(f'{cat.total}')
+
+        context['labels'] = labels
+        context['data'] = data
+        context['type'] = cat1type
+        return context
 
 
 class FirstGraph(TemplateView):
@@ -182,7 +232,10 @@ class Cat1DetailView(DetailView):
 
 class Cat1UpdateView(UpdateView):
     model = Cat1
-    fields = ('name',)
+    fields = (
+        'name',
+        'cattype',
+    )
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -197,7 +250,10 @@ class Cat1UpdateView(UpdateView):
 
 class Cat2UpdateView(UpdateView):
     model = Cat2
-    fields = ('name',)
+    fields = (
+        'name',
+        'cattype',
+        )
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -320,7 +376,7 @@ class AccountperiodicView(ListView):
         endstr = self.request.GET.get('end', None)
         if endstr is not None and endstr != 'None':
             end = datetime.strptime(endstr, "%Y-%m-%d")
-        else: 
+        else:
             end = date.today()
 
         if beginstr is not None and beginstr != 'None':
@@ -341,7 +397,10 @@ class AccountperiodicView(ListView):
 
 class Cat1CreateView(CreateView):
     model = Cat1
-    fields = ['name']
+    fields = [
+        'name',
+        'cattype',
+        ]
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -371,7 +430,11 @@ class AccountCreateView(CreateView):
 
 class Cat2Create(CreateView):
     model = Cat2
-    fields = ['name', 'cat1']
+    fields = [
+        'name',
+        'cat1',
+        'cattype',
+        ]
 
     def form_valid(self, form):
         return super().form_valid(form)
