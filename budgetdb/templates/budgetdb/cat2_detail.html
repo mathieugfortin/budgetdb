@@ -5,6 +5,7 @@
 {% block content %}
 
 <h1>{{ cat2.name }}</h1>
+<h6>{{ cat2.cattype.name }}</h6>
 <h5>part of category <a href="{% url 'budgetdb:details_cat1' cat2.cat1.id %}"> {{ cat2.cat1.name }}</a>  </h5>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
