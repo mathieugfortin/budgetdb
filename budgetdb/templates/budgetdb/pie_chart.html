@@ -9,31 +9,31 @@
 {% endblock %}
 
 {% block script %}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
-  <script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+    <script type="text/javascript">
 
     var config = {
-      type: 'pie',
-      data: {
-        datasets: [{
-          data: {{ data|safe }},
-          backgroundColor: [
-            '#696969', '#808080', '#A9A9A9', '#C0C0C0', '#D3D3D3'
-          ],
-          label: '{{ type }}'
-        }],
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: {{ data|safe }},
+                backgroundColor: [
+                    'orangered', 'green', 'blue', 'orange', 'teal', 'salmon','mediumpurple','olive',
+                    'darkturquoise','magenta','grey','mediumvioletred'
+                ],
+                label: '{{ type }}'
+            }],
         labels: {{ labels|safe }}
-      },
-      options: {
-        responsive: true
-      }
+        },
+        options: {
+            responsive: true
+        }
     };
 
     window.onload = function() {
-      var ctx = document.getElementById('pie-chart').getContext('2d');
-      window.myPie = new Chart(ctx, config);
+        var ctx = document.getElementById('pie-chart').getContext('2d');
+        window.myPie = new Chart(ctx, config);
     };
-
-  </script>
+    </script>
 
 {% endblock %}

@@ -1,0 +1,64 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+{% block title %}Totals by categories{% endblock %}
+
+{% block content %}
+  <div id="container" style="width: 75%;">
+    <canvas id="pie-chart"></canvas>
+  </div>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+<script type="text/javascript">
+
+    var $element = document.getElementById("pie-chart");
+    var ctx = $element.getContext("2d");
+    var myChart;
+    var container = document.getElementById("container");
+
+
+
+    $.get('{% url "budgetdb:cat1_pie_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cat1type }}', function(config) {
+        myChart = new Chart(ctx, config);
+    });
+
+    function add_subcontainer() {
+        var newDiv = document.createElement('div');
+        newDiv.style.position = "absolute";
+        newDiv.style.left = "250px";
+        newDiv.style.top = "250px";
+        newDiv.style.height = "500px";
+        newDiv.style.width = "500px";
+        newDiv.id= "subcontainer";
+        var newCanvas = document.createElement('canvas');
+        newCanvas.id="new-pie-chart";
+        newDiv.append(newCanvas);
+        document.body.append(newDiv);
+        var newCtx = newCanvas.getContext("2d");
+        $.get('{% url "budgetdb:cat2_pie_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cat1type }}', function(subConfig) {
+            myNewChart = new Chart(newCtx, subConfig);
+        });
+    }
+
+    window.addEventListener('click', function(e){
+        if (document.getElementById('pie-chart').contains(e.target)){
+            if (!document.getElementById("subcontainer")) {
+                var activePoints = myChart.getElementsAtEvent(event);
+                if (activePoints.length > 0) {
+                    add_subcontainer()
+                }
+            } else {
+                document.getElementById('subcontainer').remove();
+            }
+        } else if (!document.getElementById('new-pie-chart').contains(e.target)){
+            document.getElementById('subcontainer').remove();
+        }
+    });
+
+    
+</script>
+
+{% endblock %}
