@@ -28,8 +28,9 @@ urlpatterns = [
     # chart JS
     path('chart/', views.FirstGraph.as_view(), name='line_chart'),
     path('chartJSON', views.FirstGraphJSON.as_view(), name='line_chart_json'),
-    path('pie-chart/', views.pie_chart, name='pie-chart'),
-    path('cat1/pie-chart/<int:pk>', views.PieChartView.as_view(), name='pie-chart'),
+    path('cat1/pie-chart/<int:cat_type_pk>', views.CatTotalChart.as_view(), name='cat1_pie'),
+    path('catTotalJSON', views.GetCat1TotalChartData, name='cat1_pie_json'),
+    path('catTotalJSON', views.GetCat2TotalChartData, name='cat2_pie_json'),
 
     # Cat1
     path('cat1/', views.Cat1ListView.as_view(),

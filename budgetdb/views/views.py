@@ -13,30 +13,151 @@ from budgetdb.utils import Calendar
 import pytz
 from decimal import *
 from chartjs.views.lines import BaseLineChartView
+from chartjs.views.pie import HighChartDonutView, HighChartPieView
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
+from django.http import JsonResponse
 
 
-def pie_chart(request):
-    labels = []
-    data = []
+def GetCat1TotalChartData(request):
 
-    end = datetime.today()
-    begin = end + relativedelta(years=-1)
+    begin = request.GET.get('begin', None)
+    end = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cat1type = CatType.objects.get(pk=cat_type_pk)
+
+    labels = []  # categories
+    data = []  # totals
 
     # dailybalances = AccountBalances.objects.raw(sqlst)
-    account_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+    cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
 
-    for cat in account_totals:
-        if cat.cat1type_id == 2:
+    for cat in cat_totals:
+        if cat.cat1type_id == cat1type.id:
             labels.append(cat.cat1.name)
-            data.append(f'{cat.total}')
+            data.append(cat.total)
 
-    return render(request, 'budgetdb/pie_chart.html', {
-        'labels': labels,
-        'data': data,
-        'type': 'Dépenses'
-    })
+    data = {
+        'type': 'doughnut',
+        'options': {'responsive': True},
+        'data': {
+            'datasets': [{
+                    'data': data,
+                    'backgroundColor': [
+                        'orangered',
+                        'green',
+                        'blue',
+                        'orange',
+                        'teal',
+                        'salmon',
+                        'mediumpurple',
+                        'olive',
+                        'darkturquoise',
+                        'magenta',
+                        'grey',
+                        'mediumvioletred',
+                        ],
+                    'label': cat1type.name
+            }],
+            'labels': labels
+        },
+    }
+
+    return JsonResponse(data, safe=False)
+
+
+def GetCat2TotalChartData(request):
+
+    begin = request.GET.get('begin', None)
+    end = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cat1type = CatType.objects.get(pk=cat_type_pk)
+
+    labels = []  # categories
+    data = []  # totals
+
+    # dailybalances = AccountBalances.objects.raw(sqlst)
+    cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+
+    for cat in cat_totals:
+        if cat.cat1type_id == cat1type.id:
+            labels.append(cat.cat1.name)
+            data.append(cat.total)
+
+    data = {
+        'type': 'doughnut',
+        'options': {'responsive': True},
+        'data': {
+            'datasets': [{
+                    'data': data,
+                    'backgroundColor': [
+                        'orangered',
+                        'green',
+                        'blue',
+                        'orange',
+                        'teal',
+                        'salmon',
+                        'mediumpurple',
+                        'olive',
+                        'darkturquoise',
+                        'magenta',
+                        'grey',
+                        'mediumvioletred',
+                        ],
+                    'label': cat1type.name
+            }],
+            'labels': labels
+        },
+    }
+
+    return JsonResponse(data, safe=False)
+
+
+def GetCat2TotalChartData(request):
+
+    begin = request.GET.get('begin', None)
+    end = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cat1type = CatType.objects.get(pk=cat_type_pk)
+
+    labels = []  # categories
+    data = []  # totals
+
+    # dailybalances = AccountBalances.objects.raw(sqlst)
+    cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+
+    for cat in cat_totals:
+        if cat.cat1type_id == cat1type.id:
+            labels.append(cat.cat1.name)
+            data.append(cat.total)
+
+    data = {
+        'type': 'doughnut',
+        'options': {'responsive': True},
+        'data': {
+            'datasets': [{
+                    'data': data,
+                    'backgroundColor': [
+                        'orangered',
+                        'green',
+                        'blue',
+                        'orange',
+                        'teal',
+                        'salmon',
+                        'mediumpurple',
+                        'olive',
+                        'darkturquoise',
+                        'magenta',
+                        'grey',
+                        'mediumvioletred',
+                        ],
+                    'label': cat1type.name
+            }],
+            'labels': labels
+        },
+    }
+
+    return JsonResponse(data, safe=False)
 
 
 class PieChartView(TemplateView):
@@ -54,9 +175,9 @@ class PieChartView(TemplateView):
         begin = end + relativedelta(years=-1)
 
         # dailybalances = AccountBalances.objects.raw(sqlst)
-        account_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+        cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
 
-        for cat in account_totals:
+        for cat in cat_totals:
             if cat.cat1type_id == cat1type.id:
                 labels.append(cat.cat1.name)
                 data.append(f'{cat.total}')
@@ -64,6 +185,48 @@ class PieChartView(TemplateView):
         context['labels'] = labels
         context['data'] = data
         context['type'] = cat1type
+        return context
+
+
+class CatTotalChart(TemplateView):
+    template_name = 'budgetdb/pie_chart2.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cat_type_pk = self.kwargs['cat_type_pk']
+        cat1type = CatType.objects.get(pk=cat_type_pk)
+
+        begin = self.request.GET.get('begin', None)
+        end = self.request.GET.get('end', None)
+
+        if end is None or end == 'None':
+            end = date.today()
+        else:
+            end = datetime.strptime(end, "%Y-%m-%d").date()
+
+        if begin is None or begin == 'None':
+            begin = end + relativedelta(months=-12)
+        else:
+            begin = datetime.strptime(begin, "%Y-%m-%d").date()
+
+        context['begin'] = begin.strftime("%Y-%m-%d")
+        context['end'] = end.strftime("%Y-%m-%d")
+        mydate = date.today()
+        context['now'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=-1)
+        context['monthago'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=-3)
+        context['3monthsago'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=-12)
+        context['yearago'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=1)
+        context['inamonth'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=3)
+        context['in3months'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=12)
+        context['inayear'] = mydate.strftime("%Y-%m-%d")
+
+        context['cat1type'] = cat1type.id
         return context
 
 

@@ -46,10 +46,10 @@ class Cat1Sums(models.Model):
                 f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
                 f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
                 f'AND t.cat1_id IS NOT Null ' \
-                f"GROUP by t.cat1_id" 
+                f"GROUP by t.cat1_id "  \
+                f"ORDER BY c1.name "
 
-        print(sqlst)
-        # fetch audits and deltas
+        # print(sqlst)
         cat1_totals = Cat1Sums.objects.raw(sqlst)
 
         return cat1_totals
@@ -157,6 +157,9 @@ class CatType(models.Model):
         verbose_name = 'Category Type'
         verbose_name_plural = 'Categories Type'
     name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
 
 
 class Cat1(models.Model):
