@@ -24,18 +24,20 @@ def GetCat1TotalChartData(request):
     begin = request.GET.get('begin', None)
     end = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
-    cat1type = CatType.objects.get(pk=cat_type_pk)
+    cattype = CatType.objects.get(pk=cat_type_pk)
 
     labels = []  # categories
     data = []  # totals
+    indexes = []  # cat1_ids
 
     # dailybalances = AccountBalances.objects.raw(sqlst)
     cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
 
     for cat in cat_totals:
-        if cat.cat1type_id == cat1type.id:
+        if cat.cattype_id == cattype.id:
             labels.append(cat.cat1.name)
             data.append(cat.total)
+            indexes.append(cat.cat1_id)
 
     data = {
         'type': 'doughnut',
@@ -43,6 +45,7 @@ def GetCat1TotalChartData(request):
         'data': {
             'datasets': [{
                     'data': data,
+                    'indexes': indexes,
                     'backgroundColor': [
                         'orangered',
                         'green',
@@ -57,7 +60,7 @@ def GetCat1TotalChartData(request):
                         'grey',
                         'mediumvioletred',
                         ],
-                    'label': cat1type.name
+                    'label': cattype.name
             }],
             'labels': labels
         },
@@ -71,17 +74,19 @@ def GetCat2TotalChartData(request):
     begin = request.GET.get('begin', None)
     end = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
-    cat1type = CatType.objects.get(pk=cat_type_pk)
+    cattype = CatType.objects.get(pk=cat_type_pk)
+    cat1_pk = request.GET.get('cat1', None)
+    cat1 = Cat1.objects.get(pk=cat1_pk)
 
     labels = []  # categories
     data = []  # totals
 
     # dailybalances = AccountBalances.objects.raw(sqlst)
-    cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+    cat_totals = Cat1Sums.build_cat2_totals_array(begin, end)
 
     for cat in cat_totals:
-        if cat.cat1type_id == cat1type.id:
-            labels.append(cat.cat1.name)
+        if cat.cattype_id == cattype.id and cat.cat1 == cat1:
+            labels.append(cat.cat2.name)
             data.append(cat.total)
 
     data = {
@@ -104,88 +109,13 @@ def GetCat2TotalChartData(request):
                         'grey',
                         'mediumvioletred',
                         ],
-                    'label': cat1type.name
+                    'label': f'{cattype.name} - {cat1.name}'
             }],
             'labels': labels
         },
     }
 
     return JsonResponse(data, safe=False)
-
-
-def GetCat2TotalChartData(request):
-
-    begin = request.GET.get('begin', None)
-    end = request.GET.get('end', None)
-    cat_type_pk = request.GET.get('ct', None)
-    cat1type = CatType.objects.get(pk=cat_type_pk)
-
-    labels = []  # categories
-    data = []  # totals
-
-    # dailybalances = AccountBalances.objects.raw(sqlst)
-    cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
-
-    for cat in cat_totals:
-        if cat.cat1type_id == cat1type.id:
-            labels.append(cat.cat1.name)
-            data.append(cat.total)
-
-    data = {
-        'type': 'doughnut',
-        'options': {'responsive': True},
-        'data': {
-            'datasets': [{
-                    'data': data,
-                    'backgroundColor': [
-                        'orangered',
-                        'green',
-                        'blue',
-                        'orange',
-                        'teal',
-                        'salmon',
-                        'mediumpurple',
-                        'olive',
-                        'darkturquoise',
-                        'magenta',
-                        'grey',
-                        'mediumvioletred',
-                        ],
-                    'label': cat1type.name
-            }],
-            'labels': labels
-        },
-    }
-
-    return JsonResponse(data, safe=False)
-
-
-class PieChartView(TemplateView):
-    template_name = 'budgetdb/pie_chart.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
-        cat1type = CatType.objects.get(pk=pk)
-
-        labels = []
-        data = []
-
-        end = datetime.today()
-        begin = end + relativedelta(years=-1)
-
-        # dailybalances = AccountBalances.objects.raw(sqlst)
-        cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
-
-        for cat in cat_totals:
-            if cat.cat1type_id == cat1type.id:
-                labels.append(cat.cat1.name)
-                data.append(f'{cat.total}')
-
-        context['labels'] = labels
-        context['data'] = data
-        context['type'] = cat1type
-        return context
 
 
 class CatTotalChart(TemplateView):
@@ -194,7 +124,7 @@ class CatTotalChart(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cat_type_pk = self.kwargs['cat_type_pk']
-        cat1type = CatType.objects.get(pk=cat_type_pk)
+        cattype = CatType.objects.get(pk=cat_type_pk)
 
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
@@ -226,7 +156,7 @@ class CatTotalChart(TemplateView):
         mydate = date.today() + relativedelta(months=12)
         context['inayear'] = mydate.strftime("%Y-%m-%d")
 
-        context['cat1type'] = cat1type.id
+        context['cattype'] = cattype.id
         return context
 
 

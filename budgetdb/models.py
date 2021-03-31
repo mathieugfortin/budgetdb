@@ -26,7 +26,7 @@ class AccountBalances(models.Model):
 
 class Cat1Sums(models.Model):
     cat1 = models.ForeignKey("Cat1", on_delete=models.DO_NOTHING)
-    cat1type = models.ForeignKey("CatType", on_delete=models.DO_NOTHING)
+    cattype = models.ForeignKey("CatType", on_delete=models.DO_NOTHING)
     cat2 = models.ForeignKey("Cat2", on_delete=models.DO_NOTHING)
     total = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
                                 blank=True, null=True)
@@ -40,16 +40,38 @@ class Cat1Sums(models.Model):
         sqlst = f"SELECT " \
                 f"row_number() OVER () as id, " \
                 f"t.cat1_id, " \
-                f"c1.cattype_id AS cat1type_id, " \
+                f"c2.cattype_id AS cattype_id, " \
                 f"sum(t.amount_actual) AS total " \
                 f"FROM budgetdb.budgetdb_transaction t " \
                 f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
+                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
                 f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
                 f'AND t.cat1_id IS NOT Null ' \
-                f"GROUP by t.cat1_id "  \
+                f"GROUP BY t.cat1_id, c2.cattype_id "  \
                 f"ORDER BY c1.name "
 
-        # print(sqlst)
+        print(sqlst)
+        cat1_totals = Cat1Sums.objects.raw(sqlst)
+
+        return cat1_totals
+
+    def build_cat2_totals_array(start_date, end_date):
+        # don't do the sql = thing in prod
+        sqlst = f"SELECT " \
+                f"row_number() OVER () as id, " \
+                f"t.cat1_id, " \
+                f"t.cat2_id, " \
+                f"c2.cattype_id AS cattype_id, " \
+                f"sum(t.amount_actual) AS total " \
+                f"FROM budgetdb.budgetdb_transaction t " \
+                f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
+                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
+                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
+                f'AND t.cat1_id IS NOT Null ' \
+                f"GROUP BY t.cat1_id, c2.cattype_id, t.cat2_id "  \
+                f"ORDER BY c1.name "
+
+        print(sqlst)
         cat1_totals = Cat1Sums.objects.raw(sqlst)
 
         return cat1_totals
