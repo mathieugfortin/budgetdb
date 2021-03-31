@@ -8,13 +8,156 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, Cat1Sums, CatType
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
 from chartjs.views.lines import BaseLineChartView
+from chartjs.views.pie import HighChartDonutView, HighChartPieView
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
+from django.http import JsonResponse
+
+
+def GetCat1TotalChartData(request):
+
+    begin = request.GET.get('begin', None)
+    end = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cattype = CatType.objects.get(pk=cat_type_pk)
+
+    labels = []  # categories
+    data = []  # totals
+    indexes = []  # cat1_ids
+
+    # dailybalances = AccountBalances.objects.raw(sqlst)
+    cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+
+    for cat in cat_totals:
+        if cat.cattype_id == cattype.id:
+            labels.append(cat.cat1.name)
+            data.append(cat.total)
+            indexes.append(cat.cat1_id)
+
+    data = {
+        'type': 'doughnut',
+        'options': {'responsive': True},
+        'data': {
+            'datasets': [{
+                    'data': data,
+                    'indexes': indexes,
+                    'backgroundColor': [
+                        'orangered',
+                        'green',
+                        'blue',
+                        'orange',
+                        'teal',
+                        'salmon',
+                        'mediumpurple',
+                        'olive',
+                        'darkturquoise',
+                        'magenta',
+                        'grey',
+                        'mediumvioletred',
+                        ],
+                    'label': cattype.name
+            }],
+            'labels': labels
+        },
+    }
+
+    return JsonResponse(data, safe=False)
+
+
+def GetCat2TotalChartData(request):
+
+    begin = request.GET.get('begin', None)
+    end = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cattype = CatType.objects.get(pk=cat_type_pk)
+    cat1_pk = request.GET.get('cat1', None)
+    cat1 = Cat1.objects.get(pk=cat1_pk)
+
+    labels = []  # categories
+    data = []  # totals
+
+    # dailybalances = AccountBalances.objects.raw(sqlst)
+    cat_totals = Cat1Sums.build_cat2_totals_array(begin, end)
+
+    for cat in cat_totals:
+        if cat.cattype_id == cattype.id and cat.cat1 == cat1:
+            labels.append(cat.cat2.name)
+            data.append(cat.total)
+
+    data = {
+        'type': 'doughnut',
+        'options': {'responsive': True},
+        'data': {
+            'datasets': [{
+                    'data': data,
+                    'backgroundColor': [
+                        'orangered',
+                        'green',
+                        'blue',
+                        'orange',
+                        'teal',
+                        'salmon',
+                        'mediumpurple',
+                        'olive',
+                        'darkturquoise',
+                        'magenta',
+                        'grey',
+                        'mediumvioletred',
+                        ],
+                    'label': f'{cattype.name} - {cat1.name}'
+            }],
+            'labels': labels
+        },
+    }
+
+    return JsonResponse(data, safe=False)
+
+
+class CatTotalChart(TemplateView):
+    template_name = 'budgetdb/pie_chart2.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cat_type_pk = self.kwargs['cat_type_pk']
+        cattype = CatType.objects.get(pk=cat_type_pk)
+
+        begin = self.request.GET.get('begin', None)
+        end = self.request.GET.get('end', None)
+
+        if end is None or end == 'None':
+            end = date.today()
+        else:
+            end = datetime.strptime(end, "%Y-%m-%d").date()
+
+        if begin is None or begin == 'None':
+            begin = end + relativedelta(months=-12)
+        else:
+            begin = datetime.strptime(begin, "%Y-%m-%d").date()
+
+        context['begin'] = begin.strftime("%Y-%m-%d")
+        context['end'] = end.strftime("%Y-%m-%d")
+        mydate = date.today()
+        context['now'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=-1)
+        context['monthago'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=-3)
+        context['3monthsago'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=-12)
+        context['yearago'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=1)
+        context['inamonth'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=3)
+        context['in3months'] = mydate.strftime("%Y-%m-%d")
+        mydate = date.today() + relativedelta(months=12)
+        context['inayear'] = mydate.strftime("%Y-%m-%d")
+
+        context['cattype'] = cattype.id
+        return context
 
 
 class FirstGraph(TemplateView):
@@ -182,7 +325,10 @@ class Cat1DetailView(DetailView):
 
 class Cat1UpdateView(UpdateView):
     model = Cat1
-    fields = ('name',)
+    fields = (
+        'name',
+        'cattype',
+    )
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -197,7 +343,10 @@ class Cat1UpdateView(UpdateView):
 
 class Cat2UpdateView(UpdateView):
     model = Cat2
-    fields = ('name',)
+    fields = (
+        'name',
+        'cattype',
+        )
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -320,7 +469,7 @@ class AccountperiodicView(ListView):
         endstr = self.request.GET.get('end', None)
         if endstr is not None and endstr != 'None':
             end = datetime.strptime(endstr, "%Y-%m-%d")
-        else: 
+        else:
             end = date.today()
 
         if beginstr is not None and beginstr != 'None':
@@ -341,7 +490,10 @@ class AccountperiodicView(ListView):
 
 class Cat1CreateView(CreateView):
     model = Cat1
-    fields = ['name']
+    fields = [
+        'name',
+        'cattype',
+        ]
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -371,7 +523,11 @@ class AccountCreateView(CreateView):
 
 class Cat2Create(CreateView):
     model = Cat2
-    fields = ['name', 'cat1']
+    fields = [
+        'name',
+        'cat1',
+        'cattype',
+        ]
 
     def form_valid(self, form):
         return super().form_valid(form)

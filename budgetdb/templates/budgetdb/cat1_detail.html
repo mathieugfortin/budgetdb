@@ -1,11 +1,12 @@
 {% extends "budgetdb/base.html" %}
 
-{% block title %}Category - {{ cat2.name }}{% endblock %}
+{% block title %}Category - {{ cat1.name }}{% endblock %}
 
 
 {% block content %}
 
 <h1>{{ cat1.name }}</h1>
+<h6>{{ cat1.cattype.name }}</h6>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <div class="clearfix">

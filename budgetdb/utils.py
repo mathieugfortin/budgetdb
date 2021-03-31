@@ -45,7 +45,7 @@ class Calendar(HTMLCalendar):
         events_per_day = events.filter(date_actual__day=day)
         d = ''
         for event in events_per_day:
-            url1 = reverse(f'{event._meta.app_label}:details_transaction', args=[event.id])      
+            url1 = reverse(f'{event._meta.app_label}:details_transaction', args=[event.id])
             d += f'<td>{event.date_actual}</td>'
             d += f'<td> <a href="{url1}"> {event.description} </a></td>'
             d += f'<td>{event.amount_actual}$</td>'
@@ -94,6 +94,6 @@ class Bitmap():
 
     def __str__(self):
         intvalue = 0
-        for i in range(n):
-            intvalue += 2**n*bits[n]
+        for i in range(self.n):
+            intvalue += 2**i*self.bits[i]
         return intvalue

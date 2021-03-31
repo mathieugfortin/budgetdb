@@ -13,9 +13,10 @@
 }
 
 #content {
-  position: absolute;
+  position: relative;
   top: 70px;
   margin-left: 170px;
+  margin-right: 20px;
 }
 
 #footer {

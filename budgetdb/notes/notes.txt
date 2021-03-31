@@ -29,8 +29,8 @@ https://rogerdudler.github.io/git-guide/
 I can't believe google gave me such a hard time finding this...
 https://realpython.com/python-f-strings/
 
-chart js
-https://pypi.org/project/django-chartjs/
-
 subcategories dropdown
 https://simpleisbetterthancomplex.com/tutorial/2018/01/29/how-to-implement-dependent-or-chained-dropdown-list-with-django.html
+
+chart js onclick
+https://jsfiddle.net/u1szh96g/208/

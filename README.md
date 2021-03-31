@@ -12,7 +12,10 @@ I used to have an excel sheet that did that pretty well but at over 12MB, debugg
 
 ToDo list:
 
-*****Start working on the budget graphs ***
+*****budget graphs ***
+pie charts, shring the main graph when openning a sub graph.
+need bar chart with same data a pie chart
+need double sliders for interval selection
 
 Dynamic Total on chart?  
 a chart with a running total per account category would be nice.  cashflow, savings, mortgage...

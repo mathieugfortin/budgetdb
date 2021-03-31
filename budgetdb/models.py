@@ -24,6 +24,59 @@ class AccountBalances(models.Model):
         db_table = 'budgetdb_accounttotal'
 
 
+class Cat1Sums(models.Model):
+    cat1 = models.ForeignKey("Cat1", on_delete=models.DO_NOTHING)
+    cattype = models.ForeignKey("CatType", on_delete=models.DO_NOTHING)
+    cat2 = models.ForeignKey("Cat2", on_delete=models.DO_NOTHING)
+    total = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
+                                blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'budgetdb_cattotals'
+
+    def build_cat1_totals_array(start_date, end_date):
+        # don't do the sql = thing in prod
+        sqlst = f"SELECT " \
+                f"row_number() OVER () as id, " \
+                f"t.cat1_id, " \
+                f"c2.cattype_id AS cattype_id, " \
+                f"sum(t.amount_actual) AS total " \
+                f"FROM budgetdb.budgetdb_transaction t " \
+                f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
+                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
+                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
+                f'AND t.cat1_id IS NOT Null ' \
+                f"GROUP BY t.cat1_id, c2.cattype_id "  \
+                f"ORDER BY c1.name "
+
+        print(sqlst)
+        cat1_totals = Cat1Sums.objects.raw(sqlst)
+
+        return cat1_totals
+
+    def build_cat2_totals_array(start_date, end_date):
+        # don't do the sql = thing in prod
+        sqlst = f"SELECT " \
+                f"row_number() OVER () as id, " \
+                f"t.cat1_id, " \
+                f"t.cat2_id, " \
+                f"c2.cattype_id AS cattype_id, " \
+                f"sum(t.amount_actual) AS total " \
+                f"FROM budgetdb.budgetdb_transaction t " \
+                f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
+                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
+                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
+                f'AND t.cat1_id IS NOT Null ' \
+                f"GROUP BY t.cat1_id, c2.cattype_id, t.cat2_id "  \
+                f"ORDER BY c1.name "
+
+        print(sqlst)
+        cat1_totals = Cat1Sums.objects.raw(sqlst)
+
+        return cat1_totals
+
+
 class MyBoolMap(models.IntegerField):
     def db_type(self, connection):
         return 'integer'
@@ -121,6 +174,16 @@ class CatBudget(models.Model):
             return 0
 
 
+class CatType(models.Model):
+    class Meta:
+        verbose_name = 'Category Type'
+        verbose_name_plural = 'Categories Type'
+    name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
+
+
 class Cat1(models.Model):
     class Meta:
         verbose_name = 'Category'
@@ -128,6 +191,7 @@ class Cat1(models.Model):
     name = models.CharField(max_length=200)
     CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE,
                                   blank=True, null=True)
+    cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -142,6 +206,7 @@ class Cat2(models.Model):
         verbose_name_plural = 'Sub Categories'
 
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE)
+    cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
 
@@ -511,7 +576,6 @@ class BudgetedEvent(models.Model):
             new_transaction.save()
             # Needs a lot more work with these interval management  #######
             self.generated_interval_stop = date
-
 
     def deleteUnverifiedTransaction(self):
         transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False)
