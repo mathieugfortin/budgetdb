@@ -130,17 +130,19 @@ class CatTotalChart(TemplateView):
         end = self.request.GET.get('end', None)
 
         if end is None or end == 'None':
-            end = date.today()
+            end = datetime.today()
         else:
-            end = datetime.strptime(end, "%Y-%m-%d").date()
+            end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
             begin = end + relativedelta(months=-12)
         else:
-            begin = datetime.strptime(begin, "%Y-%m-%d").date()
+            begin = datetime.strptime(begin, "%Y-%m-%d")
 
-        context['begin'] = begin.strftime("%Y-%m-%d")
+        context['begin'] = begin.strftime("%Y-%m-%d")        
         context['end'] = end.strftime("%Y-%m-%d")
+        context['endunix'] = end.timestamp() * 1000
+        context['beginunix'] = begin.timestamp() * 1000        
         mydate = date.today()
         context['now'] = mydate.strftime("%Y-%m-%d")
         mydate = date.today() + relativedelta(months=-1)
@@ -166,8 +168,8 @@ class FirstGraph(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        begin = self.request.GET.get('begin', None)
-        end = self.request.GET.get('end', None)
+        beginstr = self.request.GET.get('begin', None)
+        endstr = self.request.GET.get('end', None)
         accountcategoryID = self.request.GET.get('ac', None)
 
         if accountcategoryID is not None and accountcategoryID != 'None':
@@ -177,18 +179,22 @@ class FirstGraph(TemplateView):
         accountcategories = AccountCategory.objects.all()
         context['accountcategories'] = accountcategories
 
-        if end is None or end == 'None':
+        if endstr is None or endstr == 'None':
             end = date.today()
         else:
-            end = datetime.strptime(end, "%Y-%m-%d").date()
+            end =   datetime.strptime(endstr,   "%Y-%m-%d")
+         #   begin = datetime.strptime(beginstr, "%Y-%m-%d")
 
-        if begin is None or begin == 'None':
+        if beginstr is None or beginstr == 'None':
             begin = end + relativedelta(months=-1)
         else:
-            begin = datetime.strptime(begin, "%Y-%m-%d").date()
+          #  end =   datetime.strptime(endstr,   "%Y-%m-%d")
+            begin = datetime.strptime(beginstr, "%Y-%m-%d")
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
+        context['endunix'] = end.timestamp() * 1000
+        context['beginunix'] = begin.timestamp() * 1000        
         mydate = date.today()
         context['now'] = mydate.strftime("%Y-%m-%d")
         mydate = date.today() + relativedelta(months=-1)

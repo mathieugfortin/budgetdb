@@ -3,8 +3,16 @@
 
 {% block title %}Totals by categories{% endblock %}
 
+{% block navtools %}
+
+<input type="text" class="js-range-slider" name="my_range" value="" />
+
+{% endblock %}
+
 {% block content %}
-  <div id="container" style="width: 75%;">
+
+
+  <div id="pie-container">
     <canvas id="pie-chart"></canvas>
   </div>
 {% endblock %}
@@ -12,14 +20,49 @@
 {% block script %}
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
 <script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+
+<!--Plugin CSS file with desired skin-->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
+<!--jQuery-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<!--Plugin JavaScript file-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
+
+
 <script type="text/javascript">
 
-    var $element = document.getElementById("pie-chart");
-    var ctx = $element.getContext("2d");
+function my_datify (n) {
+        n = n - 1;
+        beginunix = {{ beginunix }};
+        var date = new Date(beginunix);
+        test = ({{ endunix }} - {{ beginunix }})/(24*60*60*1000);
+        month = date.getMonth() + 1;
+        date.setDate(date.getDate() + n);
+        return date.getFullYear() + '-' + month + '-' + date.getDate();
+        //return date;
+    }
+$(".js-range-slider").ionRangeSlider({
+    type: "double",
+    grid: true,
+    skin: "big",
+    //prefix: ({{endunix}} - {{beginunix}})/(24*60*60),
+    grid: true,
+    min: 1,
+    max: ({{ endunix }} - {{ beginunix }})/(24*60*60*1000),
+    from: 47,
+    to: 53,
+    prettify: my_datify
+    });
+    
+
+
+    var pie_canvas = document.getElementById("pie-chart");
+    var ctx = pie_canvas.getContext("2d");
     var myChart;
-    var container = document.getElementById("container");
+    var pie_container = document.getElementById("pie-container");
 
-
+    pie_container.style.width = "800px";
+    pie_container.style.height = "800px";
 
     $.get('{% url "budgetdb:cat1_pie_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}', function(config) {
         myChart = new Chart(ctx, config);
@@ -28,10 +71,10 @@
     function add_subcontainer(cat1_index) {
         var newDiv = document.createElement('div');
         newDiv.style.position = "absolute";
-        newDiv.style.left = "250px";
-        newDiv.style.top = "250px";
-        newDiv.style.height = "500px";
-        newDiv.style.width = "500px";
+        newDiv.style.left = "30%";
+        newDiv.style.top = "25%";
+        newDiv.style.height = "50%";
+        newDiv.style.width = "50%";
         newDiv.id= "subcontainer";
         var newCanvas = document.createElement('canvas');
         newCanvas.id="new-pie-chart";
@@ -41,33 +84,44 @@
         $.get('{% url "budgetdb:cat2_pie_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}&cat1=' + cat1_index, function(subConfig) {
             myNewChart = new Chart(newCtx, subConfig);
         });
+
     }
 
     window.addEventListener('click', function(e){
-        if (document.getElementById('pie-chart').contains(e.target)){
-            if (!document.getElementById("subcontainer")) {
+        if (pie_canvas.contains(e.target)){
+            if (!document.getElementById("new-pie-chart")) {
                 var activePoints = myChart.getElementsAtEvent(event);
                 if (activePoints.length > 0) {
                     var chartData = activePoints[0]['_chart'].config.data;
                     var idx = activePoints[0]['_index'];
                     var cat1_index = chartData.datasets[0].indexes[idx];
-                    add_subcontainer(cat1_index)
+                    add_subcontainer(cat1_index);
+                    
                 }
             } else {
-                document.getElementById('subcontainer').remove();
+                document.getElementById('subcontainer').remove()
                 var activePoints = myChart.getElementsAtEvent(event);
                 if (activePoints.length > 0) {
                     var chartData = activePoints[0]['_chart'].config.data;
                     var idx = activePoints[0]['_index'];
                     var cat1_index = chartData.datasets[0].indexes[idx];
-                    add_subcontainer(cat1_index)
+                    add_subcontainer(cat1_index);
                 }
             }
         } else if (!document.getElementById('new-pie-chart').contains(e.target)){
             document.getElementById('subcontainer').remove();
         }
+        if (document.getElementById("new-pie-chart")) {
+            pie_container.style.width = "400px";
+            pie_container.style.height = "400px";
+        } else {
+            pie_container.style.width = "800px";
+            pie_container.style.height = "800px";
+
+        }
     });
 
+    
     
 </script>
 

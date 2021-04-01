@@ -1,5 +1,10 @@
 {% extends "budgetdb/base.html" %}
 {% load static %}
+
+{% block navtools %}
+<input type="text" class="js-range-slider" name="my_range" value="" />
+{% endblock %}
+
 {% block content %}
     <!--firstgraph v2-->
     <h1>Account Categories</h1>
@@ -28,7 +33,14 @@
 {% endblock %}
 
 {% block script %}
-    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+<!--Plugin CSS file with desired skin-->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
+<!--jQuery-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<!--Plugin JavaScript file-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
+
+<!--    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script> -->
     <script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
     <script type="text/javascript">
         $.get('{% url "budgetdb:line_chart_json" %}?begin={{ begin }}&end={{ end }}&ac={{ ac }}', function(data) {
@@ -37,5 +49,29 @@
                 type: 'line', data: data
             });
         });
+
+        function my_datify (n) {
+            n = n - 1;
+            beginunix = {{ beginunix }};
+            var date = new Date(beginunix);
+            month = date.getMonth() + 1;
+            date.setDate(date.getDate() + n);
+            return date.getFullYear() + '-' + month + '-' + date.getDate();
+            //return date;
+        }
+
+        $(".js-range-slider").ionRangeSlider({
+            type: "double",
+            grid: true,
+            skin: "big",
+            //prefix: ({{endunix}} - {{beginunix}})/(24*60*60),
+            grid: true,
+            min: 1,
+            max: ({{ endunix }} - {{ beginunix }})/(24*60*60*1000),
+            from: 1,
+            to: ({{ endunix }} - {{ beginunix }})/(24*60*60*1000),
+            prettify: my_datify
+        });
+    
     </script>
 {% endblock %}

@@ -34,3 +34,6 @@ https://simpleisbetterthancomplex.com/tutorial/2018/01/29/how-to-implement-depen
 
 chart js onclick
 https://jsfiddle.net/u1szh96g/208/
+
+date slider
+https://stackoverflow.com/questions/58153053/how-can-i-create-a-slider-that-would-display-date-and-is-there-a-way-to-make-ma
