@@ -245,7 +245,7 @@ class Account(models.Model):
         return reverse('budgetdb:details_account', kwargs={'pk': self.pk})
 
     def balance_by_EOD(self, dateCheck):
-        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('date_actual')[:1]
+        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
 
         if closestAudit.count() == 0:
             balance = Decimal(0.00)

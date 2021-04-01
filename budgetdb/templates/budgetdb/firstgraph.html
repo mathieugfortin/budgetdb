@@ -54,8 +54,8 @@
             n = n - 1;
             beginunix = {{ beginunix }};
             var date = new Date(beginunix);
-            month = date.getMonth() + 1;
             date.setDate(date.getDate() + n);
+            month = date.getMonth() + 1;
             return date.getFullYear() + '-' + month + '-' + date.getDate();
             //return date;
         }
@@ -67,9 +67,9 @@
             //prefix: ({{endunix}} - {{beginunix}})/(24*60*60),
             grid: true,
             min: 1,
-            max: ({{ endunix }} - {{ beginunix }})/(24*60*60*1000),
+            max: Math.ceil(({{ endunix }} - {{ beginunix }})/(24*60*60*1000)),
             from: 1,
-            to: ({{ endunix }} - {{ beginunix }})/(24*60*60*1000),
+            to: Math.ceil(({{ endunix }} - {{ beginunix }})/(24*60*60*1000)),
             prettify: my_datify
         });
     

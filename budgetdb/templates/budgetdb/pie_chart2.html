@@ -35,9 +35,8 @@ function my_datify (n) {
         n = n - 1;
         beginunix = {{ beginunix }};
         var date = new Date(beginunix);
-        test = ({{ endunix }} - {{ beginunix }})/(24*60*60*1000);
-        month = date.getMonth() + 1;
         date.setDate(date.getDate() + n);
+        month = date.getMonth() + 1;
         return date.getFullYear() + '-' + month + '-' + date.getDate();
         //return date;
     }
@@ -48,9 +47,9 @@ $(".js-range-slider").ionRangeSlider({
     //prefix: ({{endunix}} - {{beginunix}})/(24*60*60),
     grid: true,
     min: 1,
-    max: ({{ endunix }} - {{ beginunix }})/(24*60*60*1000),
-    from: 47,
-    to: 53,
+    max: ceil(({{ endunix }} - {{ beginunix }})/(24*60*60*1000)),
+    from: 1,
+    to: ceil(({{ endunix }} - {{ beginunix }})/(24*60*60*1000)),
     prettify: my_datify
     });
     

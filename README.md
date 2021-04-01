@@ -13,14 +13,18 @@ I used to have an excel sheet that did that pretty well but at over 12MB, debugg
 ToDo list:
 
 *****budget graphs ***
-pie charts, shring the main graph when openning a sub graph.
 need bar chart with same data a pie chart
-need double sliders for interval selection
+need double sliders for interval selection - slider is there, need to show/hide data
+
+*** add a checkbox in the account list view if the balance is confirmed.  create an audit.
+*** list view, sort asc, desc
 
 Dynamic Total on chart?  
 a chart with a running total per account category would be nice.  cashflow, savings, mortgage...
 
 Users, families, sharing
+
+add different currencies
 
 make configurable how far in the future budgeted transactions will go
 

@@ -180,7 +180,7 @@ class FirstGraph(TemplateView):
         context['accountcategories'] = accountcategories
 
         if endstr is None or endstr == 'None':
-            end = date.today()
+            end = datetime.today()
         else:
             end =   datetime.strptime(endstr,   "%Y-%m-%d")
          #   begin = datetime.strptime(beginstr, "%Y-%m-%d")
