@@ -19,6 +19,28 @@ from crispy_forms.layout import Submit, Layout, Field
 from django.http import JsonResponse
 
 
+def GetAccountListJSON(request):
+
+    accounts = Account.objects.all()
+    accounts = accounts.order_by("name")
+
+    pks = []  
+    names = []  
+    array = []
+
+    for account in accounts:
+        array.append([{"pk": account.pk}, {"name": account.name} ])
+        pks.append(account.pk)
+        names.append(account.name)
+
+    data = {
+        'pk': pks,
+        'names': names,
+    }
+
+    return JsonResponse(array, safe=False)
+
+
 def GetCat1TotalChartData(request):
 
     begin = request.GET.get('begin', None)

@@ -19,6 +19,8 @@ need double sliders for interval selection - slider is there, need to show/hide 
 *** add a checkbox in the account list view if the balance is confirmed.  create an audit.
 *** list view, sort asc, desc
 
+add cat1 cat2 to listview
+
 Dynamic Total on chart?  
 a chart with a running total per account category would be nice.  cashflow, savings, mortgage...
 

@@ -11,6 +11,7 @@ urlpatterns = [
          name='home'),
 
     # Account
+    path('accountListJSON', views.GetAccountListJSON, name='account_list_json'),
     path('account/', views.AccountListView.as_view(),
          name='list_account'),
     path('account/<int:pk>/', views.AccountDetailView.as_view(),
