@@ -26,6 +26,15 @@ urlpatterns = [
     path('account/list/<int:pk>/', views.AccountperiodicView.as_view(),
          name='list_account_activity'),
 
+
+    # Account_Host
+    path('accountHostListJSON', views.GetAccountHostListJSON, name='account_host_list_json'),
+    path('accountHost/<int:pk>/', views.AccountDetailView.as_view(),
+         name='details_account_host'),
+    path('accountHost/add/', views.AccountCreateView.as_view(),
+         name='create_account_host'),
+
+
     # chart JS
     path('chart/', views.FirstGraph.as_view(), name='line_chart'),
     path('chartJSON', views.FirstGraphJSON.as_view(), name='line_chart_json'),
@@ -34,6 +43,7 @@ urlpatterns = [
     path('cat2TotalJSON', views.GetCat2TotalChartData, name='cat2_pie_json'),
 
     # Cat1
+    path('cat1ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
     path('cat1/', views.Cat1ListView.as_view(),
          name='list_cat'),
     path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
@@ -90,6 +100,7 @@ urlpatterns = [
          name='list_transaction'),
 
     # Vendor
+    path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),
     path('vendor/', views.VendorListView.as_view(),
          name='list_vendor'),
     path('vendor/<int:pk>', views.VendorDetailView.as_view(),

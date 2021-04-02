@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, Cat1Sums, CatType
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, Cat1Sums, CatType, AccountHost
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
@@ -21,22 +21,52 @@ from django.http import JsonResponse
 
 def GetAccountListJSON(request):
 
-    accounts = Account.objects.all()
-    accounts = accounts.order_by("name")
+    queryset = Account.objects.all()
+    queryset = queryset.order_by("name")
 
-    pks = []  
-    names = []  
     array = []
 
-    for account in accounts:
-        array.append([{"pk": account.pk}, {"name": account.name} ])
-        pks.append(account.pk)
-        names.append(account.name)
+    for entry in queryset:
+        array.append([{"pk": entry.pk}, {"name": entry.name} ])
 
-    data = {
-        'pk': pks,
-        'names': names,
-    }
+    return JsonResponse(array, safe=False)
+
+
+def GetAccountHostListJSON(request):
+
+    queryset = AccountHost.objects.all()
+    queryset = queryset.order_by("name")
+
+    array = []
+
+    for entry in queryset:
+        array.append([{"pk": entry.pk}, {"name": entry.name} ])
+
+    return JsonResponse(array, safe=False)
+
+
+def GetVendorListJSON(request):
+
+    queryset = Vendor.objects.all()
+    queryset = queryset.order_by("name")
+
+    array = []
+
+    for entry in queryset:
+        array.append([{"pk": entry.pk}, {"name": entry.name} ])
+
+    return JsonResponse(array, safe=False)
+
+
+def GetCat1ListJSON(request):
+
+    queryset = Cat1.objects.all()
+    queryset = queryset.order_by("name")
+
+    array = []
+
+    for entry in queryset:
+        array.append([{"pk": entry.pk}, {"name": entry.name} ])
 
     return JsonResponse(array, safe=False)
 

@@ -30,18 +30,29 @@
                         <ul id="accounts">
                         </ul>
                     </li>   
-                    <li><a href="">Account Hosts</a></li>
-                    <li><a href="{% url 'budgetdb:list_cat' %}">Categories</a></li>
-                    <li><a href="{% url 'budgetdb:list_be' %}">Recurring Events</a></li>
+                    <li><a href="">Account Hosts</a>
+                        <ul id="account_hosts">
+                        </ul>
+                    </li> 
+                    <li><a href="{% url 'budgetdb:list_cat' %}">Categories</a>
+                        <ul id="categories">
+                        </ul>
+                    </li>
+                    <li><a href="{% url 'budgetdb:list_vendor' %}">Vendors</a>
+                        <ul id="vendors">
+                        </ul>
+                    </li>   
+                    <li><a href="{% url 'budgetdb:list_be' %}">Recurring Events</a></a>
+                        <ul id="budgeted_events">
+                        </ul>
+                    </li>   
                 </ul>
             </li>
             <li><a href="#">Transactions</a>
                 <ul>
                     <li><a href="{% url 'budgetdb:list_transaction' %}">All transaction</a></li>
                     <li><a href="#">Transactions per account</a>
-                        <ul>
-                            <li><a href="{% url 'budgetdb:list_account_activity' 1 %}">Cheque</a></li>
-                            <li><a href="{% url 'budgetdb:list_account_activity' 2 %}">Marge</a></li>
+                        <ul  id="account_list">
                         </ul>
                     </li>
                     <li><a href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a></li>
@@ -53,6 +64,9 @@
                     <li><a href="">Budget Pie</a></li>
                     <li><a href="{% url 'budgetdb:line_chart' %}">Timeline</a></li>
                 </ul>
+            </li>
+            <li id="li_range">
+                <input id="input_range" type="text" class="js-range-slider" name="my_range" value="" />
             </li>
             {% if user.is_authenticated %}
             <li><a href="/admin"> {{ user.get_username }}</a>
@@ -73,22 +87,99 @@
     </div>
 
     <div id="script">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script>
+  <!--Plugin CSS file with desired skin-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
+    
+  <!--jQuery-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  
+  <!--Plugin JavaScript file-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
+  
+
+  <script>
+
+    var lang = "en-US";
+    var year = 2018;
+    
+    function dateToTS (date) {
+        return date.valueOf();
+    }
+    
+    function tsToDate (ts) {
+        var d = new Date(ts);
+    
+        return d.toLocaleDateString( {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+  $(".js-range-slider").ionRangeSlider({
+    type: "double",
+    min: 0,
+    max: 1000,
+    from: 200,
+    to: 500,
+    min: dateToTS(new Date(year, 10, 1)),
+        max: dateToTS(new Date(year, 11, 1)),
+        from: dateToTS(new Date(year, 10, 8)),
+        to: dateToTS(new Date(year, 10, 23)),
+        prettify: tsToDate
+});
+
+
+
+        function AddLi(baseURL, pk, label, attachTo) {
+            var newLi = document.createElement('li');
+            var newA = document.createElement('a');
+            baseURL=baseURL.replace(/12345/,pk.toString())
+            newA.setAttribute('href',baseURL);
+            newA.innerHTML = label;
+            newLi.append(newA)
+            document.getElementById(attachTo).append(newLi);
+        }
+
         $(document).ready(function(){
             $.getJSON('{% url "budgetdb:account_list_json" %}', function(result){
               $.each(result, function(i, field){
-                var newLi = document.createElement('li');
-                var newA = document.createElement('a');
-                newA.setAttribute('href','{% url "budgetdb:list_account" %}'+field[0].pk);
-                newA.innerHTML = field[1].name;
-                newLi.append(newA)
-                document.getElementById('accounts').append(newLi);
+                AddLi('{% url "budgetdb:details_account" 12345 %}', field[0].pk, field[1].name, 'accounts')
+                AddLi('{% url "budgetdb:list_account_activity" 12345 %}', field[0].pk, field[1].name, 'account_list')
               });
+              AddLi('{% url "budgetdb:create_account" %}', 0 , '* Create Account *', 'accounts')
+            });
+            AddLi('{% url "budgetdb:create_be" %}', 0 , '* Create Event *', 'budgeted_events')
+        });
+
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:cat1_list_json" %}', function(result){
+                $.each(result, function(i, field){
+                AddLi('{% url "budgetdb:details_cat1" 12345 %}', field[0].pk, field[1].name, 'categories')
+                });
+                AddLi('{% url "budgetdb:create_cat1" %}', 0 , '* Create Category *', 'categories')
             });
         });
-        </script>
 
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:vendor_list_json" %}', function(result){
+                $.each(result, function(i, field){
+                AddLi('{% url "budgetdb:details_vendor" 12345 %}', field[0].pk, field[1].name, 'vendors')
+                });
+                AddLi('{% url "budgetdb:create_vendor" %}', 0 , '* Create Vendor *', 'vendors')
+            });
+        });
+
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:account_host_list_json" %}', function(result){
+                $.each(result, function(i, field){
+                AddLi('{% url "budgetdb:details_account_host" 12345 %}', field[0].pk, field[1].name, 'account_hosts')
+                });
+                AddLi('{% url "budgetdb:create_account_host" %}', 0 , '* Create Host *', 'account_hosts')
+            });
+        });
+        
+        </script>
         {% block script %}{% endblock %}
     </div>
 </body>
