@@ -7,17 +7,40 @@ from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 from django.urls import reverse
+from django.contrib.auth.models import User
+from django.conf import settings
+
+
+class Preference(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    start_interval = models.DateField(blank=True)
+    end_interval = models.DateField(blank=True)
 
 
 class AccountBalances(models.Model):
     db_date = models.DateField(blank=True)
     account = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
-    audit = models.DecimalField('audited amount', decimal_places=2, max_digits=10,
-                                blank=True, null=True)
-    delta = models.DecimalField('relative change for the day', decimal_places=2, max_digits=10,
-                                blank=True, null=True)
-    balance = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
-                                  blank=True, null=True)
+    audit = models.DecimalField(
+        'audited amount',
+        decimal_places=2,
+        max_digits=10,
+        blank=True,
+        null=True,
+        )
+    delta = models.DecimalField(
+        'relative change for the day',
+        decimal_places=2,
+        max_digits=10,
+        blank=True,
+        null=True,
+        )
+    balance = models.DecimalField(
+        'balance for the day',
+        decimal_places=2,
+        max_digits=10,
+        blank=True,
+        null=True,
+        )
 
     class Meta:
         managed = False
@@ -398,7 +421,10 @@ class Transaction(models.Model):
     )
     statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
     verified = models.BooleanField('confirmed in a statement.  Prevents deletion in case of budgetedEvent change', default=False)
-    audit = models.BooleanField('Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id', default=False)
+    audit = models.BooleanField(
+        'Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id',
+        default=False,
+        )
     # how do I ensure the audit transaction is always last for a day?
 
     def __str__(self):

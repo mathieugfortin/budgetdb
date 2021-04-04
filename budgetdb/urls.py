@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic.base import RedirectView
 from . import views
 
 # from budgetdb.views import Cat1DetailView, TransactionDetailView,
@@ -9,6 +10,9 @@ app_name = 'budgetdb'
 urlpatterns = [
     path('', views.IndexView.as_view(),
          name='home'),
+    path('favicon.ico', RedirectView.as_view(url='/static/budgetdb/favicon.png')),
+
+    path('getpreferencesJSON', views.GetPreferencesJSON, name='preferences_json'),
 
     # Account
     path('accountListJSON', views.GetAccountListJSON, name='account_list_json'),

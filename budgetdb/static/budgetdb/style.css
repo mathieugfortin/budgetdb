@@ -27,18 +27,13 @@
   /* Menu formatting */
   
   #li_range {
-      width: 500px;
-      
-      color: #fff; 
-      background: #111; 
-      height: 40px;
-  
-  }
-  #input_range{
-      width: 400px;
-      
-      color: #fff; 
-      background: #111; 
+    width: 500px;
+    
+    color: #fff; 
+    background: #111; 
+    height: 40px;
+    padding-left: 25px;
+    padding-right: 25px;
   }
   nav {    
       display: block;

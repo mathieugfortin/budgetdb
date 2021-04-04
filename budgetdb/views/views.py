@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, Cat1Sums, CatType, AccountHost
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, Cat1Sums, CatType, AccountHost, Preference
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
@@ -19,6 +19,21 @@ from crispy_forms.layout import Submit, Layout, Field
 from django.http import JsonResponse
 
 
+def GetPreferencesJSON(request):
+
+    preference = Preference.objects.get(pk=request.user.id)
+    transactions = Transaction.objects.all().order_by("date_actual")
+    
+    data = {
+        'start_interval': preference.start_interval,
+        'end_interval': preference.end_interval,
+        'begin_data': transactions.first().date_actual,
+        'end_data': transactions.last().date_actual,
+    }
+
+    return JsonResponse(data, safe=False)
+
+
 def GetAccountListJSON(request):
 
     queryset = Account.objects.all()
@@ -27,7 +42,7 @@ def GetAccountListJSON(request):
     array = []
 
     for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name} ])
+        array.append([{"pk": entry.pk}, {"name": entry.name}])
 
     return JsonResponse(array, safe=False)
 
@@ -40,7 +55,7 @@ def GetAccountHostListJSON(request):
     array = []
 
     for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name} ])
+        array.append([{"pk": entry.pk}, {"name": entry.name}])
 
     return JsonResponse(array, safe=False)
 
@@ -53,7 +68,7 @@ def GetVendorListJSON(request):
     array = []
 
     for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name} ])
+        array.append([{"pk": entry.pk}, {"name": entry.name}])
 
     return JsonResponse(array, safe=False)
 
@@ -66,7 +81,7 @@ def GetCat1ListJSON(request):
     array = []
 
     for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name} ])
+        array.append([{"pk": entry.pk}, {"name": entry.name}])
 
     return JsonResponse(array, safe=False)
 
@@ -191,10 +206,10 @@ class CatTotalChart(TemplateView):
         else:
             begin = datetime.strptime(begin, "%Y-%m-%d")
 
-        context['begin'] = begin.strftime("%Y-%m-%d")        
+        context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
         context['endunix'] = end.timestamp() * 1000
-        context['beginunix'] = begin.timestamp() * 1000        
+        context['beginunix'] = begin.timestamp() * 1000
         mydate = date.today()
         context['now'] = mydate.strftime("%Y-%m-%d")
         mydate = date.today() + relativedelta(months=-1)
@@ -234,19 +249,17 @@ class FirstGraph(TemplateView):
         if endstr is None or endstr == 'None':
             end = datetime.today()
         else:
-            end =   datetime.strptime(endstr,   "%Y-%m-%d")
-         #   begin = datetime.strptime(beginstr, "%Y-%m-%d")
+            end = datetime.strptime(endstr, "%Y-%m-%d")
 
         if beginstr is None or beginstr == 'None':
             begin = end + relativedelta(months=-1)
         else:
-          #  end =   datetime.strptime(endstr,   "%Y-%m-%d")
             begin = datetime.strptime(beginstr, "%Y-%m-%d")
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
         context['endunix'] = end.timestamp() * 1000
-        context['beginunix'] = begin.timestamp() * 1000        
+        context['beginunix'] = begin.timestamp() * 1000
         mydate = date.today()
         context['now'] = mydate.strftime("%Y-%m-%d")
         mydate = date.today() + relativedelta(months=-1)
