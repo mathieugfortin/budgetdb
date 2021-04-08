@@ -3,12 +3,6 @@
 
 {% block title %}Totals by categories{% endblock %}
 
-{% block navtools %}
-
-<input type="text" class="js-range-slider" name="my_range" value="" />
-
-{% endblock %}
-
 {% block content %}
 
 
@@ -18,13 +12,7 @@
 {% endblock %}
 
 {% block script %}
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
 <script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
-
-<!--Plugin CSS file with desired skin-->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
-<!--jQuery-->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
 <script type="text/javascript">
 

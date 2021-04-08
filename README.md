@@ -13,6 +13,9 @@ I used to have an excel sheet that did that pretty well but at over 12MB, debugg
 
 ToDo list:
 
+Pie chart break the menu ?????
+
+
 Pay stubs with multiple transactions, related to each other
     deductions that stops after a maximum
     check taxes forms
