@@ -1,0 +1,24 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+
+{% block title %}Vendor List{% endblock %}
+
+{% block content %}
+
+{% if vendor_list %}
+    <ul>
+    {% for vendor in vendor_list %}
+        <li><a href="{% url 'budgetdb:details_vendor' vendor.id %}">{{ vendor.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No vendors are available.</p>
+{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_vendor' %}">Create new vendor</a>
+</div>
+
+{% endblock %}

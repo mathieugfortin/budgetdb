@@ -283,7 +283,7 @@ class Account(models.Model):
             amount = Decimal(0.00)
             if event.audit is True:
                 balance = event.amount_actual
-            else:
+            elif not (event.budget_only is True and event.date_actual <= date.today()):
                 if event.account_destination_id == self.id:
                     amount += event.amount_actual
                 if event.account_source_id == self.id:
@@ -302,7 +302,7 @@ class Account(models.Model):
                 balance = event.amount_actual
                 event.calc_amount = ""
                 event.viewname = f'{event._meta.app_label}:details_transaction_Audit'
-            else:
+            elif not (event.budget_only is True and event.date_actual <= date.today()):
                 if event.account_destination_id == self.id:
                     amount += event.amount_actual
                 if event.account_source_id == self.id:
@@ -337,7 +337,7 @@ class Account(models.Model):
         dailybalances = AccountBalances.objects.raw(sqlst)
 
         # add the balances
-        previous_day = datetime.strptime(start_date, "%Y-%m-%d").date() + relativedelta(days=-1)
+        previous_day = start_date + relativedelta(days=-1)
         balance = self.balance_by_EOD(previous_day)
         for day in dailybalances:
             if day.audit is not None:
@@ -405,14 +405,14 @@ class Transaction(models.Model):
     # will break if repetition pattern of BE changes... so BE can't change if it has attached Ts
     date_actual = models.DateField('date of the transaction')
     amount_actual = models.DecimalField(
-        'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
+        'transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
     )
     description = models.CharField('transaction description', max_length=200)
     comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
     cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True)
-    # should be null if it is linked to a budgeted event
+
     account_source = models.ForeignKey(
         Account, on_delete=models.CASCADE, related_name='t_account_source', blank=True, null=True
     )
@@ -425,7 +425,14 @@ class Transaction(models.Model):
         'Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id',
         default=False,
         )
-    # how do I ensure the audit transaction is always last for a day?
+    receipt = models.BooleanField(
+        'Checked with receipt',
+        default=False,
+        )
+    budget_only = models.BooleanField(
+        'counts as 0 after today, only exists to simulate future expenses',
+        default=False,
+        )
 
     def __str__(self):
         return self.description
@@ -513,6 +520,10 @@ class BudgetedEvent(models.Model):
 
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns
+
+        # budget only should be in the future only
+        if self.budget_only is True and dateCheck < date.today():
+            return False
         # not before first event
         if dateCheck < self.repeat_start:
             return False
@@ -597,7 +608,8 @@ class BudgetedEvent(models.Model):
                                                          account_source=self.account_source,
                                                          cat1=self.cat1,
                                                          cat2=self.cat2,
-                                                         vendor=self.vendor
+                                                         vendor=self.vendor,
+                                                         budget_only=self.budget_only
                                                          )
             new_transaction.save()
             # Needs a lot more work with these interval management  #######

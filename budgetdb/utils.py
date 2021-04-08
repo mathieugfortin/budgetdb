@@ -50,6 +50,7 @@ class Calendar(HTMLCalendar):
             d += f'<td> <a href="{url1}"> {event.description} </a></td>'
             d += f'<td>{event.amount_actual}$</td>'
             d += f'<td>{event.account_source}</td><td>{event.account_destination}</td>'
+            d += f'<td>{event.cat1}</td><td>{event.cat2}</td>'
             if event.budgetedevent_id is None:
                 d += f'<td>None</td>'
             else:
@@ -67,13 +68,22 @@ class Calendar(HTMLCalendar):
         events_per_month = Transaction.objects.filter(date_actual__year=self.year, date_actual__month=self.month).order_by("date_actual")
         cal = f'<table border="0" cellpadding="0" cellspacing="0" class="calendar" id="calendarlist">\n'
         cal += f'{self.formatmonthname(self.year, self.month, withyear=withyear)}\n'
-        cal += f'<tr><th class="date">Date</th><th class="description">Description</th><th class="Ammount">Ammount</th><th class="source">Source</th><th class="destination">Destination</th><th class="destination">Recurence</th></tr>\n'
-        cal += f'<tr><td><input type="text" id="myDate" onkeyup="myFunctionDate()" placeholder="filter"></td>'
-        cal += f'<td><input type="text" id="myDesc" onkeyup="myFunctionDesc()" placeholder="filter"></td>'
-        cal += f'<td><input type="text" id="myAmm" onkeyup="myFunctionAmm()" placeholder="filter"></td>'
-        cal += f'<td><input type="text" id="mySource" onkeyup="myFunctionSource()" placeholder="filter"></td>'
-        cal += f'<td><input type="text" id="myDest" onkeyup="myFunctionDest()" placeholder="filter"></td>'
-        cal += f'<td><input type="text" id="myBE" onkeyup="myFunctionBE()" placeholder="filter"></td></tr>\n'
+        cal += f'<tr>\n'
+        cal += f'<th>Date</th><th>Description</th><th>Ammount</th>'
+        cal += f'<th>Source</th><th>Destination</th>'
+        cal += f'<th>Category</th><th>Subcategory</th>'
+        cal += f'<th>Recurence</th>\n'
+        cal += f'</tr>\n'
+        cal += f'<tr>\n'
+        cal += f'<td><input type="text" id="myDate" onkeyup="myFunctionDate()" placeholder="filter"></td>\n'
+        cal += f'<td><input type="text" id="myDesc" onkeyup="myFunctionDesc()" placeholder="filter"></td>\n'
+        cal += f'<td><input type="text" id="myAmm" onkeyup="myFunctionAmm()" placeholder="filter"></td>\n'
+        cal += f'<td><input type="text" id="mySource" onkeyup="myFunctionSource()" placeholder="filter"></td>\n'
+        cal += f'<td><input type="text" id="myDest" onkeyup="myFunctionDest()" placeholder="filter"></td>\n'
+        cal += f'<td><input type="text" id="myCat1" onkeyup="myFunctionCat1()" placeholder="filter"></td>\n'
+        cal += f'<td><input type="text" id="myCat2" onkeyup="myFunctionCat2()" placeholder="filter"></td>\n'
+        cal += f'<td><input type="text" id="myBE" onkeyup="myFunctionBE()" placeholder="filter"></td>\n'
+        cal += f'</tr>\n'
         day = 0
 
         for event in events_per_month:

@@ -18,12 +18,46 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
 from django.http import JsonResponse
 
+# colors stolen from django chart js library
+COLORS = [
+    (202, 201, 197),  # Light gray
+    (171, 9, 0),  # Red
+    (166, 78, 46),  # Light orange
+    (255, 190, 67),  # Yellow
+    (163, 191, 63),  # Light green
+    (122, 159, 191),  # Light blue
+    (140, 5, 84),  # Pink
+    (166, 133, 93),  # Light brown
+    (75, 64, 191),  # Red blue
+    (237, 124, 60),  # orange
+]
 
-def GetPreferencesJSON(request):
 
+def next_color(color_list=COLORS):
+    step = 0
+    while True:
+        for color in color_list:
+            yield list(map(lambda base: (base + step) % 256, color))
+        step += 197
+
+
+def PreferenceSetIntervalJSON(request):
+    # Notice I didn't directly try to access request.GET["check_this"]
+    start_interval = request.POST.get("begin_interval", None)
+    end_interval = request.POST.get("end_interval", None)
+    preference = Preference.objects.get(pk=request.user.id)
+    if start_interval:
+        preference.start_interval = datetime.strptime(start_interval, "%Y-%m-%d")
+    if end_interval:
+        preference.end_interval = datetime.strptime(end_interval, "%Y-%m-%d")
+    preference.save()
+    return HttpResponse(status=200)
+
+
+def PreferenceGetJSON(request):
     preference = Preference.objects.get(pk=request.user.id)
     transactions = Transaction.objects.all().order_by("date_actual")
-    
+
     data = {
         'start_interval': preference.start_interval,
         'end_interval': preference.end_interval,
@@ -35,7 +69,6 @@ def GetPreferencesJSON(request):
 
 
 def GetAccountListJSON(request):
-
     queryset = Account.objects.all()
     queryset = queryset.order_by("name")
 
@@ -47,8 +80,19 @@ def GetAccountListJSON(request):
     return JsonResponse(array, safe=False)
 
 
-def GetAccountHostListJSON(request):
+def GetAccountCatListJSON(request):
+    queryset = AccountCategory.objects.all()
+    queryset = queryset.order_by("name")
 
+    array = []
+
+    for entry in queryset:
+        array.append([{"pk": entry.pk}, {"name": entry.name}])
+
+    return JsonResponse(array, safe=False)
+
+
+def GetAccountHostListJSON(request):
     queryset = AccountHost.objects.all()
     queryset = queryset.order_by("name")
 
@@ -61,7 +105,6 @@ def GetAccountHostListJSON(request):
 
 
 def GetVendorListJSON(request):
-
     queryset = Vendor.objects.all()
     queryset = queryset.order_by("name")
 
@@ -74,7 +117,6 @@ def GetVendorListJSON(request):
 
 
 def GetCat1ListJSON(request):
-
     queryset = Cat1.objects.all()
     queryset = queryset.order_by("name")
 
@@ -86,8 +128,19 @@ def GetCat1ListJSON(request):
     return JsonResponse(array, safe=False)
 
 
-def GetCat1TotalChartData(request):
+def GetCatTypeListJSON(request):
+    queryset = CatType.objects.all()
+    queryset = queryset.order_by("name")
 
+    array = []
+
+    for entry in queryset:
+        array.append([{"pk": entry.pk}, {"name": entry.name}])
+
+    return JsonResponse(array, safe=False)
+
+
+def GetCat1TotalPieChartData(request):
     begin = request.GET.get('begin', None)
     end = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
@@ -136,7 +189,7 @@ def GetCat1TotalChartData(request):
     return JsonResponse(data, safe=False)
 
 
-def GetCat2TotalChartData(request):
+def GetCat2TotalPieChartData(request):
 
     begin = request.GET.get('begin', None)
     end = request.GET.get('end', None)
@@ -185,6 +238,53 @@ def GetCat2TotalChartData(request):
     return JsonResponse(data, safe=False)
 
 
+def timeline2JSON(request):
+
+    accountcategoryID = request.GET.get('ac', None)
+
+    if accountcategoryID is None or accountcategoryID == 'None':
+        accounts = Account.objects.all()
+    else:
+        accounts = Account.objects.filter(account_categories=accountcategoryID)
+
+    preference = Preference.objects.get(pk=request.user.id)
+    begin = preference.start_interval
+    end = preference.end_interval
+
+    colors = next_color()
+
+    datasets = []  # lines
+    labels = []  # Dates
+
+    for day in MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date'):
+        labels.append(f'{day}')
+
+    for account in accounts:
+        color = next(colors)
+        balances = account.build_balance_array(begin, end)
+        linedata = []
+        for day in balances:
+            linedata.append(day.balance)
+        linedict = {
+            "backgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
+            "borderColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+            "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+            "pointBorderColor": "#fff",
+            'data': linedata,
+            'label': account.name,
+            'name': account.name,
+            'index': account.id,
+        }
+        datasets.append(linedict)
+
+    data = {
+        'datasets': datasets,
+        'labels': labels
+    }
+
+    return JsonResponse(data, safe=False)
+
+
 class CatTotalChart(TemplateView):
     template_name = 'budgetdb/pie_chart2.html'
 
@@ -195,21 +295,20 @@ class CatTotalChart(TemplateView):
 
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
+        preference = Preference.objects.get(pk=self.request.user.id)
 
         if end is None or end == 'None':
-            end = datetime.today()
+            end = preference.end_interval
         else:
             end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
-            begin = end + relativedelta(months=-12)
+            begin = preference.start_interval
         else:
             begin = datetime.strptime(begin, "%Y-%m-%d")
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
-        context['endunix'] = end.timestamp() * 1000
-        context['beginunix'] = begin.timestamp() * 1000
         mydate = date.today()
         context['now'] = mydate.strftime("%Y-%m-%d")
         mydate = date.today() + relativedelta(months=-1)
@@ -229,14 +328,14 @@ class CatTotalChart(TemplateView):
         return context
 
 
-class FirstGraph(TemplateView):
-    template_name = 'budgetdb/firstgraph.html'
+class timeline2(TemplateView):
+    template_name = 'budgetdb/timeline2.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        beginstr = self.request.GET.get('begin', None)
-        endstr = self.request.GET.get('end', None)
+        # beginstr = self.request.GET.get('begin', None)
+        # endstr = self.request.GET.get('end', None)
         accountcategoryID = self.request.GET.get('ac', None)
 
         if accountcategoryID is not None and accountcategoryID != 'None':
@@ -246,40 +345,88 @@ class FirstGraph(TemplateView):
         accountcategories = AccountCategory.objects.all()
         context['accountcategories'] = accountcategories
 
-        if endstr is None or endstr == 'None':
-            end = datetime.today()
-        else:
-            end = datetime.strptime(endstr, "%Y-%m-%d")
+        # preference = Preference.objects.get(pk=self.request.user.id)
+        # if endstr is None or endstr == 'None':
+        #     end = preference.end_interval
+        # else:
+        #     end = datetime.strptime(endstr, "%Y-%m-%d")
 
-        if beginstr is None or beginstr == 'None':
-            begin = end + relativedelta(months=-1)
-        else:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d")
+        # if beginstr is None or beginstr == 'None':
+        #     begin = preference.start_interval
+        # else:
+        #     begin = datetime.strptime(beginstr, "%Y-%m-%d")
 
-        context['begin'] = begin.strftime("%Y-%m-%d")
-        context['end'] = end.strftime("%Y-%m-%d")
-        context['endunix'] = end.timestamp() * 1000
-        context['beginunix'] = begin.timestamp() * 1000
-        mydate = date.today()
-        context['now'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-1)
-        context['monthago'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-3)
-        context['3monthsago'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-12)
-        context['yearago'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=1)
-        context['inamonth'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=3)
-        context['in3months'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=12)
-        context['inayear'] = mydate.strftime("%Y-%m-%d")
+        # context['begin'] = begin.strftime("%Y-%m-%d")
+        # context['end'] = end.strftime("%Y-%m-%d")
+        # mydate = date.today()
+        # context['now'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=-1)
+        # context['monthago'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=-3)
+        # context['3monthsago'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=-12)
+        # context['yearago'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=1)
+        # context['inamonth'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=3)
+        # context['in3months'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=12)
+        # context['inayear'] = mydate.strftime("%Y-%m-%d")
 
         context['ac'] = accountcategoryID
         return context
 
 
-class FirstGraphJSON(BaseLineChartView):
+class timeline(TemplateView):
+    template_name = 'budgetdb/timeline.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # beginstr = self.request.GET.get('begin', None)
+        # endstr = self.request.GET.get('end', None)
+        accountcategoryID = self.request.GET.get('ac', None)
+
+        if accountcategoryID is not None and accountcategoryID != 'None':
+            accountcategory = AccountCategory.objects.get(id=accountcategoryID)
+            context['accountcategory'] = accountcategory
+
+        accountcategories = AccountCategory.objects.all()
+        context['accountcategories'] = accountcategories
+
+        # preference = Preference.objects.get(pk=self.request.user.id)
+        # if endstr is None or endstr == 'None':
+        #     end = preference.end_interval
+        # else:
+        #     end = datetime.strptime(endstr, "%Y-%m-%d")
+
+        # if beginstr is None or beginstr == 'None':
+        #     begin = preference.start_interval
+        # else:
+        #     begin = datetime.strptime(beginstr, "%Y-%m-%d")
+
+        # context['begin'] = begin.strftime("%Y-%m-%d")
+        # context['end'] = end.strftime("%Y-%m-%d")
+        # mydate = date.today()
+        # context['now'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=-1)
+        # context['monthago'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=-3)
+        # context['3monthsago'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=-12)
+        # context['yearago'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=1)
+        # context['inamonth'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=3)
+        # context['in3months'] = mydate.strftime("%Y-%m-%d")
+        # mydate = date.today() + relativedelta(months=12)
+        # context['inayear'] = mydate.strftime("%Y-%m-%d")
+
+        context['ac'] = accountcategoryID
+        return context
+
+
+class timelineJSON(BaseLineChartView):
     x_labels = []
     data = []
     line_labels = []
@@ -294,14 +441,18 @@ class FirstGraphJSON(BaseLineChartView):
         return self.data
 
     def get_context_data(self, **kwargs):
-        begin = self.request.GET.get('begin', None)
-        end = self.request.GET.get('end', None)
+        # begin = self.request.GET.get('begin', None)
+        # end = self.request.GET.get('end', None)
         accountcategoryID = self.request.GET.get('ac', None)
 
         if accountcategoryID is None or accountcategoryID == 'None':
             accounts = Account.objects.all()
         else:
             accounts = Account.objects.filter(account_categories=accountcategoryID)
+
+        preference = Preference.objects.get(pk=self.request.user.id)
+        begin = preference.start_interval
+        end = preference.end_interval
 
         self.line_labels = []  # Account names
         self.x_labels = []  # Dates
@@ -464,6 +615,23 @@ class AccountUpdateView(UpdateView):
         return form
 
 
+class AccountHostUpdateView(UpdateView):
+    model = AccountHost
+    fields = (
+        'name',
+        )
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
 class Cat2DetailView(DetailView):
     model = Cat2
     template_name = 'budgetdb/cat2_detail.html'
@@ -479,8 +647,21 @@ class AccountDetailView(DetailView):
     template_name = 'budgetdb/account_detail.html'
 
 
+class AccountHostDetailView(DetailView):
+    model = AccountHost
+    template_name = 'budgetdb/accounthost_detail.html'
+
+
 class IndexView(ListView):
     template_name = 'budgetdb/index.html'
+    context_object_name = 'categories_list'
+
+    def get_queryset(self):
+        return Cat1.objects.order_by('name')
+
+
+class IndexView2(ListView):
+    template_name = 'budgetdb/baseangular.html'
     context_object_name = 'categories_list'
 
     def get_queryset(self):
@@ -511,6 +692,14 @@ class AccountListView(ListView):
         return Account.objects.all().order_by('name')
 
 
+class AccountHostListView(ListView):
+    model = AccountHost
+    context_object_name = 'account_host_list'
+
+    def get_queryset(self):
+        return AccountHost.objects.all().order_by('name')
+
+
 class VendorListView(ListView):
     model = Vendor
     context_object_name = 'vendor_list'
@@ -525,36 +714,46 @@ class AccountperiodicView(ListView):
 
     def get_queryset(self):
         pk = self.kwargs['pk']
-        begin = self.request.GET.get('begin', None)
-        end = self.request.GET.get('end', None)
-        if begin is None:
-            end = date.today()
-            begin = end + relativedelta(months=-1)
+        preference = Preference.objects.get(pk=self.request.user.id)
+        begin = preference.start_interval
+        end = preference.end_interval
+
+        beginstr = self.request.GET.get('begin', None)
+        endstr = self.request.GET.get('end', None)
+        if beginstr is not None:
+            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+            end = begin + relativedelta(months=1)
+        if endstr is not None:
+            end = datetime.strptime(endstr, "%Y-%m-%d").date()
+        if end < begin:
+            end = begin + relativedelta(months=1)
+
         events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
         return events
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
-        beginstr = self.request.GET.get('begin', None)
-        endstr = self.request.GET.get('end', None)
-        if endstr is not None and endstr != 'None':
-            end = datetime.strptime(endstr, "%Y-%m-%d")
-        else:
-            end = date.today()
+        # beginstr = self.request.GET.get('begin', None)
+        # endstr = self.request.GET.get('end', None)
+        # preference = Preference.objects.get(pk=self.request.user.id)
+        # if endstr is not None and endstr != 'None':
+        #    end = datetime.strptime(endstr, "%Y-%m-%d")
+        # else:
+        #    end = preference.end_interval
 
-        if beginstr is not None and beginstr != 'None':
-            begin = datetime.strptime(beginstr, "%Y-%m-%d")
-        else:
-            begin = end + relativedelta(months=-1)
+        # if beginstr is not None and beginstr != 'None':
+        #    begin = datetime.strptime(beginstr, "%Y-%m-%d")
+        # else:
+        #    begin = preference.start_interval
 
         context['account_list'] = Account.objects.all().order_by('name')
-        context['begin'] = begin.strftime("%Y-%m-%d")
-        context['end'] = end.strftime("%Y-%m-%d")
+        # context['begin'] = begin.strftime("%Y-%m-%d")
+        # context['end'] = end.strftime("%Y-%m-%d")
         context['pk'] = pk
-        context['now'] = date.today().strftime("%Y-%m-%d")
-        context['month'] = (date.today() + relativedelta(months=-1)).strftime("%Y-%m-%d")
-        context['3month'] = (date.today() + relativedelta(months=-3)).strftime("%Y-%m-%d")
+        # context['now'] = date.today().strftime("%Y-%m-%d")
+        # context['month'] = (date.today() + relativedelta(months=-1)).strftime("%Y-%m-%d")
+        # context['3month'] = (date.today() + relativedelta(months=-3)).strftime("%Y-%m-%d")
         context['account_name'] = Account.objects.get(id=pk).name
         return context
 
@@ -580,6 +779,21 @@ class Cat1CreateView(CreateView):
 class AccountCreateView(CreateView):
     model = Account
     fields = ['name', 'AccountHost', 'account_number']
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
+class AccountHostCreateView(CreateView):
+    model = AccountHost
+    fields = ['name']
 
     def form_valid(self, form):
         return super().form_valid(form)

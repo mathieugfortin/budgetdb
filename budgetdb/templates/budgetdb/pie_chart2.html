@@ -25,35 +25,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
 <!--jQuery-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-<!--Plugin JavaScript file-->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
-
 
 <script type="text/javascript">
-
-function my_datify (n) {
-        n = n - 1;
-        beginunix = {{ beginunix }};
-        var date = new Date(beginunix);
-        date.setDate(date.getDate() + n);
-        month = date.getMonth() + 1;
-        return date.getFullYear() + '-' + month + '-' + date.getDate();
-        //return date;
-    }
-$(".js-range-slider").ionRangeSlider({
-    type: "double",
-    grid: true,
-    skin: "big",
-    //prefix: ({{endunix}} - {{beginunix}})/(24*60*60),
-    grid: true,
-    min: 1,
-    max: ceil(({{ endunix }} - {{ beginunix }})/(24*60*60*1000)),
-    from: 1,
-    to: ceil(({{ endunix }} - {{ beginunix }})/(24*60*60*1000)),
-    prettify: my_datify
-    });
-    
-
 
     var pie_canvas = document.getElementById("pie-chart");
     var ctx = pie_canvas.getContext("2d");
@@ -63,7 +36,7 @@ $(".js-range-slider").ionRangeSlider({
     pie_container.style.width = "800px";
     pie_container.style.height = "800px";
 
-    $.get('{% url "budgetdb:cat1_pie_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}', function(config) {
+    $.get('{% url "budgetdb:cat1_piechart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}', function(config) {
         myChart = new Chart(ctx, config);
     });
 
@@ -80,7 +53,7 @@ $(".js-range-slider").ionRangeSlider({
         newDiv.append(newCanvas);
         document.body.append(newDiv);
         var newCtx = newCanvas.getContext("2d");
-        $.get('{% url "budgetdb:cat2_pie_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}&cat1=' + cat1_index, function(subConfig) {
+        $.get('{% url "budgetdb:cat2_piechart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}&cat1=' + cat1_index, function(subConfig) {
             myNewChart = new Chart(newCtx, subConfig);
         });
 
@@ -120,8 +93,6 @@ $(".js-range-slider").ionRangeSlider({
         }
     });
 
-    
-    
 </script>
 
 {% endblock %}

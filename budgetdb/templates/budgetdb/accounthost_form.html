@@ -2,12 +2,10 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
-{% block title %}Category form{% endblock %}
-
-{% csrf_token %}
+{% block title %}Account Host Form{% endblock %}
 
 {% block content %}
-  <h2>Category</h2>
+  <h2>Account Host</h2>
   {% load crispy_forms_tags %}
   {% crispy form %}
 {% endblock %}

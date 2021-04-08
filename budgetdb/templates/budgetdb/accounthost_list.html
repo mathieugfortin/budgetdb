@@ -1,0 +1,24 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+
+{% block title %}Account Host List{% endblock %}
+
+{% block content %}
+
+{% if account_host_list %}
+    <ul>
+    {% for account in account_host_list %}
+        <li><a href="{% url 'budgetdb:update_account_host' account.id %}">{{ account.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No account hosts are available.</p>
+{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_account_host' %}">Create new account</a>
+</div>
+
+{% endblock %}

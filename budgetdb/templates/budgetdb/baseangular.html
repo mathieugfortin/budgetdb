@@ -16,7 +16,6 @@
 </head>
 
 <body>
-    {% csrf_token %}
     <div id="content">
         {% block content %}{% endblock %}
     </div>
@@ -31,7 +30,7 @@
                         <ul id="accounts">
                         </ul>
                     </li>   
-                    <li><a href="{% url 'budgetdb:list_account_host' %}">Account Hosts</a>
+                    <li><a href="">Account Hosts</a>
                         <ul id="account_hosts">
                         </ul>
                     </li> 
@@ -51,7 +50,6 @@
             </li>
             <li><a href="#">Transactions</a>
                 <ul>
-                    <li><a href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a></li>
                     <li><a href="{% url 'budgetdb:list_transaction' %}">All transaction</a></li>
                     <li><a href="#">Transactions per account</a>
                         <ul  id="account_list">
@@ -63,14 +61,8 @@
             <li><a href="#">Charts</a>
                 <ul>
                     <li><a href="">Budget Bar</a></li>
-                    <li><a href="#">Budget Pie</a>
-                        <ul id="cattype">
-                        </ul>
-                    </li>
-                    <li><a href="{% url 'budgetdb:timeline_chart' %}">Timeline</a>
-                        <ul id="accountcat">
-                        </ul>
-                    </li>
+                    <li><a href="">Budget Pie</a></li>
+                    <li><a href="{% url 'budgetdb:timeline_chart' %}">Timeline</a></li>
                 </ul>
             </li>
             <li id="li_range">
@@ -106,8 +98,17 @@
   
 
   <script>
+
+    var my_app = angular.module('MyApp').config(function($httpProvider) {
+        $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    });
+
     var begin_interval;
     var end_interval;
+
+
+    var lang = "en-US";
+    var year = 2018;
 
     function parseDateIS (date) {
         var year = date.substr(0,4);
@@ -117,22 +118,18 @@
         return (dateToTS(new Date(year, month, day)))
     }
     
-    function dateToTS(date) {
+    function dateToTS (date) {
         return date.valueOf();
     }
     
-    function tsToDate(ts) {
+    function tsToDate (ts) {
         var d = new Date(ts);
     
-        return d.toLocaleDateString('en-CA', {
+        return d.toLocaleDateString( {
             year: 'numeric',
-            month: 'numeric',
+            month: 'long',
             day: 'numeric'
         });
-    }
-
-    function onRangeUpdate(begin_interval, end_interval){
-     
     }
 
 
@@ -176,22 +173,6 @@
         });
 
         $(document).ready(function(){
-            $.getJSON('{% url "budgetdb:cattype_list_json" %}', function(result){
-                $.each(result, function(i, field){
-                AddLi('{% url "budgetdb:cat1_pie" 12345 %}', field[0].pk, field[1].name, 'cattype')
-                });
-            });
-        });
-
-        $(document).ready(function(){
-            $.getJSON('{% url "budgetdb:accountcat_list_json" %}', function(result){
-                $.each(result, function(i, field){
-                AddLi('{% url "budgetdb:timeline_chart" %}?ac=12345', field[0].pk, field[1].name, 'accountcat')
-                });
-            });
-        });
-
-        $(document).ready(function(){
             $.getJSON('{% url "budgetdb:account_host_list_json" %}', function(result){
                 $.each(result, function(i, field){
                 AddLi('{% url "budgetdb:details_account_host" 12345 %}', field[0].pk, field[1].name, 'account_hosts')
@@ -216,9 +197,8 @@
                     to: to,
                     prettify: tsToDate,
                     onFinish: function (data) {
-                        data = { 'begin_interval': data.from_pretty, 'end_interval': data.to_pretty, 'csrfmiddlewaretoken': '{{csrf_token}}'}
-                        $.post('{% url "budgetdb:setinterval_json" %}', data );
-                        onRangeUpdate(data.from_pretty, data.to_pretty)
+                        begin_interval = data.from_pretty
+                        end_interval = data.to_pretty
                     }
                 })
             });

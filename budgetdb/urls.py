@@ -8,14 +8,16 @@ from . import views
 app_name = 'budgetdb'
 
 urlpatterns = [
-    path('', views.IndexView.as_view(),
-         name='home'),
+    path('', views.IndexView.as_view(), name='home'),
+    # path('2', views.IndexView2.as_view(), name='home'),
     path('favicon.ico', RedirectView.as_view(url='/static/budgetdb/favicon.png')),
 
-    path('getpreferencesJSON', views.GetPreferencesJSON, name='preferences_json'),
+    path('preference/getJSON', views.PreferenceGetJSON, name='preferences_json'),
+    path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON, name='setinterval_json'),
+
 
     # Account
-    path('accountListJSON', views.GetAccountListJSON, name='account_list_json'),
+    path('account/ListJSON', views.GetAccountListJSON, name='account_list_json'),
     path('account/', views.AccountListView.as_view(),
          name='list_account'),
     path('account/<int:pk>/', views.AccountDetailView.as_view(),
@@ -30,24 +32,30 @@ urlpatterns = [
     path('account/list/<int:pk>/', views.AccountperiodicView.as_view(),
          name='list_account_activity'),
 
+    # AccountCategory
+    path('accountcat/ListJSON', views.GetAccountCatListJSON, name='accountcat_list_json'),
 
     # Account_Host
-    path('accountHostListJSON', views.GetAccountHostListJSON, name='account_host_list_json'),
-    path('accountHost/<int:pk>/', views.AccountDetailView.as_view(),
+    path('accountHost/ListJSON', views.GetAccountHostListJSON, name='account_host_list_json'),
+    path('accountHost/<int:pk>/', views.AccountHostDetailView.as_view(),
          name='details_account_host'),
-    path('accountHost/add/', views.AccountCreateView.as_view(),
+    path('accountHost/add/', views.AccountHostCreateView.as_view(),
          name='create_account_host'),
+    path('accountHost/update/<int:pk>/', views.AccountHostUpdateView.as_view(),
+         name='update_account_host'),
+    path('accountHost/', views.AccountHostListView.as_view(),
+         name='list_account_host'),
 
 
     # chart JS
-    path('chart/', views.FirstGraph.as_view(), name='line_chart'),
-    path('chartJSON', views.FirstGraphJSON.as_view(), name='line_chart_json'),
-    path('cat1/pie-chart/<int:cat_type_pk>', views.CatTotalChart.as_view(), name='cat1_pie'),
-    path('cat1TotalJSON', views.GetCat1TotalChartData, name='cat1_pie_json'),
-    path('cat2TotalJSON', views.GetCat2TotalChartData, name='cat2_pie_json'),
+    path('timeline/', views.timeline.as_view(), name='timeline_chart'),
+    path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
+    path('chartJSON', views.timelineJSON.as_view(), name='timeline_chart_json'),
+    path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),
 
     # Cat1
-    path('cat1ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
+    path('cat1/PieChartJSON', views.GetCat1TotalPieChartData, name='cat1_piechart_json'),
+    path('cat1/ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
     path('cat1/', views.Cat1ListView.as_view(),
          name='list_cat'),
     path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
@@ -60,6 +68,7 @@ urlpatterns = [
          name='autocomplete_cat1'),
 
     # Cat2
+    path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
     path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
          name='details_cat2'),
     path('cat2/add/<int:cat1_id>', views.Cat2Create.as_view(),
@@ -71,6 +80,16 @@ urlpatterns = [
     path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
 
+    # CatType   *****details, create and update NOT IMPLEMENTED*****
+    path('cattype/ListJSON', views.GetCatTypeListJSON, name='cattype_list_json'),
+    path('cattype/pie-chart/<int:cat_type_pk>', views.CatTotalChart.as_view(), name='cat1_pie'),
+    path('cattype/<int:pk>/', views.Cat2DetailView.as_view(),
+         name='details_cattype'),
+    path('cattype/add/', views.Cat2Create.as_view(),
+         name='create_cattype'),
+    path('cattype/update/<int:pk>/', views.Cat2UpdateView.as_view(),
+         name='update_cattype'),
+    
     # BudgetedEvent
     path('budgetedEvent/', views.budgetedEventsListView.as_view(),
          name='list_be'),
@@ -100,7 +119,7 @@ urlpatterns = [
          name='details_transaction_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),
          name='calendar_transaction'),
-    path('list/', views.TransactionListView.as_view(),
+    path('transaction/list/', views.TransactionListView.as_view(),
          name='list_transaction'),
 
     # Vendor
