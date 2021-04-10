@@ -22,6 +22,17 @@
     height: 9.5%;
   }
   
+  /* List formatting, color by Transaction type */
+  
+  tr.AUDIT {
+    background-color: rgb(44, 61, 141)
+  }
+  tr.BUDGET {
+    background-color: rgb(78, 167, 240)
+  }
+  tr.UNVERIFIED {
+    background-color: rgb(252, 221, 156)
+  }
   
   
   /* Menu formatting */

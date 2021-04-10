@@ -5,8 +5,9 @@
 {% block content %}
 
 <h1>{{ account.name }}</h1>
-<h4>Host: {{ account.AccountHost }} </h4>
+<h4>Host: {{ account.account_host }} </h4>
 <h4>Account number: {{ account.account_number }} </h4>
+{% if account.account_parent != 'None' %}<h4>Account Parent: {{ account.account_parent }} </h4>{% endif %}
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <div class="clearfix">

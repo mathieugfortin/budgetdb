@@ -49,14 +49,19 @@
                     </li>   
                 </ul>
             </li>
-            <li><a href="#">Transactions</a>
+            <li><a href="#">Account </a>
                 <ul>
-                    <li><a href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a></li>
-                    <li><a href="{% url 'budgetdb:list_transaction' %}">All transaction</a></li>
+                    <li><a href="{% url 'budgetdb:list_account' %}">Summary</a></li>   
                     <li><a href="#">Transactions per account</a>
                         <ul  id="account_list">
                         </ul>
                     </li>
+                </ul>
+            </li>
+            <li><a href="#">Transactions</a>
+                <ul>
+                    <li><a href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a></li>
+                    <li><a href="{% url 'budgetdb:list_transaction' %}">All transaction</a></li>
                     <li><a href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a></li>
                 </ul>
             </li>
@@ -74,6 +79,7 @@
                         <ul id="accountcat">
                         </ul>
                     </li>
+                    <li><a href="#">Timeline per category</a></li>   
                 </ul>
             </li>
             <li id="li_range">

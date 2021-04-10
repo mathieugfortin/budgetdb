@@ -48,9 +48,7 @@ urlpatterns = [
 
 
     # chart JS
-    path('timeline/', views.timeline.as_view(), name='timeline_chart'),
     path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
-    path('chartJSON', views.timelineJSON.as_view(), name='timeline_chart_json'),
     path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),
 
     # Cat1

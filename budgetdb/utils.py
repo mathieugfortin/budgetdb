@@ -45,6 +45,16 @@ class Calendar(HTMLCalendar):
         events_per_day = events.filter(date_actual__day=day)
         d = ''
         for event in events_per_day:
+
+            if event.audit == 1:
+                d += f'<tr class="AUDIT">'
+            elif event.budgetedevent_id != None and event.verified == 0:
+                d += f'<tr class="BUDGET">' 
+            elif event.verified == 0:
+                d += f'<tr class="UNVERIFIED">'
+            else:
+                d += f'<tr>'
+
             url1 = reverse(f'{event._meta.app_label}:details_transaction', args=[event.id])
             d += f'<td>{event.date_actual}</td>'
             d += f'<td> <a href="{url1}"> {event.description} </a></td>'

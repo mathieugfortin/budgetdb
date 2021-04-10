@@ -257,9 +257,10 @@ class Account(models.Model):
 
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    AccountHost = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
+    account_host = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
+    account_parent = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=200)
-    account_number = models.CharField(max_length=200)
+    account_number = models.CharField(max_length=200, blank=True)
 
     def __str__(self):
         return self.name
@@ -346,6 +347,25 @@ class Account(models.Model):
                 if day.delta is not None:
                     balance += day.delta
             day.balance = balance
+
+        # get children account data
+        childaccounts = Account.objects.filter(account_parent_id=self.id)
+        childcount = childaccounts.count()
+        # is this all done with DB queries?  Can I do it all in memory?
+        if (childcount > 0):
+            childbalances = [] 
+            # get the balances for the subaccounts
+            for childaccount in childaccounts:
+                childbalance = childaccount.build_balance_array(start_date, end_date)
+                childbalances.append(childbalance)
+            index = 0
+            for day in dailybalances:
+                # If the parent account has an audit, do not add the child accounts.
+                # good for the audited day but next day probably won't be OK...
+                if day.audit is None:
+                    for i in range(childcount):
+                        day.balance += childbalances[i][index].balance
+                index += 1
 
         return dailybalances
 

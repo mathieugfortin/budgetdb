@@ -243,9 +243,9 @@ def timeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
 
     if accountcategoryID is None or accountcategoryID == 'None':
-        accounts = Account.objects.all()
+        accounts = Account.objects.all().order_by('name')
     else:
-        accounts = Account.objects.filter(account_categories=accountcategoryID)
+        accounts = Account.objects.filter(account_categories=accountcategoryID).order_by('name')
 
     preference = Preference.objects.get(pk=request.user.id)
     begin = preference.start_interval
@@ -378,6 +378,7 @@ class timeline2(TemplateView):
 
 
 class timeline(TemplateView):
+    # ********************DEPRECATED******************************
     template_name = 'budgetdb/timeline.html'
 
     def get_context_data(self, **kwargs):
@@ -427,6 +428,7 @@ class timeline(TemplateView):
 
 
 class timelineJSON(BaseLineChartView):
+    # ********************DEPRECATED******************************
     x_labels = []
     data = []
     line_labels = []
@@ -446,9 +448,9 @@ class timelineJSON(BaseLineChartView):
         accountcategoryID = self.request.GET.get('ac', None)
 
         if accountcategoryID is None or accountcategoryID == 'None':
-            accounts = Account.objects.all()
+            accounts = Account.objects.all().order_by('name')
         else:
-            accounts = Account.objects.filter(account_categories=accountcategoryID)
+            accounts = Account.objects.filter(account_categories=accountcategoryID).order_by('name')
 
         preference = Preference.objects.get(pk=self.request.user.id)
         begin = preference.start_interval
@@ -600,7 +602,8 @@ class AccountUpdateView(UpdateView):
     model = Account
     fields = (
         'name',
-        'AccountHost',
+        'account_host',
+        'account_parent',
         'account_number',
         )
 
@@ -778,7 +781,11 @@ class Cat1CreateView(CreateView):
 
 class AccountCreateView(CreateView):
     model = Account
-    fields = ['name', 'AccountHost', 'account_number']
+    fields = [
+        'name',
+        'account_host',
+        'account_parent',
+        'account_number']
 
     def form_valid(self, form):
         return super().form_valid(form)
