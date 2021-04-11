@@ -1,5 +1,5 @@
 # import datetime
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from django.db import models
@@ -541,6 +541,12 @@ class BudgetedEvent(models.Model):
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns
 
+        # https://stackoverflow.com/a/13565185
+        # get close to the end of the month for any day, and add 4 days 'over'
+        next_month = dateCheck.replace(day=28) + relativedelta(days=4)
+        # subtract the number of remaining 'overage' days to get last day of current month, or said programattically said, the previous day of the first of next month
+        last_day_month = next_month + relativedelta(days=-next_month.day)
+
         # budget only should be in the future only
         if self.budget_only is True and dateCheck < date.today():
             return False
@@ -577,9 +583,19 @@ class BudgetedEvent(models.Model):
                 ((dateCheck.day != self.repeat_start.day) or (dateCheck.month != self.repeat_start.month)
                  or (dateCheck.year - self.repeat_start.year) % self.repeat_interval_years != 0):
             return False
-        # if month interval is used, check if the difference is a repeat of interval. Days must match
+        # if month interval is used, check if the difference is a repeat of interval. 
+        # Days must match OR must be last day of the month and planned day is after
+        # *************************************************************
         elif self.repeat_interval_months != 0 and \
-                ((dateCheck.day != self.repeat_start.day) or
+                (
+                    (
+                        dateCheck.day != self.repeat_start.day
+                        and
+                        (self.repeat_start.day < last_day_month.day
+                         or
+                         last_day_month != dateCheck)
+                    )
+                or
                  (dateCheck.month - self.repeat_start.month) % self.repeat_interval_months != 0):
             return False
         # if weeks interval is used, check if the difference is a repeat of interval. Weekday must match
