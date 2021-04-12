@@ -662,6 +662,13 @@ class IndexView(ListView):
     def get_queryset(self):
         return Cat1.objects.order_by('name')
 
+class IndexView2(ListView):
+    template_name = 'budgetdb/index2.html'
+    context_object_name = 'categories_list'
+
+    def get_queryset(self):
+        return Cat1.objects.order_by('name')
+
 
 class IndexView2(ListView):
     template_name = 'budgetdb/baseangular.html'

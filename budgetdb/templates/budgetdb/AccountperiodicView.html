@@ -37,25 +37,9 @@ tbody>tr>:nth-child(8){
 }
 
 </style>
-<div class="clearfix">
-    {% for account in account_list  %}
-<!--    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' account.id %}?begin={{ begin }}&end={{ end }}"> {{account.name}} </a>  -->
-        <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' account.id %}"> {{account.name}} </a>
-    {% endfor %}
-</div>
 
-
-<h1>Account {{ account_name }}</h1>
+<h3>Account {{ account_name }}</h3>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
-<!--
-<div class="clearfix">
-    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ month }}&end={{ now }}"> last 30 days </a>
-    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin={{ 3month }}&end={{ now }}"> last 90 days </a>
-    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin=2020-01-01&end=2021-12-31"> all </a>
-    <a class="btn btn-info left" href="{% url 'budgetdb:list_account_activity' pk %}?begin=2020-01-01&end=2020-04-01"> begin </a>
-</div>
--->
-
 
 <table >
     <tr>

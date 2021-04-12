@@ -9,7 +9,8 @@ app_name = 'budgetdb'
 
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
-    # path('2', views.IndexView2.as_view(), name='home'),
+    path('2', views.IndexView2.as_view(), name='home2'),
+    
     path('favicon.ico', RedirectView.as_view(url='/static/budgetdb/favicon.png')),
 
     path('preference/getJSON', views.PreferenceGetJSON, name='preferences_json'),

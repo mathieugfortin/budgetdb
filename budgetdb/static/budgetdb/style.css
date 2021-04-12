@@ -1,11 +1,5 @@
 
-#navtools {
-    position: fixed;
-    top: 0.5%;
-    left: 0.5%;
-    width: 99%;
-    height: 9.5%;
-  }
+
   
   #content {
     position: absolute;
@@ -14,14 +8,7 @@
     width: 96%;
   }
   
-  #footer {
-    position: fixed;
-    top: 85%;
-    left: 10.2%;
-    width: 88%;
-    height: 9.5%;
-  }
-  
+ 
   /* List formatting, color by Transaction type */
   
   tr.AUDIT {
