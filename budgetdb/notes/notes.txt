@@ -34,3 +34,6 @@ https://simpleisbetterthancomplex.com/tutorial/2018/01/29/how-to-implement-depen
 
 chart js onclick
 https://jsfiddle.net/u1szh96g/208/
+
+jquery versions hash
+https://code.jquery.com/jquery/

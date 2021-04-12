@@ -1,0 +1,207 @@
+{% load static %}
+
+{% block head_comment %}{% endblock %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {% block headblock %}{% endblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+    <title>{% block title %}My Mess of a Budget App{% endblock %}</title>
+
+</head>
+
+<body>
+    <div id="content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div id="navtools">
+        {% block navtools %}
+        <ul class="nav">
+            <li><a href="{% url 'budgetdb:home' %}">Home</a></li>
+            <li><a href="#">Config </a>
+                <ul>
+                    <li><a href="{% url 'budgetdb:list_account' %}">Accounts</a>
+                        <ul id="accounts">
+                        </ul>
+                    </li>   
+                    <li><a href="">Account Hosts</a>
+                        <ul id="account_hosts">
+                        </ul>
+                    </li> 
+                    <li><a href="{% url 'budgetdb:list_cat' %}">Categories</a>
+                        <ul id="categories">
+                        </ul>
+                    </li>
+                    <li><a href="{% url 'budgetdb:list_vendor' %}">Vendors</a>
+                        <ul id="vendors">
+                        </ul>
+                    </li>   
+                    <li><a href="{% url 'budgetdb:list_be' %}">Recurring Events</a></a>
+                        <ul id="budgeted_events">
+                        </ul>
+                    </li>   
+                </ul>
+            </li>
+            <li><a href="#">Transactions</a>
+                <ul>
+                    <li><a href="{% url 'budgetdb:list_transaction' %}">All transaction</a></li>
+                    <li><a href="#">Transactions per account</a>
+                        <ul  id="account_list">
+                        </ul>
+                    </li>
+                    <li><a href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a></li>
+                </ul>
+            </li>
+            <li><a href="#">Charts</a>
+                <ul>
+                    <li><a href="">Budget Bar</a></li>
+                    <li><a href="">Budget Pie</a></li>
+                    <li><a href="{% url 'budgetdb:timeline_chart' %}">Timeline</a></li>
+                </ul>
+            </li>
+            <li id="li_range">
+                <input id="input_range" type="text" class="js-range-slider" name="my_range" value="" />
+            </li>
+            {% if user.is_authenticated %}
+            <li><a href="/admin"> {{ user.get_username }}</a>
+                <ul>
+                    <li><a href="">Preferences</a></li>
+                    <li><a href="">Logout</a></li>
+                </ul>
+            </li>
+            {% else %}
+            <li><a href="/admin">Please Login</a></li>
+            {% endif %}
+        </ul>    
+        {% endblock %}
+    </div>
+
+    <div id="script">
+  <!--Plugin CSS file with desired skin-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
+    
+  <!--jQuery-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  
+  <!--Plugin JavaScript file-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
+  
+
+  <script>
+
+    var my_app = angular.module('MyApp').config(function($httpProvider) {
+        $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    });
+
+    var begin_interval;
+    var end_interval;
+
+
+    var lang = "en-US";
+    var year = 2018;
+
+    function parseDateIS (date) {
+        var year = date.substr(0,4);
+        var month = date.substr(5,2);
+        month = month-1;
+        var day = date.substr(8,2);
+        return (dateToTS(new Date(year, month, day)))
+    }
+    
+    function dateToTS (date) {
+        return date.valueOf();
+    }
+    
+    function tsToDate (ts) {
+        var d = new Date(ts);
+    
+        return d.toLocaleDateString( {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+
+        function AddLi(baseURL, pk, label, attachTo) {
+            var newLi = document.createElement('li');
+            var newA = document.createElement('a');
+            baseURL=baseURL.replace(/12345/,pk.toString())
+            newA.setAttribute('href',baseURL);
+            newA.innerHTML = label;
+            newLi.append(newA)
+            document.getElementById(attachTo).append(newLi);
+        }
+
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:account_list_json" %}', function(result){
+              $.each(result, function(i, field){
+                AddLi('{% url "budgetdb:details_account" 12345 %}', field[0].pk, field[1].name, 'accounts')
+                AddLi('{% url "budgetdb:list_account_activity" 12345 %}', field[0].pk, field[1].name, 'account_list')
+              });
+              AddLi('{% url "budgetdb:create_account" %}', 0 , '* Create Account *', 'accounts')
+            });
+            AddLi('{% url "budgetdb:create_be" %}', 0 , '* Create Event *', 'budgeted_events')
+        });
+
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:cat1_list_json" %}', function(result){
+                $.each(result, function(i, field){
+                AddLi('{% url "budgetdb:details_cat1" 12345 %}', field[0].pk, field[1].name, 'categories')
+                });
+                AddLi('{% url "budgetdb:create_cat1" %}', 0 , '* Create Category *', 'categories')
+            });
+        });
+
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:vendor_list_json" %}', function(result){
+                $.each(result, function(i, field){
+                AddLi('{% url "budgetdb:details_vendor" 12345 %}', field[0].pk, field[1].name, 'vendors')
+                });
+                AddLi('{% url "budgetdb:create_vendor" %}', 0 , '* Create Vendor *', 'vendors')
+            });
+        });
+
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:account_host_list_json" %}', function(result){
+                $.each(result, function(i, field){
+                AddLi('{% url "budgetdb:details_account_host" 12345 %}', field[0].pk, field[1].name, 'account_hosts')
+                });
+                AddLi('{% url "budgetdb:create_account_host" %}', 0 , '* Create Host *', 'account_hosts')
+            });
+        });
+
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:preferences_json" %}', function(result){
+                min = parseDateIS(result.begin_data);
+                max = parseDateIS(result.end_data);
+                begin_interval = result.start_interval;
+                from = parseDateIS(begin_interval);
+                end_interval = result.end_interval;
+                to = parseDateIS(end_interval);
+                $(".js-range-slider").ionRangeSlider({
+                    type: "double",
+                    min: min,
+                    max: max,
+                    from: from,
+                    to: to,
+                    prettify: tsToDate,
+                    onFinish: function (data) {
+                        begin_interval = data.from_pretty
+                        end_interval = data.to_pretty
+                    }
+                })
+            });
+        });
+
+        </script>
+        {% block script %}{% endblock %}
+    </div>
+</body>
+</html>

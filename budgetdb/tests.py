@@ -94,6 +94,27 @@ class BudgetedEventTests(TestCase):
         dateCheck = date(dateCheck.year + interval, dateCheck.month + 1, dateCheck.day)
         self.assertIs(budgetedEvent.checkDate(dateCheck), False)
 
+    def test_BudgetedEvent_repeat_start_farther_than_last_day_of_month(self):
+        dateCheck = datetime.date(2021, 4, 30)
+        repeat_start = datetime.date(2021, 3, 31)
+        interval = 1
+        budgetedEvent = BudgetedEvent(repeat_start=repeat_start, repeat_interval_months=interval)
+        self.assertIs(budgetedEvent.checkDate(dateCheck), True)
+
+    def test_BudgetedEvent_repeat_start_farther_than_last_day_of_month_nm(self):
+        dateCheck = datetime.date(2021, 4, 29)
+        repeat_start = datetime.date(2021, 3, 31)
+        interval = 1
+        budgetedEvent = BudgetedEvent(repeat_start=repeat_start, repeat_interval_months=interval)
+        self.assertIs(budgetedEvent.checkDate(dateCheck), False)
+
+    def test_BudgetedEvent_repeat_start_farther_than_last_day_of_month_nm2(self):
+        dateCheck = datetime.date(2021, 5, 1)
+        repeat_start = datetime.date(2021, 3, 31)
+        interval = 1
+        budgetedEvent = BudgetedEvent(repeat_start=repeat_start, repeat_interval_months=interval)
+        self.assertIs(budgetedEvent.checkDate(dateCheck), False)
+
     def test_BudgetedEvent_matches_weekdaymask1(self):
         dateCheck = datetime.date(2019, 12, 23)  # Monday, mask = 1, dec 23 is a monday
         budgetedEvent = BudgetedEvent(repeat_start=datetime.date(2019, 1, 1), repeat_weekday_mask=1)

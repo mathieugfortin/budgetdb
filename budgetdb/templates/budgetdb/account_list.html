@@ -8,11 +8,24 @@
 {% block content %}
 
 {% if account_list %}
-    <ul>
+<table>
+    <tr>
+        <th>Account Name</th>
+        <th>Account Host</th>
+        <th>Account parent</th>
+    </tr>
     {% for account in account_list %}
-        <li><a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a></li>
+    <tr>
+        <td><a href="{% url 'budgetdb:update_account' account.id %}">{{ account.name }}</a></td>
+        <td><a href="{% url 'budgetdb:update_account_host' account.account_host.id %}">{{ account.account_host }}</a></td>
+        {% if account.account_parent == None %}
+            <td></td>
+        {% else %}
+            <td><a href="{% url 'budgetdb:update_account' account.account_parent.id %}">{{ account.account_parent }}</a></td>
+        {% endif %}        
+    </tr>
     {% endfor %}
-    </ul>
+</table>
 {% else %}
     <p>No accounts are available.</p>
 {% endif %}

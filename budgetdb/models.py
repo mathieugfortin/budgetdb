@@ -1,5 +1,5 @@
 # import datetime
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from django.db import models
@@ -7,17 +7,40 @@ from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 from django.urls import reverse
+from django.contrib.auth.models import User
+from django.conf import settings
+
+
+class Preference(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    start_interval = models.DateField(blank=True)
+    end_interval = models.DateField(blank=True)
 
 
 class AccountBalances(models.Model):
     db_date = models.DateField(blank=True)
     account = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
-    audit = models.DecimalField('audited amount', decimal_places=2, max_digits=10,
-                                blank=True, null=True)
-    delta = models.DecimalField('relative change for the day', decimal_places=2, max_digits=10,
-                                blank=True, null=True)
-    balance = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
-                                  blank=True, null=True)
+    audit = models.DecimalField(
+        'audited amount',
+        decimal_places=2,
+        max_digits=10,
+        blank=True,
+        null=True,
+        )
+    delta = models.DecimalField(
+        'relative change for the day',
+        decimal_places=2,
+        max_digits=10,
+        blank=True,
+        null=True,
+        )
+    balance = models.DecimalField(
+        'balance for the day',
+        decimal_places=2,
+        max_digits=10,
+        blank=True,
+        null=True,
+        )
 
     class Meta:
         managed = False
@@ -234,9 +257,10 @@ class Account(models.Model):
 
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    AccountHost = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
+    account_host = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
+    account_parent = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=200)
-    account_number = models.CharField(max_length=200)
+    account_number = models.CharField(max_length=200, blank=True)
 
     def __str__(self):
         return self.name
@@ -245,7 +269,7 @@ class Account(models.Model):
         return reverse('budgetdb:details_account', kwargs={'pk': self.pk})
 
     def balance_by_EOD(self, dateCheck):
-        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('date_actual')[:1]
+        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
 
         if closestAudit.count() == 0:
             balance = Decimal(0.00)
@@ -260,7 +284,7 @@ class Account(models.Model):
             amount = Decimal(0.00)
             if event.audit is True:
                 balance = event.amount_actual
-            else:
+            elif not (event.budget_only is True and event.date_actual <= date.today()):
                 if event.account_destination_id == self.id:
                     amount += event.amount_actual
                 if event.account_source_id == self.id:
@@ -279,7 +303,7 @@ class Account(models.Model):
                 balance = event.amount_actual
                 event.calc_amount = ""
                 event.viewname = f'{event._meta.app_label}:details_transaction_Audit'
-            else:
+            elif not (event.budget_only is True and event.date_actual <= date.today()):
                 if event.account_destination_id == self.id:
                     amount += event.amount_actual
                 if event.account_source_id == self.id:
@@ -314,7 +338,7 @@ class Account(models.Model):
         dailybalances = AccountBalances.objects.raw(sqlst)
 
         # add the balances
-        previous_day = datetime.strptime(start_date, "%Y-%m-%d").date() + relativedelta(days=-1)
+        previous_day = start_date + relativedelta(days=-1)
         balance = self.balance_by_EOD(previous_day)
         for day in dailybalances:
             if day.audit is not None:
@@ -323,6 +347,25 @@ class Account(models.Model):
                 if day.delta is not None:
                     balance += day.delta
             day.balance = balance
+
+        # get children account data
+        childaccounts = Account.objects.filter(account_parent_id=self.id)
+        childcount = childaccounts.count()
+        # is this all done with DB queries?  Can I do it all in memory?
+        if (childcount > 0):
+            childbalances = [] 
+            # get the balances for the subaccounts
+            for childaccount in childaccounts:
+                childbalance = childaccount.build_balance_array(start_date, end_date)
+                childbalances.append(childbalance)
+            index = 0
+            for day in dailybalances:
+                # If the parent account has an audit, do not add the child accounts.
+                # good for the audited day but next day probably won't be OK...
+                if day.audit is None:
+                    for i in range(childcount):
+                        day.balance += childbalances[i][index].balance
+                index += 1
 
         return dailybalances
 
@@ -382,14 +425,14 @@ class Transaction(models.Model):
     # will break if repetition pattern of BE changes... so BE can't change if it has attached Ts
     date_actual = models.DateField('date of the transaction')
     amount_actual = models.DecimalField(
-        'real transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
+        'transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
     )
     description = models.CharField('transaction description', max_length=200)
     comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
     cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True)
-    # should be null if it is linked to a budgeted event
+
     account_source = models.ForeignKey(
         Account, on_delete=models.CASCADE, related_name='t_account_source', blank=True, null=True
     )
@@ -398,8 +441,18 @@ class Transaction(models.Model):
     )
     statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
     verified = models.BooleanField('confirmed in a statement.  Prevents deletion in case of budgetedEvent change', default=False)
-    audit = models.BooleanField('Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id', default=False)
-    # how do I ensure the audit transaction is always last for a day?
+    audit = models.BooleanField(
+        'Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id',
+        default=False,
+        )
+    receipt = models.BooleanField(
+        'Checked with receipt',
+        default=False,
+        )
+    budget_only = models.BooleanField(
+        'counts as 0 after today, only exists to simulate future expenses',
+        default=False,
+        )
 
     def __str__(self):
         return self.description
@@ -487,6 +540,16 @@ class BudgetedEvent(models.Model):
 
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns
+
+        # https://stackoverflow.com/a/13565185
+        # get close to the end of the month for any day, and add 4 days 'over'
+        next_month = dateCheck.replace(day=28) + relativedelta(days=4)
+        # subtract the number of remaining 'overage' days to get last day of current month, or said programattically said, the previous day of the first of next month
+        last_day_month = next_month + relativedelta(days=-next_month.day)
+
+        # budget only should be in the future only
+        if self.budget_only is True and dateCheck < date.today():
+            return False
         # not before first event
         if dateCheck < self.repeat_start:
             return False
@@ -520,9 +583,19 @@ class BudgetedEvent(models.Model):
                 ((dateCheck.day != self.repeat_start.day) or (dateCheck.month != self.repeat_start.month)
                  or (dateCheck.year - self.repeat_start.year) % self.repeat_interval_years != 0):
             return False
-        # if month interval is used, check if the difference is a repeat of interval. Days must match
+        # if month interval is used, check if the difference is a repeat of interval. 
+        # Days must match OR must be last day of the month and planned day is after
+        # *************************************************************
         elif self.repeat_interval_months != 0 and \
-                ((dateCheck.day != self.repeat_start.day) or
+                (
+                    (
+                        dateCheck.day != self.repeat_start.day
+                        and
+                        (self.repeat_start.day < last_day_month.day
+                         or
+                         last_day_month != dateCheck)
+                    )
+                or
                  (dateCheck.month - self.repeat_start.month) % self.repeat_interval_months != 0):
             return False
         # if weeks interval is used, check if the difference is a repeat of interval. Weekday must match
@@ -571,7 +644,8 @@ class BudgetedEvent(models.Model):
                                                          account_source=self.account_source,
                                                          cat1=self.cat1,
                                                          cat2=self.cat2,
-                                                         vendor=self.vendor
+                                                         vendor=self.vendor,
+                                                         budget_only=self.budget_only
                                                          )
             new_transaction.save()
             # Needs a lot more work with these interval management  #######

@@ -6,6 +6,6 @@ from django.conf.urls.i18n import i18n_patterns
 
 urlpatterns = i18n_patterns(
     path('budgetdb/', include('budgetdb.urls')),
-    path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls, name='login'),
     path('__debug__/', include(debug_toolbar.urls)),
 )

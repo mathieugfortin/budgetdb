@@ -1,0 +1,14 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}Account Host - accounthost.name{% endblock %}
+
+{% block content %}
+
+<h1>{{ accounthost.name }}</h1>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:update_account_host' accounthost.id %}">Modify</a>
+</div>
+
+{% endblock %}

@@ -15,12 +15,12 @@
         <li>Amount Planned: {{ transaction.amount_actual }}</li>        
         <li>Source: 
             {% if transaction.account_source != None %} 
-                <a href="{% url 'budgetdb:details_account' transaction.account_source.id %}"> {{ transaction.account_source }} </a> 
+                <a href="{% url 'budgetdb:list_account_activity' transaction.account_source.id %}"> {{ transaction.account_source }} </a> 
             {% endif %}
         </li>
         <li>Destination: 
             {% if transaction.account_destination != None %} 
-                <a href="{% url 'budgetdb:details_account' transaction.account_destination.id %}"> {{ transaction.account_destination }} </a>
+                <a href="{% url 'budgetdb:list_account_activity' transaction.account_destination.id %}"> {{ transaction.account_destination }} </a>
                 {% endif %}
         </li>
         <li>Category: {{ transaction.cat1 }}</li>

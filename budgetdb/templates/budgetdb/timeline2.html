@@ -1,0 +1,72 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+{% block content %}
+    <h1>Account Categories</h1>
+    <div class="clearfix">
+        {% for account_category in accountcategories  %}
+<!--        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ begin }}&end={{ end }}&ac={{ account_category.id }}"> {{account_category.name}} </a>  -->
+            <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?ac={{ account_category.id }}"> {{account_category.name}} </a>
+        {% endfor %}
+<!--        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ begin }}&end={{ end }}"> All </a> -->
+            <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}"> All </a>
+    </div>
+<!--    <h3>Time Range</h3>
+    <div class="clearfix">
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin=2020-03-01&end=2021-03-15&ac={{ ac }}"> all </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin=2019-12-31&end=2020-12-31&ac={{ ac }}"> 2020 </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin=2020-12-31&end=2021-12-31&ac={{ ac }}"> 2021 </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ yearago }}&end={{ now }}&ac={{ ac }}"> past year </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ 3monthsago }}&end={{ now }}&ac={{ ac }}"> past 3 months </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ monthago }}&end={{ now }}&ac={{ ac }}"> past month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ now }}&end={{ inamonth }}&ac={{ ac }}"> next month </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ now }}&end={{ in3months }}&ac={{ ac }}"> next 3 months </a>
+        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ now }}&end={{ inayear }}&ac={{ ac }}"> next year </a>
+    </div>
+    <h1>{{ begin }} to {{ end }}</h1>-->
+
+    <canvas id="myChart" style="width: 75%;"></canvas>
+
+{% endblock %}
+
+{% block script %}
+
+<!--jQuery is loaded by base template-->
+    <script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+    <script type="text/javascript">
+        var myChart;
+        var ctx;
+
+
+//        $.get('{% url "budgetdb:timeline2_chart_json" %}?begin={{ begin }}&end={{ end }}&ac={{ ac }}', function(data) {  
+        $.get('{% url "budgetdb:timeline2_chart_json" %}?ac={{ ac }}', function(data) {
+            ctx = $("#myChart").get(0).getContext("2d");
+            myChart = new Chart(ctx, {
+                type: 'line', data: data
+            });
+        });
+
+        function onRangeUpdate(begin_interval, end_interval){
+            location.reload(); 
+        }
+
+        var timeline_chart = document.getElementById("myChart");
+        window.addEventListener('click', function(e){
+            if (timeline_chart.contains(e.target)){
+                var activePoints = myChart.getElementAtEvent(event);
+                if (activePoints.length > 0) {
+                    var clickedDatasetIndex = activePoints[0]._datasetIndex;
+                    var clickedElementindex = activePoints[0]._index;
+                    var label = myChart.data.datasets[clickedDatasetIndex].label;
+                    var value = myChart.data.datasets[clickedDatasetIndex].data[clickedElementindex];  
+                    var date = myChart.data.labels[clickedElementindex];
+                    var index = myChart.data.datasets[clickedDatasetIndex].index;  
+                    // alert("Clicked: " + label + " - " + value + " - " + date);
+                    newUrl = '{% url "budgetdb:list_account_activity" 12345 %}?begin=' + date
+                    newUrl=newUrl.replace(/12345/,index.toString())
+                    window.location.href = newUrl;
+                }
+            }
+        });
+    </script>
+{% endblock %}
