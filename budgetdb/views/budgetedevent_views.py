@@ -46,7 +46,7 @@ class BudgetedEventDetailView(DetailView):
         context['vendor_list'] = Vendor.objects.all()
         context['cat1_list'] = Cat1.objects.all()
         context['cat2_list'] = Cat2.objects.all()
-        begin_interval = datetime.today().date() + relativedelta(months=-12)
+        begin_interval = datetime.today().date() + relativedelta(months=-2)
         context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=25, begin_interval=begin_interval, interval_length_months=60)
         return context
 

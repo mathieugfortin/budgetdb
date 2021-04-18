@@ -1,5 +1,5 @@
 from django.urls import path
-from django.views.generic.base import RedirectView
+
 from . import views
 
 # from budgetdb.views import Cat1DetailView, TransactionDetailView,
@@ -9,14 +9,12 @@ app_name = 'budgetdb'
 
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
-    path('2', views.IndexView2.as_view(), name='home2'),
-    
-    path('favicon.ico', RedirectView.as_view(url='/static/budgetdb/favicon.png')),
+
+   
 
     path('preference/getJSON', views.PreferenceGetJSON, name='preferences_json'),
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON, name='setinterval_json'),
-
-
+    
     # Account
     path('account/ListJSON', views.GetAccountListJSON, name='account_list_json'),
     path('account/', views.AccountListView.as_view(),
@@ -88,7 +86,7 @@ urlpatterns = [
          name='create_cattype'),
     path('cattype/update/<int:pk>/', views.Cat2UpdateView.as_view(),
          name='update_cattype'),
-    
+
     # BudgetedEvent
     path('budgetedEvent/', views.budgetedEventsListView.as_view(),
          name='list_be'),
@@ -104,6 +102,8 @@ urlpatterns = [
          name='update_be'),
 
     # Transaction
+    path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
+         name='toggleverifytransaction_json'),
     path('<int:pk>/saveTransaction/', views.saveTransaction,
          name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),

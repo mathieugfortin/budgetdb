@@ -5,25 +5,10 @@
     <h1>Account Categories</h1>
     <div class="clearfix">
         {% for account_category in accountcategories  %}
-<!--        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ begin }}&end={{ end }}&ac={{ account_category.id }}"> {{account_category.name}} </a>  -->
             <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?ac={{ account_category.id }}"> {{account_category.name}} </a>
         {% endfor %}
-<!--        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ begin }}&end={{ end }}"> All </a> -->
             <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}"> All </a>
     </div>
-<!--    <h3>Time Range</h3>
-    <div class="clearfix">
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin=2020-03-01&end=2021-03-15&ac={{ ac }}"> all </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin=2019-12-31&end=2020-12-31&ac={{ ac }}"> 2020 </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin=2020-12-31&end=2021-12-31&ac={{ ac }}"> 2021 </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ yearago }}&end={{ now }}&ac={{ ac }}"> past year </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ 3monthsago }}&end={{ now }}&ac={{ ac }}"> past 3 months </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ monthago }}&end={{ now }}&ac={{ ac }}"> past month </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ now }}&end={{ inamonth }}&ac={{ ac }}"> next month </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ now }}&end={{ in3months }}&ac={{ ac }}"> next 3 months </a>
-        <a class="btn btn-info left" href="{% url 'budgetdb:timeline_chart' %}?begin={{ now }}&end={{ inayear }}&ac={{ ac }}"> next year </a>
-    </div>
-    <h1>{{ begin }} to {{ end }}</h1>-->
 
     <canvas id="myChart" style="width: 75%;"></canvas>
 
@@ -34,21 +19,109 @@
 <!--jQuery is loaded by base template-->
     <script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
     <script type="text/javascript">
+
+        const verticalLinePlugin = {
+        getLinePosition: function (chart, pointIndex) {
+            const meta = chart.getDatasetMeta(0); // first dataset is used to discover X coordinate of a point
+            const data = meta.data;
+            return data[pointIndex]._model.x;
+        },
+        renderVerticalLine: function (chartInstance, pointIndex) {
+            if (pointIndex != null) {
+                const lineLeftOffset = this.getLinePosition(chartInstance, pointIndex);
+                const scale = chartInstance.scales['y-axis-0'];
+                const context = chartInstance.chart.ctx;
+
+                // render vertical line
+                context.beginPath();
+                context.strokeStyle = '#ff0000';
+                context.moveTo(lineLeftOffset, scale.top);
+                context.lineTo(lineLeftOffset, scale.bottom);
+                context.stroke();
+
+                // write label
+                context.fillStyle = "#ff0000";
+                context.textAlign = 'center';
+                context.fillText('Today', lineLeftOffset, (scale.bottom - scale.top) / 2 + scale.top);
+            }
+        },
+
+        afterDatasetsDraw: function (chart, easing) {
+            if (chart.config.lineAtIndex) {
+                chart.config.lineAtIndex.forEach(pointIndex => this.renderVerticalLine(chart, pointIndex));
+            }
+        }
+        };
+
+        Chart.plugins.register(verticalLinePlugin);
+
+
         var myChart;
         var ctx;
 
-
-//        $.get('{% url "budgetdb:timeline2_chart_json" %}?begin={{ begin }}&end={{ end }}&ac={{ ac }}', function(data) {  
         $.get('{% url "budgetdb:timeline2_chart_json" %}?ac={{ ac }}', function(data) {
             ctx = $("#myChart").get(0).getContext("2d");
             myChart = new Chart(ctx, {
-                type: 'line', data: data
+                type: 'line', 
+                data: data,
+                lineAtIndex: [data.index_today],
+                options: {
+                    tooltips: {
+                        mode: 'label',
+                        callbacks: {
+                            afterTitle: function() {
+                                window.total = 0;
+                            },
+                            label: function(tooltipItem, data) {
+                                var corporation = data.datasets[tooltipItem.datasetIndex].label;
+                                if (corporation != "TOTAL" && corporation != "Total") {
+                                    var valor = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                                    window.total += +valor;
+                                    return corporation + ": " + valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")+"$";             
+                                }
+                            },
+                            footer: function() {
+                                var total = window.total.toFixed(2)
+                                return "TOTAL: " + total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")+"$";
+                            }
+                        }
+                    }
+                }
             });
+            //addTotal(myChart);
         });
 
+
+        function addTotal(chart) {
+            const data = chart.data;
+            
+            for (var i = 0; i < data.datasets.length; i++) {
+                if (data.datasets[i].label == 'Totalauto')
+                    data.datasets.splice(i,1)
+            }
+
+            var total = [];
+            for (var j = 0; j < data.labels.length; j++ ) {
+                total.push(0)
+                for (var i = 0; i < data.datasets.length; i++)
+                    if (!(data.datasets[i]._meta.hidden == true))
+                        total[j] += +data.datasets[i].data[j];
+            }
+
+
+            const newDataset = {
+                label: 'Totalauto',
+                backgroundColor: 'rgba(0,0,0, 0.5)',
+                borderColor: 'rgba(0,0,0, 1)',
+                data: total,
+            };
+            chart.data.datasets.push(newDataset);
+            chart.update();
+        };
+
         function onRangeUpdate(begin_interval, end_interval){
-            location.reload(); 
-        }
+            
+        };
 
         var timeline_chart = document.getElementById("myChart");
         window.addEventListener('click', function(e){
@@ -66,6 +139,7 @@
                     newUrl=newUrl.replace(/12345/,index.toString())
                     window.location.href = newUrl;
                 }
+               // else addTotal(myChart)
             }
         });
     </script>

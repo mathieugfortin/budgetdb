@@ -37,3 +37,9 @@ https://jsfiddle.net/u1szh96g/208/
 
 jquery versions hash
 https://code.jquery.com/jquery/
+
+bootstrap ref
+https://getbootstrap.com/docs/4.1
+
+vertical line in line chart
+https://stackoverflow.com/questions/30256695/chart-js-drawing-an-arbitrary-vertical-line

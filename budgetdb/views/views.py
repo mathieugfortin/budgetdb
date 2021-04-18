@@ -42,7 +42,6 @@ def next_color(color_list=COLORS):
 
 
 def PreferenceSetIntervalJSON(request):
-    # Notice I didn't directly try to access request.GET["check_this"]
     start_interval = request.POST.get("begin_interval", None)
     end_interval = request.POST.get("end_interval", None)
     preference = Preference.objects.get(pk=request.user.id)
@@ -51,6 +50,15 @@ def PreferenceSetIntervalJSON(request):
     if end_interval:
         preference.end_interval = datetime.strptime(end_interval, "%Y-%m-%d")
     preference.save()
+    return HttpResponse(status=200)
+
+
+def TransactionVerifyToggleJSON(request):
+    transaction_ID = request.POST.get("transaction_id", None)
+    if transaction_ID:
+        transaction = Transaction.objects.get(pk=transaction_ID)
+        transaction.verified = not(transaction.verified)
+    transaction.save()
     return HttpResponse(status=200)
 
 
@@ -239,7 +247,6 @@ def GetCat2TotalPieChartData(request):
 
 
 def timeline2JSON(request):
-
     accountcategoryID = request.GET.get('ac', None)
 
     if accountcategoryID is None or accountcategoryID == 'None':
@@ -256,15 +263,26 @@ def timeline2JSON(request):
     datasets = []  # lines
     labels = []  # Dates
 
-    for day in MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date'):
+    dates = MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date')
+    index_today = None
+    i = 0
+    for day in dates:
         labels.append(f'{day}')
+        if day.db_date == date.today():
+            index_today = i
+        i += 1
 
+    nb_days = len(labels)
+    linetotaldata = [Decimal(0.00)] * nb_days
     for account in accounts:
         color = next(colors)
         balances = account.build_balance_array(begin, end)
         linedata = []
+        i = 0
         for day in balances:
+            linetotaldata[i] += day.balance
             linedata.append(day.balance)
+            i += 1
         linedict = {
             "backgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
             "borderColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
@@ -274,12 +292,27 @@ def timeline2JSON(request):
             'label': account.name,
             'name': account.name,
             'index': account.id,
+            'cubicInterpolationMode': 'monotone',
         }
         datasets.append(linedict)
 
+    linedict = {
+        "backgroundColor": f"rgba(0,0,0, 0.5)",
+        "borderColor": f"rgba(0,0,0, 1)",
+        "pointBackgroundColor": f"rgba(0,0,0, 1)",
+        "pointBorderColor": "#fff",
+        'data': linetotaldata,
+        'label': 'TOTAL',
+        'name': 'TOTAL',
+        'index': None,
+        'cubicInterpolationMode': 'monotone',
+    }
+    # datasets.append(linedict)
+
     data = {
         'datasets': datasets,
-        'labels': labels
+        'labels': labels,
+        'index_today': index_today
     }
 
     return JsonResponse(data, safe=False)
@@ -374,105 +407,6 @@ class timeline2(TemplateView):
         # context['inayear'] = mydate.strftime("%Y-%m-%d")
 
         context['ac'] = accountcategoryID
-        return context
-
-
-class timeline(TemplateView):
-    # ********************DEPRECATED******************************
-    template_name = 'budgetdb/timeline.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # beginstr = self.request.GET.get('begin', None)
-        # endstr = self.request.GET.get('end', None)
-        accountcategoryID = self.request.GET.get('ac', None)
-
-        if accountcategoryID is not None and accountcategoryID != 'None':
-            accountcategory = AccountCategory.objects.get(id=accountcategoryID)
-            context['accountcategory'] = accountcategory
-
-        accountcategories = AccountCategory.objects.all()
-        context['accountcategories'] = accountcategories
-
-        # preference = Preference.objects.get(pk=self.request.user.id)
-        # if endstr is None or endstr == 'None':
-        #     end = preference.end_interval
-        # else:
-        #     end = datetime.strptime(endstr, "%Y-%m-%d")
-
-        # if beginstr is None or beginstr == 'None':
-        #     begin = preference.start_interval
-        # else:
-        #     begin = datetime.strptime(beginstr, "%Y-%m-%d")
-
-        # context['begin'] = begin.strftime("%Y-%m-%d")
-        # context['end'] = end.strftime("%Y-%m-%d")
-        # mydate = date.today()
-        # context['now'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-1)
-        # context['monthago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-3)
-        # context['3monthsago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-12)
-        # context['yearago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=1)
-        # context['inamonth'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=3)
-        # context['in3months'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=12)
-        # context['inayear'] = mydate.strftime("%Y-%m-%d")
-
-        context['ac'] = accountcategoryID
-        return context
-
-
-class timelineJSON(BaseLineChartView):
-    # ********************DEPRECATED******************************
-    x_labels = []
-    data = []
-    line_labels = []
-
-    def get_labels(self):
-        return self.x_labels
-
-    def get_providers(self):
-        return self.line_labels
-
-    def get_data(self):
-        return self.data
-
-    def get_context_data(self, **kwargs):
-        # begin = self.request.GET.get('begin', None)
-        # end = self.request.GET.get('end', None)
-        accountcategoryID = self.request.GET.get('ac', None)
-
-        if accountcategoryID is None or accountcategoryID == 'None':
-            accounts = Account.objects.all().order_by('name')
-        else:
-            accounts = Account.objects.filter(account_categories=accountcategoryID).order_by('name')
-
-        preference = Preference.objects.get(pk=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
-
-        self.line_labels = []  # Account names
-        self.x_labels = []  # Dates
-        self.data = [[] for i in range(accounts.count())]  # balances data points
-
-        for day in MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date'):
-            self.x_labels.append(f'{day}')
-
-        account_counter = 0
-        for account in accounts:
-            self.line_labels.append(account.name)
-            balances = account.build_balance_array(begin, end)
-            for day in balances:
-                self.data[account_counter].append(day.balance)
-
-            account_counter += 1
-
-        context = super().get_context_data(**kwargs)
         return context
 
 
@@ -662,21 +596,6 @@ class IndexView(ListView):
     def get_queryset(self):
         return Cat1.objects.order_by('name')
 
-class IndexView2(ListView):
-    template_name = 'budgetdb/index2.html'
-    context_object_name = 'categories_list'
-
-    def get_queryset(self):
-        return Cat1.objects.order_by('name')
-
-
-class IndexView2(ListView):
-    template_name = 'budgetdb/baseangular.html'
-    context_object_name = 'categories_list'
-
-    def get_queryset(self):
-        return Cat1.objects.order_by('name')
-
 
 class Cat1ListView(ListView):
     model = Cat1
@@ -699,7 +618,19 @@ class AccountListView(ListView):
     context_object_name = 'account_list'
 
     def get_queryset(self):
-        return Account.objects.all().order_by('name')
+        accounts = Account.objects.all().order_by('name')
+        for account in accounts:
+            balance = account.balance_by_EOD(datetime.today())
+            categories = account.account_categories.all()
+            account.account_cat = ''
+            i = 0
+            for category in categories:
+                if i:
+                    account.account_cat += f', '
+                account.account_cat += category.name
+                i += 1
+            account.balance = balance
+        return accounts
 
 
 class AccountHostListView(ListView):

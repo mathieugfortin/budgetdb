@@ -7,7 +7,6 @@ from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 from django.urls import reverse
-from django.contrib.auth.models import User
 from django.conf import settings
 
 
@@ -291,6 +290,10 @@ class Account(models.Model):
                     amount -= event.amount_actual
                 balance = balance + amount
 
+        accounts_child = Account.objects.filter(account_parent=self)
+        for child in accounts_child:
+            balance += child.balance_by_EOD(dateCheck)
+
         return balance
 
     def build_report_with_balance(self, start_date, end_date):
@@ -334,26 +337,13 @@ class Account(models.Model):
                 f"GROUP BY c.db_date " \
                 f"ORDER BY c.db_date "
 
-        # fetch audits and deltas
-        dailybalances = AccountBalances.objects.raw(sqlst)
-
-        # add the balances
-        previous_day = start_date + relativedelta(days=-1)
-        balance = self.balance_by_EOD(previous_day)
-        for day in dailybalances:
-            if day.audit is not None:
-                balance = day.audit
-            else:
-                if day.delta is not None:
-                    balance += day.delta
-            day.balance = balance
-
         # get children account data
         childaccounts = Account.objects.filter(account_parent_id=self.id)
         childcount = childaccounts.count()
         # is this all done with DB queries?  Can I do it all in memory?
-        if (childcount > 0):
-            childbalances = [] 
+        if (childcount > 0):  # If children, account is virtual, only check childrens
+            dailybalances = MyCalendar.objects.filter(db_date__gt=start_date, db_date__lte=end_date)
+            childbalances = []
             # get the balances for the subaccounts
             for childaccount in childaccounts:
                 childbalance = childaccount.build_balance_array(start_date, end_date)
@@ -362,10 +352,24 @@ class Account(models.Model):
             for day in dailybalances:
                 # If the parent account has an audit, do not add the child accounts.
                 # good for the audited day but next day probably won't be OK...
-                if day.audit is None:
-                    for i in range(childcount):
-                        day.balance += childbalances[i][index].balance
+                day.balance = Decimal(0.00)
+                for i in range(childcount):
+                    day.balance += childbalances[i][index].balance
                 index += 1
+        else:  # no children, calculate account
+            # fetch audits and deltas
+            dailybalances = AccountBalances.objects.raw(sqlst)
+
+            # add the balances
+            previous_day = start_date + relativedelta(days=-1)
+            balance = self.balance_by_EOD(previous_day)
+            for day in dailybalances:
+                if day.audit is not None:
+                    balance = day.audit
+                else:
+                    if day.delta is not None:
+                        balance += day.delta
+                day.balance = balance
 
         return dailybalances
 
@@ -544,7 +548,8 @@ class BudgetedEvent(models.Model):
         # https://stackoverflow.com/a/13565185
         # get close to the end of the month for any day, and add 4 days 'over'
         next_month = dateCheck.replace(day=28) + relativedelta(days=4)
-        # subtract the number of remaining 'overage' days to get last day of current month, or said programattically said, the previous day of the first of next month
+        # subtract the number of remaining 'overage' days to get last day of current month,
+        # or said programattically said, the previous day of the first of next month
         last_day_month = next_month + relativedelta(days=-next_month.day)
 
         # budget only should be in the future only
@@ -583,7 +588,7 @@ class BudgetedEvent(models.Model):
                 ((dateCheck.day != self.repeat_start.day) or (dateCheck.month != self.repeat_start.month)
                  or (dateCheck.year - self.repeat_start.year) % self.repeat_interval_years != 0):
             return False
-        # if month interval is used, check if the difference is a repeat of interval. 
+        # if month interval is used, check if the difference is a repeat of interval.
         # Days must match OR must be last day of the month and planned day is after
         # *************************************************************
         elif self.repeat_interval_months != 0 and \

@@ -48,8 +48,8 @@ class Calendar(HTMLCalendar):
 
             if event.audit == 1:
                 d += f'<tr class="AUDIT">'
-            elif event.budgetedevent_id != None and event.verified == 0:
-                d += f'<tr class="BUDGET">' 
+            elif event.budgetedevent_id is not None and event.verified == 0:
+                d += f'<tr class="BUDGET">'
             elif event.verified == 0:
                 d += f'<tr class="UNVERIFIED">'
             else:
