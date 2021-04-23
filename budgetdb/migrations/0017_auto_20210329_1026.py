@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Cat1Sums',
+            name='CatSums',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('total', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, verbose_name='balance for the day')),

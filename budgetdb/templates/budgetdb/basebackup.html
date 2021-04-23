@@ -187,7 +187,7 @@
         $(document).ready(function(){
             $.getJSON('{% url "budgetdb:cattype_list_json" %}', function(result){
                 $.each(result, function(i, field){
-                AddLi('{% url "budgetdb:cat1_pie" 12345 %}', field[0].pk, field[1].name, 'cattypePie')
+                AddLi('{% url "budgetdb:cattype_pie" 12345 %}', field[0].pk, field[1].name, 'cattypePie')
                 AddLi('#', field[0].pk, field[1].name, 'cattypeBar')
                 });
             });

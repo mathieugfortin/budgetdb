@@ -10,11 +10,9 @@ app_name = 'budgetdb'
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
 
-   
-
     path('preference/getJSON', views.PreferenceGetJSON, name='preferences_json'),
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON, name='setinterval_json'),
-    
+
     # Account
     path('account/ListJSON', views.GetAccountListJSON, name='account_list_json'),
     path('account/', views.AccountListView.as_view(),
@@ -45,13 +43,13 @@ urlpatterns = [
     path('accountHost/', views.AccountHostListView.as_view(),
          name='list_account_host'),
 
-
     # chart JS
     path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
     path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),
 
     # Cat1
     path('cat1/PieChartJSON', views.GetCat1TotalPieChartData, name='cat1_piechart_json'),
+    path('cat1/BarChartJSON', views.GetCat1TotalBarChartData, name='cat1_barchart_json'),
     path('cat1/ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
     path('cat1/', views.Cat1ListView.as_view(),
          name='list_cat'),
@@ -66,6 +64,7 @@ urlpatterns = [
 
     # Cat2
     path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
+    path('cat2/BarChartJSON', views.GetCat2TotalBarChartData, name='cat2_barchart_json'),
     path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
          name='details_cat2'),
     path('cat2/add/<int:cat1_id>', views.Cat2Create.as_view(),
@@ -79,7 +78,9 @@ urlpatterns = [
 
     # CatType   *****details, create and update NOT IMPLEMENTED*****
     path('cattype/ListJSON', views.GetCatTypeListJSON, name='cattype_list_json'),
-    path('cattype/pie-chart/<int:cat_type_pk>', views.CatTotalChart.as_view(), name='cat1_pie'),
+    path('cattype/pie-chart/<int:cat_type_pk>', views.CatTotalPieChart.as_view(), name='cattype_pie'),
+    path('cattype/bar-chart/<int:cat_type_pk>', views.CatTotalBarChart.as_view(), name='cattype_bar'),
+
     path('cattype/<int:pk>/', views.Cat2DetailView.as_view(),
          name='details_cattype'),
     path('cattype/add/', views.Cat2Create.as_view(),

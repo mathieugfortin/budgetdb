@@ -1,0 +1,83 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+{% block title %}Totals by categories{% endblock %}
+
+{% block content %}
+
+
+  <div id="bar-container">
+    <canvas id="bar-chart"></canvas>
+  </div>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+
+<script type="text/javascript">
+
+    var bar_canvas = document.getElementById("bar-chart");
+    var ctx = bar_canvas.getContext("2d");
+    var myChart;
+    var bar_container = document.getElementById("bar-container");
+
+    bar_container.style.width = "800px";
+    bar_container.style.height = "800px";
+
+    $.get('{% url "budgetdb:cat1_barchart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}', function(config) {
+        myChart = new Chart(ctx, config);
+    });
+
+    function add_subcontainer(cat1_index) {
+        var newDiv = document.createElement('div');
+        newDiv.style.position = "absolute";
+        newDiv.style.left = "30%";
+        newDiv.style.top = "25%";
+        newDiv.style.height = "50%";
+        newDiv.style.width = "50%";
+        newDiv.id= "subcontainer";
+        var newCanvas = document.createElement('canvas');
+        newCanvas.id="new-bar-chart";
+        newDiv.append(newCanvas);
+        document.body.append(newDiv);
+        var newCtx = newCanvas.getContext("2d");
+        $.get('{% url "budgetdb:cat2_barchart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}&cat1=' + cat1_index, function(subConfig) {
+            myNewChart = new Chart(newCtx, subConfig);
+        });
+    }
+
+
+    window.addEventListener('click', function(e){
+        if (bar_canvas.contains(e.target)){
+            if (!document.getElementById("new-bar-chart")) {
+                var activePoints = myChart.hart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+                if (activePoints.length > 0) {
+                    datasetindex = activePoints[0]._datasetIndex;
+                    cat1_index = myConfig.data.datasets[datasetindex].index;
+                    add_subcontainer(cat1_index);
+                }
+            } else {
+                document.getElementById('subcontainer').remove()
+                var activePoints = myChart.getElementsAtEvent(event);
+                if (activePoints.length > 0) {
+                    datasetindex = activePoints[0]._datasetIndex;
+                    cat1_index = myConfig.data.datasets[datasetindex].index;
+                    add_subcontainer(cat1_index);
+                }
+            }
+        } else if (!document.getElementById('new-bar-chart').contains(e.target)){
+            document.getElementById('subcontainer').remove();
+        }
+        if (document.getElementById("new-bar-chart")) {
+            bar_container.style.width = "400px";
+            bar_container.style.height = "400px";
+        } else {
+            bar_container.style.width = "800px";
+            bar_container.style.height = "800px";
+
+        }
+    });
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,7 @@
+Create account hosts.  Financial institutions
+ceate account categories.  Used for the timelines.   Savings, expenses, cashflow, 
+Create accounts, link them to the hosts
+
+Create Category type.  Used for charts.  Expenses, Revenue
+create categories.  House, transportation, job
+create subcategories and link to categories and category types.  Electrical Bill, taxi, pay
