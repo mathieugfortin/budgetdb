@@ -1,6 +1,6 @@
-from django.http import HttpResponse, HttpResponseRedirect
 from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
 from django.forms import ModelForm
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.urls import reverse, reverse_lazy
@@ -8,15 +8,14 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, Cat1Sums, CatType, AccountHost, Preference
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, CatSums, CatType, AccountHost, Preference
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
-from chartjs.views.lines import BaseLineChartView
-from chartjs.views.pie import HighChartDonutView, HighChartPieView
+# from chartjs.views.lines import BaseLineChartView
+# from chartjs.views.pie import HighChartDonutView, HighChartPieView
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
-from django.http import JsonResponse
 
 # colors stolen from django chart js library
 COLORS = [
@@ -153,19 +152,24 @@ def GetCat1TotalPieChartData(request):
     end = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
     cattype = CatType.objects.get(pk=cat_type_pk)
+    colors = next_color()
+    color_list = []
 
     labels = []  # categories
     data = []  # totals
     indexes = []  # cat1_ids
 
+    cat1sums = CatSums()
     # dailybalances = AccountBalances.objects.raw(sqlst)
-    cat_totals = Cat1Sums.build_cat1_totals_array(begin, end)
+    cat_totals = cat1sums.build_cat1_totals_array(begin, end)
 
     for cat in cat_totals:
         if cat.cattype_id == cattype.id:
             labels.append(cat.cat1.name)
             data.append(cat.total)
             indexes.append(cat.cat1_id)
+            color = next(colors)
+            color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
 
     data = {
         'type': 'doughnut',
@@ -174,20 +178,7 @@ def GetCat1TotalPieChartData(request):
             'datasets': [{
                     'data': data,
                     'indexes': indexes,
-                    'backgroundColor': [
-                        'orangered',
-                        'green',
-                        'blue',
-                        'orange',
-                        'teal',
-                        'salmon',
-                        'mediumpurple',
-                        'olive',
-                        'darkturquoise',
-                        'magenta',
-                        'grey',
-                        'mediumvioletred',
-                        ],
+                    'backgroundColor': color_list,
                     'label': cattype.name
             }],
             'labels': labels
@@ -205,17 +196,21 @@ def GetCat2TotalPieChartData(request):
     cattype = CatType.objects.get(pk=cat_type_pk)
     cat1_pk = request.GET.get('cat1', None)
     cat1 = Cat1.objects.get(pk=cat1_pk)
-
+    colors = next_color()
+    color_list = []
     labels = []  # categories
     data = []  # totals
 
     # dailybalances = AccountBalances.objects.raw(sqlst)
-    cat_totals = Cat1Sums.build_cat2_totals_array(begin, end)
+    cat2sums = CatSums()
+    cat_totals = cat2sums.build_cat2_totals_array(begin, end)
 
     for cat in cat_totals:
         if cat.cattype_id == cattype.id and cat.cat1 == cat1:
             labels.append(cat.cat2.name)
             data.append(cat.total)
+            color = next(colors)
+            color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
 
     data = {
         'type': 'doughnut',
@@ -223,20 +218,7 @@ def GetCat2TotalPieChartData(request):
         'data': {
             'datasets': [{
                     'data': data,
-                    'backgroundColor': [
-                        'orangered',
-                        'green',
-                        'blue',
-                        'orange',
-                        'teal',
-                        'salmon',
-                        'mediumpurple',
-                        'olive',
-                        'darkturquoise',
-                        'magenta',
-                        'grey',
-                        'mediumvioletred',
-                        ],
+                    'backgroundColor': color_list,
                     'label': f'{cattype.name} - {cat1.name}'
             }],
             'labels': labels
@@ -244,6 +226,132 @@ def GetCat2TotalPieChartData(request):
     }
 
     return JsonResponse(data, safe=False)
+
+
+def GetCat1TotalBarChartData(request):
+    beginstr = request.GET.get('begin', None)
+    endstr = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cattype = CatType.objects.get(pk=cat_type_pk)
+    cats = Cat1.objects.filter()
+
+    if endstr is not None and endstr != 'None':
+        end = datetime.strptime(endstr, "%Y-%m-%d").date()
+
+    if beginstr is not None and beginstr != 'None':
+        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+
+    labels = []  # months
+    datasets = []  
+    colors = next_color()
+    indexdict = {}
+
+    i = date(begin.year, begin.month, 1)
+    nbmonths = 0
+    while i <= end:
+        labels.append(i.strftime("%B"))
+        indexdict[f'{i.strftime("%Y-%m")}'] = nbmonths
+        i = i + relativedelta(months=1)
+        nbmonths += 1
+
+    for cat in cats:
+        data = [None] * nbmonths
+        cat1sums = CatSums()
+        cat_totals = cat1sums.build_monthly_cat1_totals_array(beginstr, endstr, cat.id)
+        color = next(colors)
+        empty = True
+        for total in cat_totals:
+            if total.cattype_id == cattype.id:
+                empty = False
+                index = indexdict[f'{total.year}-{total.month:02d}']
+                data[index] = total.total
+        if empty is False:
+            dataset = {
+                'label': cat.name,
+                'data': data,
+                'index': cat.id,
+                'borderColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+                'backgroundColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
+            }
+            datasets.append(dataset)
+
+    bardata = {
+        'type': 'bar',
+        'data': {
+            'labels': labels,
+            'datasets': datasets
+        }
+    }
+    return JsonResponse(bardata, safe=False)
+
+
+def GetCat2TotalBarChartData(request):
+    beginstr = request.GET.get('begin', None)
+    endstr = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cattype = CatType.objects.get(pk=cat_type_pk)
+    cat1_pk = request.GET.get('cat1', None)
+    cat1 = Cat1.objects.get(pk=cat1_pk)
+
+    cats = Cat2.objects.filter(cat1=cat1)
+
+    if endstr is not None and endstr != 'None':
+        end = datetime.strptime(endstr, "%Y-%m-%d").date()
+
+    if beginstr is not None and beginstr != 'None':
+        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+
+    labels = []  # months
+    datasets = []  
+    colors = next_color()
+    indexdict = {}
+
+    i = date(begin.year, begin.month, 1)
+    nbmonths = 0
+    while i <= end:
+        labels.append(i.strftime("%B"))
+        indexdict[f'{i.strftime("%Y-%m")}'] = nbmonths
+        i = i + relativedelta(months=1)
+        nbmonths += 1
+
+    for cat in cats:
+        data = [None] * nbmonths
+        cat2sums = CatSums()
+        cat_totals = cat2sums.build_monthly_cat2_totals_array(beginstr, endstr, cat.id)
+        color = next(colors)
+        empty = True
+        for total in cat_totals:
+            if total.cattype_id == cattype.id:
+                empty = False
+                index = indexdict[f'{total.year}-{total.month:02d}']
+                data[index] = total.total
+        if empty is False:
+            dataset = {
+                'label': cat.name,
+                'data': data,
+                'borderColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+                'backgroundColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
+            }
+            datasets.append(dataset)
+
+    bardata = {
+        'type': 'bar',
+        'data': {
+            'labels': labels,
+            'datasets': datasets
+        },
+        'options': {
+            'scales': {
+                'yAxes': [{
+                    'ticks': {
+                        'beginAtZero': True
+                    }
+                }]
+            }
+        }
+    }
+
+    return JsonResponse(bardata, safe=False)
 
 
 def timeline2JSON(request):
@@ -318,8 +426,8 @@ def timeline2JSON(request):
     return JsonResponse(data, safe=False)
 
 
-class CatTotalChart(TemplateView):
-    template_name = 'budgetdb/pie_chart2.html'
+class CatTotalPieChart(TemplateView):
+    template_name = 'budgetdb/cattype_pie_chart.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -342,20 +450,34 @@ class CatTotalChart(TemplateView):
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
-        mydate = date.today()
-        context['now'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-1)
-        context['monthago'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-3)
-        context['3monthsago'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=-12)
-        context['yearago'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=1)
-        context['inamonth'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=3)
-        context['in3months'] = mydate.strftime("%Y-%m-%d")
-        mydate = date.today() + relativedelta(months=12)
-        context['inayear'] = mydate.strftime("%Y-%m-%d")
+
+        context['cattype'] = cattype.id
+        return context
+
+
+class CatTotalBarChart(TemplateView):
+    template_name = 'budgetdb/cattype_bar_chart.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cat_type_pk = self.kwargs['cat_type_pk']
+        cattype = CatType.objects.get(pk=cat_type_pk)
+        begin = self.request.GET.get('begin', None)
+        end = self.request.GET.get('end', None)
+        preference = Preference.objects.get(pk=self.request.user.id)
+
+        if end is None or end == 'None':
+            end = preference.end_interval
+        else:
+            end = datetime.strptime(end, "%Y-%m-%d")
+
+        if begin is None or begin == 'None':
+            begin = preference.start_interval
+        else:
+            begin = datetime.strptime(begin, "%Y-%m-%d")
+
+        context['begin'] = begin.strftime("%Y-%m-%d")
+        context['end'] = end.strftime("%Y-%m-%d")
 
         context['cattype'] = cattype.id
         return context

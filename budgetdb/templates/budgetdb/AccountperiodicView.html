@@ -88,7 +88,7 @@ tr.VERIFIED button.verify::before {
         <th id=c10>Audit</th>
     </tr>
 
-    {% for event in object_list  %}
+    {% for event in object_list reversed %}
     <tr {% if event.audit == 1 %} class="AUDIT" 
         {% elif event.budgetedevent_id != None and event.verified == 0 %} class="BUDGET" 
         {% elif event.budgetedevent_id != None and event.verified == 1 %} class="VERIFIEDBUDGET" 
@@ -113,12 +113,18 @@ tr.VERIFIED button.verify::before {
             </button> 
             {% endif %} 
         </td>
-        <td money>{{ event.balance }}</td>
+        <td money>
+            {% if event.audit == 0 %}
+            {{ event.balance }}
+            {% endif %} 
+        </td>
         <td>{% if event.audit == 0 %}
-            <button type="button" class="btn btn-default btn-lg audit" onclick="audit(event.date_actual, event.balance)">
-             
+            <button type="button" class="btn btn-default btn-lg audit" onclick="audit(event.date_actual, event.balance)">             
             </button>
-            {% endif %} </td>
+            {% else %} 
+            {{ event.balance }}
+            {% endif %} 
+        </td>
     </tr>
     {% endfor %}
 </table> 

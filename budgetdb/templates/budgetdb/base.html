@@ -60,14 +60,25 @@
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Transactions per categories
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="categories_menu">
+                    </div>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Account
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="account_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:list_account' %}">summary</a>
                     </div>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link disabled" href="#">Bar Chart</a>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Bar Chart
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="bar_chart_menu">
+                    </div>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -93,7 +104,7 @@
                 <ul class="nav navbar-nav navbar-right">
                     {% if user.is_authenticated %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         {{ user.get_username }}
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" >
@@ -170,7 +181,8 @@
     $(document).ready(function(){
         $.getJSON('{% url "budgetdb:cattype_list_json" %}', function(result){
             $.each(result, function(i, field){
-                addA('{% url "budgetdb:cat1_pie" 12345 %}', field[0].pk, field[1].name, 'pie_chart_menu');
+                addA('{% url "budgetdb:cattype_pie" 12345 %}', field[0].pk, field[1].name, 'pie_chart_menu');
+                addA('{% url "budgetdb:cattype_bar" 12345 %}', field[0].pk, field[1].name, 'bar_chart_menu');
             });
         });
     });
