@@ -15,8 +15,10 @@ urlpatterns = [
 
     # Account
     path('account/ListJSON', views.GetAccountListJSON, name='account_list_json'),
-    path('account/', views.AccountListView.as_view(),
-         name='list_account'),
+    path('account/', views.AccountListViewSimple.as_view(),
+         name='list_account_simple'),
+    path('account/details', views.AccountSummaryView.as_view(),
+         name='list_account_summary'),
     path('account/<int:pk>/', views.AccountDetailView.as_view(),
          name='details_account'),
     path('account/add/', views.AccountCreateView.as_view(),
@@ -31,6 +33,10 @@ urlpatterns = [
 
     # AccountCategory
     path('accountcat/ListJSON', views.GetAccountCatListJSON, name='accountcat_list_json'),
+    path('accountcat/update/<int:pk>/', views.AccountCatUpdateView.as_view(),
+         name='update_accountcat'),
+    path('accountcat/', views.AccountCatListView.as_view(),
+         name='list_accountcat'),
 
     # Account_Host
     path('accountHost/ListJSON', views.GetAccountHostListJSON, name='account_host_list_json'),

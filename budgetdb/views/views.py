@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, CatSums, CatType, AccountHost, Preference
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, CatSums, CatType, AccountHost, Preference, AccountPresentation
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
@@ -674,6 +674,24 @@ class AccountUpdateView(UpdateView):
         return form
 
 
+class AccountCatUpdateView(UpdateView):
+    model = AccountCategory
+    fields = (
+        'name',
+        'accounts',
+        )
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
 class AccountHostUpdateView(UpdateView):
     model = AccountHost
     fields = (
@@ -735,14 +753,38 @@ class Cat2ListView(ListView):
         return Cat2.objects.order_by('name')
 
 
-class AccountListView(ListView):
+class AccountSummaryView(ListView):
     model = Account
     context_object_name = 'account_list'
+    template_name = 'budgetdb/account_list_detailed.html'
+
+    def get_queryset(self):
+        accountps = AccountPresentation.objects.all()
+
+        # accounts = Account.objects.filter(account_parent=None).order_by('name')
+        for accountp in accountps:
+            account = Account.objects.get(id=accountp.id)
+            balance = account.balance_by_EOD(datetime.today())
+            categories = account.account_categories.all()
+            accountp.account_cat = ''
+            i = 0
+            for category in categories:
+                if i:
+                    accountp.account_cat += f', '
+                accountp.account_cat += category.name
+                i += 1
+            accountp.balance = balance
+        return accountps
+
+
+class AccountListViewSimple(ListView):
+    model = Account
+    context_object_name = 'account_list'
+    template_name = 'budgetdb/account_list_simple.html'
 
     def get_queryset(self):
         accounts = Account.objects.all().order_by('name')
         for account in accounts:
-            balance = account.balance_by_EOD(datetime.today())
             categories = account.account_categories.all()
             account.account_cat = ''
             i = 0
@@ -751,7 +793,6 @@ class AccountListView(ListView):
                     account.account_cat += f', '
                 account.account_cat += category.name
                 i += 1
-            account.balance = balance
         return accounts
 
 
@@ -769,6 +810,14 @@ class VendorListView(ListView):
 
     def get_queryset(self):
         return Vendor.objects.order_by('name')
+
+
+class AccountCatListView(ListView):
+    model = AccountCategory
+    context_object_name = 'accountcat_list'
+
+    def get_queryset(self):
+        return AccountCategory.objects.order_by('name')
 
 
 class AccountperiodicView(ListView):

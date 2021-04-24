@@ -72,7 +72,7 @@ tr.VERIFIED button.verify::before {
 <h3>Account {{ account_name }}</h3>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
-<table >
+<table class="table table-hover table-sm ">
     <tr>
         <th id=c1><a href="{% url 'budgetdb:create_transaction' %}">
             <i class="fas fa-plus"></i>
@@ -109,7 +109,7 @@ tr.VERIFIED button.verify::before {
         <td>{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>
         <td money>{{ event.calc_amount }}</td>
         <td>{% if event.audit == 0 %}
-            <button type="button" class="btn btn-default btn-lg verify" onclick="toggleverifyT({{ event.id }})">
+            <button type="button" class="btn btn-default btn-sm verify" onclick="toggleverifyT({{ event.id }})">
             </button> 
             {% endif %} 
         </td>
@@ -119,7 +119,7 @@ tr.VERIFIED button.verify::before {
             {% endif %} 
         </td>
         <td>{% if event.audit == 0 %}
-            <button type="button" class="btn btn-default btn-lg audit" onclick="audit(event.date_actual, event.balance)">             
+            <button type="button" class="btn btn-default btn-sm audit" onclick="audit(event.date_actual, event.balance)">             
             </button>
             {% else %} 
             {{ event.balance }}
