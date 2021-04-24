@@ -37,6 +37,8 @@ urlpatterns = [
          name='update_accountcat'),
     path('accountcat/', views.AccountCatListView.as_view(),
          name='list_accountcat'),
+    path('accountcat/add/', views.AccountCatCreateView.as_view(),
+         name='create_accountcat'),
 
     # Account_Host
     path('accountHost/ListJSON', views.GetAccountHostListJSON, name='account_host_list_json'),
@@ -82,16 +84,18 @@ urlpatterns = [
     path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
 
-    # CatType   *****details, create and update NOT IMPLEMENTED*****
+    # CatType
     path('cattype/ListJSON', views.GetCatTypeListJSON, name='cattype_list_json'),
     path('cattype/pie-chart/<int:cat_type_pk>', views.CatTotalPieChart.as_view(), name='cattype_pie'),
     path('cattype/bar-chart/<int:cat_type_pk>', views.CatTotalBarChart.as_view(), name='cattype_bar'),
 
-    path('cattype/<int:pk>/', views.Cat2DetailView.as_view(),
+    path('cattype/', views.CatTypeListView.as_view(),
+         name='list_cattype'),
+    path('cattype/<int:pk>/', views.CatTypeDetailView.as_view(),
          name='details_cattype'),
-    path('cattype/add/', views.Cat2Create.as_view(),
+    path('cattype/add/', views.CatTypeCreate.as_view(),
          name='create_cattype'),
-    path('cattype/update/<int:pk>/', views.Cat2UpdateView.as_view(),
+    path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),
          name='update_cattype'),
 
     # BudgetedEvent

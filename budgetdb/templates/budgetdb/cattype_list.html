@@ -1,0 +1,24 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+
+{% block title %}Category Types List{% endblock %}
+
+{% block content %}
+
+{% if cattype_list %}
+    <ul>
+    {% for cattype in cattype_list %}
+        <li><a href="{% url 'budgetdb:details_cattype' cattype.id %}">{{ cattype.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No category types are available.</p>
+{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_cattype' %}">Create new category type</a>
+</div>
+
+{% endblock %}

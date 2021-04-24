@@ -639,6 +639,23 @@ class Cat2UpdateView(UpdateView):
         return form
 
 
+class CatTypeUpdateView(UpdateView):
+    model = CatType
+    fields = (
+        'name',
+        )
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
 class VendorUpdateView(UpdateView):
     model = Vendor
     fields = ('name',)
@@ -712,6 +729,11 @@ class AccountHostUpdateView(UpdateView):
 class Cat2DetailView(DetailView):
     model = Cat2
     template_name = 'budgetdb/cat2_detail.html'
+
+
+class CatTypeDetailView(DetailView):
+    model = CatType
+    template_name = 'budgetdb/cattype_detail.html'
 
 
 class VendorDetailView(DetailView):
@@ -812,6 +834,14 @@ class VendorListView(ListView):
         return Vendor.objects.order_by('name')
 
 
+class CatTypeListView(ListView):
+    model = CatType
+    context_object_name = 'cattype_list'
+
+    def get_queryset(self):
+        return CatType.objects.order_by('name')
+
+
 class AccountCatListView(ListView):
     model = AccountCategory
     context_object_name = 'accountcat_list'
@@ -907,9 +937,44 @@ class AccountCreateView(CreateView):
         return form
 
 
+class AccountCatCreateView(CreateView):
+    model = AccountCategory
+    fields = (
+        'name',
+        'accounts',
+        )
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
 class AccountHostCreateView(CreateView):
     model = AccountHost
     fields = ['name']
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
+class CatTypeCreate(CreateView):
+    model = CatType
+    fields = [
+        'name',
+        ]
 
     def form_valid(self, form):
         return super().form_valid(form)

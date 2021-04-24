@@ -263,6 +263,9 @@ class CatType(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('budgetdb:list_cattype')
+
 
 class Cat1(models.Model):
     class Meta:
@@ -277,7 +280,7 @@ class Cat1(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_cat1', kwargs={'pk': self.pk})
+        return reverse('budgetdb:list_cat1')
 
 
 class Cat2(models.Model):
@@ -294,7 +297,7 @@ class Cat2(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_cat2', kwargs={'pk': self.pk})
+        return reverse('budgetdb:details_cat1', kwargs={'pk': self.cat1.pk})
 
 
 class AccountHost(models.Model):
@@ -305,6 +308,9 @@ class AccountHost(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:list_account_host')
 
 
 class AccountPresentation(models.Model):
@@ -337,7 +343,7 @@ class Account(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_account', kwargs={'pk': self.pk})
+        return reverse('budgetdb:list_account_simple')
 
     def nice_ordered_list(self):
         # don't do the sql = thing in prod
@@ -471,7 +477,7 @@ class AccountCategory(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:list_account_simple', kwargs={'pk': self.pk})
+        return reverse('budgetdb:list_accountcat')
 
 
 class AccountAudit(models.Model):
@@ -498,7 +504,7 @@ class Vendor(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_vendor', kwargs={'pk': self.pk})
+        return reverse('budgetdb:list_vendor')
 
 
 class Transaction(models.Model):
