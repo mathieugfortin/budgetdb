@@ -24,10 +24,9 @@
 
 
 {% if account_list %}
-<table>
+<table class="table table-hover">
     <tr>
         <th>Name</th>
-        <th>Balance</th>
         <th>Host</th>
         <th>parent</th>
         <th>Category</th>
@@ -35,7 +34,6 @@
     {% for account in account_list %}
     <tr>
         <td><a href="{% url 'budgetdb:update_account' account.id %}">{{ account.name }}</a></td>
-        <td>{{ account.balance|floatformat:2 }}$</td>   
         <td><a href="{% url 'budgetdb:update_account_host' account.account_host.id %}">{{ account.account_host }}</a></td>
         {% if account.account_parent == None %}
             <td></td>

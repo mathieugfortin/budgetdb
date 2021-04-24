@@ -143,7 +143,6 @@ class CatSums(models.Model):
         return cat1_totals
 
 
-
 class MyBoolMap(models.IntegerField):
     def db_type(self, connection):
         return 'integer'
@@ -264,6 +263,9 @@ class CatType(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('budgetdb:list_cattype')
+
 
 class Cat1(models.Model):
     class Meta:
@@ -278,7 +280,7 @@ class Cat1(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_cat1', kwargs={'pk': self.pk})
+        return reverse('budgetdb:list_cat1')
 
 
 class Cat2(models.Model):
@@ -295,7 +297,7 @@ class Cat2(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_cat2', kwargs={'pk': self.pk})
+        return reverse('budgetdb:details_cat1', kwargs={'pk': self.cat1.pk})
 
 
 class AccountHost(models.Model):
@@ -306,6 +308,23 @@ class AccountHost(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:list_account_host')
+
+
+class AccountPresentation(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'budgetdb_account_presentation'
+    id = models.BigIntegerField(primary_key=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+    account_host = models.ForeignKey(AccountHost, on_delete=models.DO_NOTHING)
+    account_parent = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
+    name = models.CharField(max_length=200)
+    account_number = models.CharField(max_length=200, blank=True)
+    childrens = models.CharField(max_length=200, blank=True, null=True)
 
 
 class Account(models.Model):
@@ -324,7 +343,19 @@ class Account(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_account', kwargs={'pk': self.pk})
+        return reverse('budgetdb:list_account_simple')
+
+    def nice_ordered_list(self):
+        # don't do the sql = thing in prod
+        sqlst = f"SELECT a.*" \
+                f"FROM budgetdb.budgetdb_account a " \
+                f"LEFT JOIN budgetdb.budgetdb_account pa ON a.account_parent_id=pa.id " \
+                f"ORDER BY coalesce(pa.name,a.name),a.account_parent_id " \
+
+        print(sqlst)
+        account_list = Account.objects.raw(sqlst)
+
+        return account_list
 
     def balance_by_EOD(self, dateCheck):
         closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
@@ -445,6 +476,9 @@ class AccountCategory(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('budgetdb:list_accountcat')
+
 
 class AccountAudit(models.Model):
     # Force an account to a specific balance on a given date.
@@ -470,7 +504,7 @@ class Vendor(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:details_vendor', kwargs={'pk': self.pk})
+        return reverse('budgetdb:list_vendor')
 
 
 class Transaction(models.Model):

@@ -1,0 +1,24 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+
+{% block title %}Account Categories List{% endblock %}
+
+{% block content %}
+
+{% if accountcat_list %}
+    <ul>
+    {% for account in accountcat_list %}
+        <li><a href="{% url 'budgetdb:update_accountcat' account.id %}">{{ account.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No Account Category are available.</p>
+{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_accountcat' %}">Create new account category</a>
+</div>
+
+{% endblock %}
