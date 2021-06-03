@@ -481,7 +481,7 @@ class AccountCategory(models.Model):
 
 
 class AccountAudit(models.Model):
-    # Force an account to a specific balance on a given date.
+    # deprecated?
     class Meta:
         verbose_name = 'Account audit point'
         verbose_name_plural = 'Account audit points'
@@ -773,9 +773,132 @@ class Statement (models.Model):
     balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
     statement_date = models.DateField('date of the statement')
     statement_due_date = models.DateField('date where payment is due', blank=True, null=True)
-    comment = models.CharField(max_length=200)
+    comment = models.CharField(max_length=200, blank=True, null=True)
     payment_transaction = models.ForeignKey('Transaction', on_delete=models.CASCADE, related_name='payment_transaction',
                                             blank=True, null=True)
 
     def __str__(self):
         return self.comment
+
+
+class Recurring(models.Model):
+    # description of budgeted events
+    class Meta:
+        verbose_name = 'Recurring'
+        verbose_name_plural = 'Recurring'
+
+    generated_interval_start = models.DateTimeField('begining of the generated events interval', blank=True, null=True)
+    generated_interval_stop = models.DateTimeField('end of the generated events interval', blank=True, null=True)
+    repeat_start = models.DateField('date of the first event')
+    repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
+    nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
+                                       null=True)  # is this implementable on complex patterns?
+    repeat_interval_days = models.IntegerField('period in days, 0 if not applicable', default=0)
+    repeat_interval_years = models.IntegerField('period in years, 0 if not applicable', default=0)
+    repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
+    repeat_interval_weeks = models.IntegerField('period in weeks, 0 if not applicable', default=0)
+
+    repeat_months_mask = models.IntegerField(
+        'binary mask of applicable months. Always Applicable jan=1 feb=2 mar=4 ... dec=2048 ALL=4095',
+        default=4095)
+    repeat_dayofmonth_mask = models.IntegerField(
+        'binary mask of applicable month days. Always Applicable ALL=2147483647', default=2147483647
+    )
+    repeat_weekofmonth_mask = models.IntegerField('binary mask of applicable month week. Always Applicable ALL=15',
+                                                  default=63)
+
+    repeat_weekday_mask = models.IntegerField('binary mask of applicable week day. Always Applicable ALL=127',
+                                              default=127)
+    # Mon=1, Tue=2,Wed=4, Thu=8, Fri=16, Sat=32, Sun=64, all=127
+    # workweek=31   weekend=96
+
+    def checkDate(self, dateCheck):
+        # verifies if the event happens on the dateCheck. should handle all the recurring patterns
+
+        # https://stackoverflow.com/a/13565185
+        # get close to the end of the month for any day, and add 4 days 'over'
+        next_month = dateCheck.replace(day=28) + relativedelta(days=4)
+        # subtract the number of remaining 'overage' days to get last day of current month,
+        # or said programattically said, the previous day of the first of next month
+        last_day_month = next_month + relativedelta(days=-next_month.day)
+
+        # not before first event
+        if dateCheck < self.repeat_start:
+            return False
+        # same day OK
+        elif self.repeat_start == dateCheck:
+            return True
+        # applying masks
+        elif (1 << dateCheck.weekday()) & self.repeat_weekday_mask == 0:
+            return False
+        elif (1 << (dateCheck.month-1)) & self.repeat_months_mask == 0:
+            return False
+        elif (1 << (dateCheck.day-1)) & self.repeat_dayofmonth_mask == 0:
+            return False
+        elif (1 << int((dateCheck.day-1) / 7)) & self.repeat_weekofmonth_mask == 0:
+            return False
+        # not after last event
+        elif self.repeat_stop is not None \
+                and dateCheck > self.repeat_stop:
+            return False
+        # if day interval is used, check if the difference is a repeat of interval
+        elif self.repeat_interval_days != 0 \
+                and (dateCheck - self.repeat_start).days % self.repeat_interval_days != 0:
+            return False
+        # if year interval is used, check if the difference is a repeat of interval.
+        # Days and months must match
+        elif self.repeat_interval_years != 0 and \
+                ((dateCheck.day != self.repeat_start.day) or (dateCheck.month != self.repeat_start.month)
+                 or (dateCheck.year - self.repeat_start.year) % self.repeat_interval_years != 0):
+            return False
+        # if month interval is used, check if the difference is a repeat of interval.
+        # Days must match OR must be last day of the month and planned day is after
+        # *************************************************************
+        elif self.repeat_interval_months != 0 and \
+                (
+                    (
+                        dateCheck.day != self.repeat_start.day
+                        and
+                        (self.repeat_start.day < last_day_month.day
+                         or
+                         last_day_month != dateCheck)
+                    )
+                or
+                 (dateCheck.month - self.repeat_start.month) % self.repeat_interval_months != 0):
+            return False
+        # if weeks interval is used, check if the difference is a repeat of interval. Weekday must match
+        elif self.repeat_interval_weeks != 0 and \
+                (dateCheck.weekday() != self.repeat_start.weekday() or
+                 ((dateCheck - self.repeat_start).days / 7) % self.repeat_interval_weeks != 0):
+            return False
+        else:
+            return True
+
+    def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id)
+        transactions = transactions.filter(date_actual__gt=begin_interval)
+        end_date = begin_interval + relativedelta(months=interval_length_months)
+        transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
+        return transactions
+
+    def listPreviousTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id)
+        transactions = transactions.filter(date_actual__lte=begin_interval)
+        end_date = begin_interval + relativedelta(months=-interval_length_months)
+        transactions = transactions.filter(date_actual__gt=end_date).order_by('date_actual')[:n]
+        return transactions
+
+
+class JoinedTransactions(models.Model):
+    class Meta:
+        verbose_name = 'Joined Transactions'
+        verbose_name_plural = 'Joined Transactions'
+
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+    name = models.CharField(max_length=200)
+    comment = models.CharField(max_length=200, blank=True, null=True)
+    transactions = models.ManyToManyField(Transaction, related_name='transactions')
+    budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='budgeted_events')
+    isrecurring = models.BooleanField('Is this a recurring event?', default=True)
+    recurring = models.ForeignKey(Recurring, on_delete=models.CASCADE, null=True)

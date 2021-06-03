@@ -8,7 +8,8 @@ from django.utils.safestring import mark_safe
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, CatSums, CatType, AccountHost, Preference, AccountPresentation
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar
+from budgetdb.models import JoinedTransactions, CatSums, CatType, AccountHost, Preference, AccountPresentation
 from budgetdb.utils import Calendar
 import pytz
 from decimal import *
@@ -741,6 +742,26 @@ class VendorDetailView(DetailView):
     template_name = 'budgetdb/vendor_detail.html'
 
 
+class JoinedTransactionsDetailView(DetailView):
+    model = JoinedTransactions
+    template_name = 'budgetdb/joinedtransactions_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
+       
+        day = self.kwargs['day']
+        month = self.kwargs['month']
+        year = self.kwargs['year']
+        transactions = JoinedTransactions.objects.get(pk=pk).transactions.all()
+        transactiondate = datetime(year=year, month=month, day=day)
+        for budgetedevent in JoinedTransactions.objects.get(pk=pk).budgetedevents.all():
+            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
+        
+        context['transactions'] = transactions
+        return context
+
+
 class AccountDetailView(DetailView):
     model = Account
     template_name = 'budgetdb/account_detail.html'
@@ -1003,7 +1024,8 @@ class Cat2Create(CreateView):
         form.helper = FormHelper()
         form.helper.layout = Layout(
            Field('cat1', type="hidden"),
-           Field('name', type="")
+           Field('name', type=""),
+           Field('cattype', type="")
            )
         cat1_id = self.kwargs['cat1_id']
         cat1 = Cat1.objects.get(id=cat1_id)

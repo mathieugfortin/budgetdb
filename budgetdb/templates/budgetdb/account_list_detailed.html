@@ -16,13 +16,13 @@
     {% for account in account_list %}
     <tr data-bs-toggle="collapse" data-bs-target="{{ account.childrens }}" class="clickable">
         {% if account.account_parent_id == None %}
-        <td>    
+        <td>
             {% if account.childrens != None %}
             <i class="fas fa-plus"></i>
             {% endif %}
             <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a>
         </td>
-        <td>{{ account.balance|floatformat:2 }}$</td>   
+        <td>{{ account.balance|floatformat:2 }}$</td>
         <td><a href="{% url 'budgetdb:update_account_host' account.account_host.id %}">{{ account.account_host }}</a></td>   
         {% else %}
         <td><div id="c{{ account.id }}" class="collapse">

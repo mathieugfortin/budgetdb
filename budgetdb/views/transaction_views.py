@@ -107,6 +107,14 @@ class TransactionUpdateView(UpdateView):
         return form
 
 
+class JoinedTransactionUpdateView(UpdateView):
+    pass
+
+
+
+
+
+
 class TransactionDetailView(DetailView):
     model = Transaction
     template_name = 'budgetdb/transact_detail.html'

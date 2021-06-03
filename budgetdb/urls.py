@@ -1,6 +1,42 @@
-from django.urls import path
+from django.urls import path, register_converter
 
 from . import views
+
+
+class FourDigitYearConverter:
+    regex = '[0-9]{4}'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return '%04d' % value
+
+
+class TwoDigitMonthConverter:
+    regex = '[0-9]{2}'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return '%04d' % value
+
+
+class TwoDigitDayConverter:
+    regex = '[0-9]{2}'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return '%04d' % value
+
+
+register_converter(FourDigitYearConverter, 'yyyy')
+register_converter(TwoDigitMonthConverter, 'mm')
+register_converter(TwoDigitDayConverter, 'dd')
+
 
 # from budgetdb.views import Cat1DetailView, TransactionDetailView,
 # # saveTransaction, BudgetedEventList
@@ -131,6 +167,12 @@ urlpatterns = [
          name='calendar_transaction'),
     path('transaction/list/', views.TransactionListView.as_view(),
          name='list_transaction'),
+
+    # Joined Transactions
+    path('joinedtransaction/update/', views.JoinedTransactionUpdateView.as_view(),
+         name='create_joined_transaction'),
+    path('joinedtransaction/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsDetailView.as_view(),
+         name='details_joined_transaction'),
 
     # Vendor
     path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),
