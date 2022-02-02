@@ -151,6 +151,8 @@ urlpatterns = [
     # Transaction
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
+    path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
+         name='togglereceipttransaction_json'),
     path('<int:pk>/saveTransaction/', views.saveTransaction,
          name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
@@ -169,7 +171,7 @@ urlpatterns = [
          name='list_transaction'),
 
     # Joined Transactions
-    path('joinedtransaction/update/', views.JoinedTransactionUpdateView.as_view(),
+    path('joinedtransaction/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionUpdateView.as_view(),
          name='create_joined_transaction'),
     path('joinedtransaction/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsDetailView.as_view(),
          name='details_joined_transaction'),

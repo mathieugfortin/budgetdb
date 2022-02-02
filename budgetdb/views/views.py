@@ -62,6 +62,15 @@ def TransactionVerifyToggleJSON(request):
     return HttpResponse(status=200)
 
 
+def TransactionReceiptToggleJSON(request):
+    transaction_ID = request.POST.get("transaction_id", None)
+    if transaction_ID:
+        transaction = Transaction.objects.get(pk=transaction_ID)
+        transaction.receipt = not(transaction.receipt)
+    transaction.save()
+    return HttpResponse(status=200)
+
+
 def PreferenceGetJSON(request):
     preference = Preference.objects.get(pk=request.user.id)
     transactions = Transaction.objects.all().order_by("date_actual")
@@ -243,7 +252,7 @@ def GetCat1TotalBarChartData(request):
         begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
 
     labels = []  # months
-    datasets = []  
+    datasets = []
     colors = next_color()
     indexdict = {}
 
@@ -303,7 +312,7 @@ def GetCat2TotalBarChartData(request):
         begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
 
     labels = []  # months
-    datasets = []  
+    datasets = []
     colors = next_color()
     indexdict = {}
 
@@ -749,7 +758,6 @@ class JoinedTransactionsDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
-       
         day = self.kwargs['day']
         month = self.kwargs['month']
         year = self.kwargs['year']
@@ -757,7 +765,7 @@ class JoinedTransactionsDetailView(DetailView):
         transactiondate = datetime(year=year, month=month, day=day)
         for budgetedevent in JoinedTransactions.objects.get(pk=pk).budgetedevents.all():
             transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
-        
+
         context['transactions'] = transactions
         return context
 

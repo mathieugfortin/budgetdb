@@ -37,10 +37,14 @@ tbody>tr>:nth-child(8){
  text-align:right;
 }
 tbody>tr>:nth-child(9){
- width:90px;
+ width:70px;
  text-align:right;
 }
 tbody>tr>:nth-child(10){
+ width:90px;
+ text-align:right;
+}
+tbody>tr>:nth-child(11){
  width:70px;
  text-align:right;
 }
@@ -49,6 +53,17 @@ button.audit::before {
   font-family: fontAwesome;
   content: "\f560";
 }
+
+
+button.NORECEIPT::before {
+  font-family: fontAwesome;
+  content: "\f0c8";
+}
+button.RECEIPT::before {
+  font-family: fontAwesome;
+  content: "\f14a";
+}
+
 
 tr.UNVERIFIED button.verify::before {
   font-family: fontAwesome;
@@ -84,8 +99,9 @@ tr.VERIFIED button.verify::before {
         <th id=c6>Subcategory</th>
         <th id=c7>Amount</th>
         <th id=c8>Verified</th>
-        <th id=c9>Balance</th>
-        <th id=c10>Audit</th>
+        <th id=c9>Receipt</th>
+        <th id=c10>Balance</th>
+        <th id=c11>Audit</th>
     </tr>
 
     {% for event in object_list reversed %}
@@ -110,6 +126,14 @@ tr.VERIFIED button.verify::before {
         <td money>{{ event.calc_amount }}</td>
         <td>{% if event.audit == 0 %}
             <button type="button" class="btn btn-default btn-sm verify" onclick="toggleverifyT({{ event.id }})">
+            </button> 
+            {% endif %} 
+        </td>
+        <td>{% if event.receipt == 0 %}
+            <button type="button" class="btn btn-default btn-sm receipt NORECEIPT" id=R{{event.id}} onclick="togglereceiptT({{ event.id }})">
+            </button> 
+            {% else %}
+            <button type="button" class="btn btn-default btn-sm receipt RECEIPT" id=R{{event.id}} onclick="togglereceiptT({{ event.id }})">
             </button> 
             {% endif %} 
         </td>
@@ -148,6 +172,15 @@ tr.VERIFIED button.verify::before {
 
     }
    
-    
+    function togglereceiptT(transaction_id){
+        data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
+        $.post('{% url "budgetdb:togglereceipttransaction_json" %}', data );
+        modifiedtr=document.getElementById('R'+transaction_id)
+        if (modifiedtr.attributes.class.nodeValue=='btn btn-default btn-sm receipt NORECEIPT')
+            modifiedtr.setAttribute('class','btn btn-default btn-sm receipt RECEIPT');
+        else if (modifiedtr.attributes.class.nodeValue=='btn btn-default btn-sm receipt RECEIPT')
+            modifiedtr.setAttribute('class','btn btn-default btn-sm receipt NORECEIPT');
+    }
+     
 </script>
 {% endblock %}

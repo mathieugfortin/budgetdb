@@ -59,6 +59,7 @@ class BudgetedEventUpdate(UpdateView):
             'amount_planned',
             'cat1',
             'cat2',
+            'ismanual',
             'repeat_start',
             'repeat_stop',
             'vendor',
@@ -91,6 +92,7 @@ class BudgetedEventCreate(CreateView):
             'amount_planned',
             'cat1',
             'cat2',
+            'ismanual',
             'repeat_start',
             'repeat_stop',
             'vendor',
@@ -123,6 +125,7 @@ class BudgetedEventCreateFromTransaction(CreateView):
             'amount_planned',
             'cat1',
             'cat2',
+            'ismanual',
             'repeat_start',
             'repeat_stop',
             'vendor',
@@ -148,6 +151,7 @@ class BudgetedEventCreateFromTransaction(CreateView):
         form.initial['amount_planned'] = transaction.amount_actual
         form.initial['cat1'] = transaction.cat1
         form.initial['cat2'] = transaction.cat2
+        form.initial['ismanual'] = transaction.ismanual
         form.initial['repeat_start'] = transaction.date_actual
         form.initial['vendor'] = transaction.vendor
         form.initial['account_source'] = transaction.account_source
@@ -199,6 +203,10 @@ def BudgetedEventSubmit(request):
         isrecurring = True
     else:
         isrecurring = False
+    if request.POST.get('ismanual') == 'on':
+        ismanual = True
+    else:
+        ismanual = False
     repeat_interval_days = int(request.POST['repeat_interval_days'])
     repeat_interval_weeks = int(request.POST['repeat_interval_weeks'])
     repeat_interval_months = int(request.POST['repeat_interval_months'])
@@ -207,6 +215,7 @@ def BudgetedEventSubmit(request):
                                                      amount_planned=amount_planned,
                                                      cat1_id=cat1_id,
                                                      cat2_id=cat2_id,
+                                                     ismanual=ismanual,
                                                      repeat_start=repeat_start,
                                                      repeat_stop=repeat_stop,
                                                      vendor_id=vendor_id,

@@ -44,12 +44,3 @@ https://getbootstrap.com/docs/4.1
 vertical line in line chart
 https://stackoverflow.com/questions/30256695/chart-js-drawing-an-arbitrary-vertical-line
 
-
-
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
-        context['transactions'] = JoinedTransactions.objects.get(pk=pk).transactions
-        context['budgetedevents'] = JoinedTransactions.objects.get(pk=pk).budgetedevents
-        return context

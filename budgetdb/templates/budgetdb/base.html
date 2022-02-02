@@ -55,9 +55,6 @@
                         <a class="dropdown-item" href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_transaction' %}">All transaction</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="nav-link disabled" href="#">Per Account</a>
-                        <div class="dropdown-divider"></div>
                     </div>
                 </li>
                 <li class="nav-item dropdown">
@@ -73,7 +70,9 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="account_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:list_account_summary' %}">summary</a>
+                        <div class="dropdown-divider"></div>
                     </div>
+                    
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -190,7 +189,7 @@
     $(document).ready(function(){
         $.getJSON('{% url "budgetdb:account_list_json" %}', function(result){
             $.each(result, function(i, field){
-                addA('{% url "budgetdb:list_account_activity" 12345 %}', field[0].pk, field[1].name, 'transaction_menu');
+                addA('{% url "budgetdb:list_account_activity" 12345 %}', field[0].pk, field[1].name, 'account_menu');
             });
         });
     });

@@ -1,5 +1,6 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
+from budgetdb.models import JoinedTransactions
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
@@ -9,26 +10,32 @@ from django.urls import reverse, reverse_lazy
 from decimal import *
 from budgetdb.utils import Calendar
 from django.utils.safestring import mark_safe
+from django.forms import formset_factory
+from django import forms
 
 
 class TransactionCreateView(CreateView):
+    account_source = forms.ModelChoiceField(queryset=Account.objects.order_by('name'))
     model = Transaction
+
     fields = [
-        'description',
-        'cat1',
-        'cat2',
-        'account_source',
-        'account_destination',
-        'statement',
-        'verified',
-        'audit',
-        'vendor',
-        'amount_actual',
-        'date_actual',
-        'date_planned',
-        'budgetedevent',
-        'comment',
-        ]
+            'description',
+            'cat1',
+            'cat2',
+            'ismanual',
+            'account_source',
+            'account_destination',
+            'statement',
+            'verified',
+            'receipt',
+            'audit',
+            'vendor',
+            'amount_actual',
+            'date_actual',
+            'date_planned',
+            'budgetedevent',
+            'comment',
+            ]
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -47,10 +54,12 @@ class TransactionCreateViewFromDateAccount(CreateView):
         'description',
         'cat1',
         'cat2',
+        'ismanual',
         'account_source',
         'account_destination',
         'statement',
         'verified',
+        'receipt',
         'audit',
         'vendor',
         'amount_actual',
@@ -83,10 +92,12 @@ class TransactionUpdateView(UpdateView):
         'description',
         'cat1',
         'cat2',
+        'ismanual',
         'account_source',
         'account_destination',
         'statement',
         'verified',
+        'receipt',
         'audit',
         'vendor',
         'amount_actual',
@@ -108,11 +119,7 @@ class TransactionUpdateView(UpdateView):
 
 
 class JoinedTransactionUpdateView(UpdateView):
-    pass
-
-
-
-
+    ArticleFormSet = formset_factory(JoinedTransactions)
 
 
 class TransactionDetailView(DetailView):

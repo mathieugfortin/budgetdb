@@ -121,6 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 INTERNAL_IPS = [
     # ...
     '192.168.1.11',
+    '192.168.1.228',
     # ...
 ]
 

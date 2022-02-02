@@ -388,7 +388,9 @@ class Account(models.Model):
 
     def build_report_with_balance(self, start_date, end_date):
         events = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual', 'audit')
-        events = events.filter(account_destination_id=self.id) | events.filter(account_source_id=self.id)
+        account_list = Account.objects.all()
+        account_list = account_list.filter(id=self.id) | account_list.filter(account_parent_id=self.id)
+        events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
         balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD(start_date))
         for event in events:
             amount = Decimal(0.00)
@@ -534,7 +536,7 @@ class Transaction(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
     cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True)
-
+    ismanual = models.BooleanField('Is this an event that require manual intervention?', default=False)
     account_source = models.ForeignKey(
         Account, on_delete=models.CASCADE, related_name='t_account_source', blank=True, null=True
     )
@@ -602,6 +604,7 @@ class BudgetedEvent(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     budget_only = models.BooleanField('only for budgeting, no actual expense planned', default=False)  # is this useful?
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)
+    ismanual = models.BooleanField('Is this an event that require manual intervention?', default=False)
     repeat_start = models.DateField('date of the first event')
     repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
     nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
@@ -742,6 +745,7 @@ class BudgetedEvent(models.Model):
                                                          date_actual=date,
                                                          amount_actual=self.amount_planned,
                                                          amount_planned=self.amount_planned,
+                                                         ismanual=self.ismanual,
                                                          description=self.description,
                                                          budgetedevent_id=self.id,
                                                          account_destination=self.account_destination,

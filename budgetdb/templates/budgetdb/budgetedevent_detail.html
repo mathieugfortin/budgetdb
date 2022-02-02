@@ -2,14 +2,11 @@
 
 {% block title %}Recurring Transaction - {{ object.description }}{% endblock %}
 
-{% block navtools %}
+{% block content %}
 <div class="clearfix">
     <a class="btn btn-info left" href="{% url 'budgetdb:details_be' previous_be.id %}"> Previous: {{ previous_be.description }} </a>
     <a class="btn btn-info left" href="{% url 'budgetdb:details_be' next_be.id %} "> Next: {{ next_be.description }} </a>
 </div>
-{% endblock %}
-
-{% block content %}
 
     <style>
         li.UNVERIFIED {
