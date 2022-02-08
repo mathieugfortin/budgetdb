@@ -1,0 +1,23 @@
+asgiref==3.5.0
+astroid==2.9.3
+backports.zoneinfo==0.2.1
+Django==4.0.2
+django-addanother==2.0.2
+-e git+https://github.com/yourlabs/django-autocomplete-light.git@299df0d952632e02d8224559d4657d0c6d38a46a#egg=django_autocomplete_light
+django-chartjs==2.2.1
+django-crispy-forms==1.14.0
+django-debug-toolbar==3.2.4
+isort==5.10.1
+lazy-object-proxy==1.7.1
+mccabe==0.6.1
+platformdirs==2.4.1
+pycodestyle==2.8.0
+pylint==2.12.2
+PyMySQL==1.0.2
+python-dateutil==2.8.2
+pytz==2021.3
+six==1.16.0
+sqlparse==0.4.2
+toml==0.10.2
+typing-extensions==4.0.1
+wrapt==1.13.3

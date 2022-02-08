@@ -1,0 +1,14 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}Joined Transaction - {{ joinedtransactions.name }}{% endblock %}
+
+{% block content %}
+
+<h1>{{ joinedtransactions.name }}</h1>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+{% for transaction in transactions.all %}
+    <li>{{ transaction.description }} {{ transaction.date_planned }} {{ transaction.date_actual }} {{ transaction.amount_actual }} {{ transaction.account_source }} {{ transaction.account_destination }}</a></li>
+{% endfor %}
+
+{% endblock %}

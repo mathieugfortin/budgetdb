@@ -20,14 +20,13 @@ class budgetedEventsListView(ListView):
 
 class BudgetedEventDetailView(DetailView):
     model = BudgetedEvent
-    # queryset = BudgetedEvent.objects.all()
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
         # Add in a QuerySet of all the books
-        all_be = BudgetedEvent.objects.all().order_by('description')
+        all_be = BudgetedEvent.objects.filter(deleted=False).order_by('description')
         grab_next = False
         previous = all_be.last()
         next_be = all_be.first()
@@ -43,11 +42,11 @@ class BudgetedEventDetailView(DetailView):
 
         context['previous_be'] = previous_be
         context['next_be'] = next_be
-        context['vendor_list'] = Vendor.objects.all()
-        context['cat1_list'] = Cat1.objects.all()
-        context['cat2_list'] = Cat2.objects.all()
-        begin_interval = datetime.today().date() + relativedelta(months=-2)
-        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=25, begin_interval=begin_interval, interval_length_months=60)
+        context['vendor_list'] = Vendor.objects.filter(deleted=False)
+        context['cat1_list'] = Cat1.objects.filter(deleted=False)
+        context['cat2_list'] = Cat2.objects.filter(deleted=False)
+        begin_interval = datetime.today().date() + relativedelta(months=-6)
+        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context
 
 
@@ -59,6 +58,7 @@ class BudgetedEventUpdate(UpdateView):
             'amount_planned',
             'cat1',
             'cat2',
+            'ismanual',
             'repeat_start',
             'repeat_stop',
             'vendor',
@@ -91,6 +91,7 @@ class BudgetedEventCreate(CreateView):
             'amount_planned',
             'cat1',
             'cat2',
+            'ismanual',
             'repeat_start',
             'repeat_stop',
             'vendor',
@@ -123,6 +124,7 @@ class BudgetedEventCreateFromTransaction(CreateView):
             'amount_planned',
             'cat1',
             'cat2',
+            'ismanual',
             'repeat_start',
             'repeat_stop',
             'vendor',
@@ -148,6 +150,7 @@ class BudgetedEventCreateFromTransaction(CreateView):
         form.initial['amount_planned'] = transaction.amount_actual
         form.initial['cat1'] = transaction.cat1
         form.initial['cat2'] = transaction.cat2
+        form.initial['ismanual'] = transaction.ismanual
         form.initial['repeat_start'] = transaction.date_actual
         form.initial['vendor'] = transaction.vendor
         form.initial['account_source'] = transaction.account_source
@@ -199,6 +202,10 @@ def BudgetedEventSubmit(request):
         isrecurring = True
     else:
         isrecurring = False
+    if request.POST.get('ismanual') == 'on':
+        ismanual = True
+    else:
+        ismanual = False
     repeat_interval_days = int(request.POST['repeat_interval_days'])
     repeat_interval_weeks = int(request.POST['repeat_interval_weeks'])
     repeat_interval_months = int(request.POST['repeat_interval_months'])
@@ -207,6 +214,7 @@ def BudgetedEventSubmit(request):
                                                      amount_planned=amount_planned,
                                                      cat1_id=cat1_id,
                                                      cat2_id=cat2_id,
+                                                     ismanual=ismanual,
                                                      repeat_start=repeat_start,
                                                      repeat_stop=repeat_stop,
                                                      vendor_id=vendor_id,

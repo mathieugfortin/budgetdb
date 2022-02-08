@@ -1,6 +1,42 @@
-from django.urls import path
+from django.urls import path, register_converter
 
 from . import views
+
+
+class FourDigitYearConverter:
+    regex = '[0-9]{4}'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return '%04d' % value
+
+
+class TwoDigitMonthConverter:
+    regex = '[0-9]{2}'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return '%04d' % value
+
+
+class TwoDigitDayConverter:
+    regex = '[0-9]{2}'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return '%04d' % value
+
+
+register_converter(FourDigitYearConverter, 'yyyy')
+register_converter(TwoDigitMonthConverter, 'mm')
+register_converter(TwoDigitDayConverter, 'dd')
+
 
 # from budgetdb.views import Cat1DetailView, TransactionDetailView,
 # # saveTransaction, BudgetedEventList
@@ -112,9 +148,21 @@ urlpatterns = [
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
          name='update_be'),
 
+    # Statement
+    path('statement/', views.StatementListView.as_view(),
+         name='list_statement'),
+    path('statement/<int:pk>/', views.StatementDetailView.as_view(),
+         name='details_statement'),
+    path('statement/create/', views.StatementCreate.as_view(),
+         name='create_statement'),
+    path('statement/update/<int:pk>/', views.StatementUpdate.as_view(),
+         name='update_statement'),
+
     # Transaction
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
+    path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
+         name='togglereceipttransaction_json'),
     path('<int:pk>/saveTransaction/', views.saveTransaction,
          name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
@@ -125,12 +173,20 @@ urlpatterns = [
          name='create_transaction_from_date_account'),
     path('transaction/update/<int:pk>/', views.TransactionUpdateView.as_view(),
          name='update_transaction'),
+    path('transaction/update_popup/<int:pk>/', views.TransactionUpdatePopupView.as_view(),
+         name='update_transaction_popup'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
          name='details_transaction_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),
          name='calendar_transaction'),
     path('transaction/list/', views.TransactionListView.as_view(),
          name='list_transaction'),
+
+    # Joined Transactions
+    path('joinedtransaction/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionUpdateView.as_view(),
+         name='create_joined_transaction'),
+    path('joinedtransaction/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsDetailView.as_view(),
+         name='details_joined_transaction'),
 
     # Vendor
     path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),

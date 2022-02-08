@@ -31,7 +31,8 @@
                 <a href="{% url 'budgetdb:details_be' transaction.budgetedevent.id %}"> {{ transaction.budgetedevent }} </a>
             {% endif %}
         </li>  
-        <li>Verified ?: {{ transaction.verified }}</li>  
+        <li>Verified with statement?: {{ transaction.verified }}</li>  
+        <li>Checked with receipt? : {{ transaction.receipt }}</li>  
     </ul>
 </div>
 <div class="clearfix">

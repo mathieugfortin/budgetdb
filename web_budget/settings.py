@@ -36,7 +36,7 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     'dal',
     'dal_select2',
-    'django_addanother',
+    # 'django_addanother',
     'budgetdb.apps.BudgetdbConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -121,6 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 INTERNAL_IPS = [
     # ...
     '192.168.1.11',
+    '192.168.1.228',
     # ...
 ]
 

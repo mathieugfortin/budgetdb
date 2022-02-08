@@ -14,6 +14,8 @@ class Preference(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     start_interval = models.DateField(blank=True)
     end_interval = models.DateField(blank=True)
+    max_interval_slider = models.DateField(blank=True, null=True)
+    min_interval_slider = models.DateField(blank=True, null=True)
 
 
 class AccountBalances(models.Model):
@@ -201,6 +203,7 @@ class CatBudget(models.Model):
     amount = models.DecimalField(decimal_places=2, max_digits=10)
     amount_frequency = models.CharField(max_length=1, choices=FREQUENCIES,
                                         default='D')
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -259,6 +262,7 @@ class CatType(models.Model):
         verbose_name = 'Category Type'
         verbose_name_plural = 'Categories Type'
     name = models.CharField(max_length=200)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -275,6 +279,7 @@ class Cat1(models.Model):
     CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE,
                                   blank=True, null=True)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -292,6 +297,7 @@ class Cat2(models.Model):
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -305,6 +311,7 @@ class AccountHost(models.Model):
         verbose_name = 'Financial Institution'
         verbose_name_plural = 'Financial Institutions'
     name = models.CharField(max_length=200)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -338,6 +345,10 @@ class Account(models.Model):
     account_parent = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=200)
     account_number = models.CharField(max_length=200, blank=True)
+    comment = models.CharField("Comment", max_length=200, blank=True, null=True)
+    TFSA = models.BooleanField('Account is a TFSA for canadian fiscal considerations', default=False)
+    RRSP = models.BooleanField('Account is a RRSP for canadian fiscal considerations', default=False)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -358,14 +369,14 @@ class Account(models.Model):
         return account_list
 
     def balance_by_EOD(self, dateCheck):
-        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
+        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True, deleted=False).order_by('-date_actual')[:1]
 
         if closestAudit.count() == 0:
             balance = Decimal(0.00)
-            events = Transaction.objects.filter(date_actual__lte=dateCheck)
+            events = Transaction.objects.filter(date_actual__lte=dateCheck, deleted=False)
         else:
             balance = Decimal(closestAudit.first().amount_actual)
-            events = Transaction.objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck)
+            events = Transaction.objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck, deleted=False)
 
         events = events.filter(account_source_id=self.id) | events.filter(account_destination_id=self.id)
 
@@ -387,8 +398,10 @@ class Account(models.Model):
         return balance
 
     def build_report_with_balance(self, start_date, end_date):
-        events = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date).order_by('date_actual', 'audit')
-        events = events.filter(account_destination_id=self.id) | events.filter(account_source_id=self.id)
+        events = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, deleted=False).order_by('date_actual', 'audit')
+        account_list = Account.objects.filter(deleted=False)
+        account_list = account_list.filter(id=self.id) | account_list.filter(account_parent_id=self.id)
+        events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
         balance = Decimal(Account.objects.get(id=self.id).balance_by_EOD(start_date))
         for event in events:
             amount = Decimal(0.00)
@@ -428,7 +441,7 @@ class Account(models.Model):
                 f"ORDER BY c.db_date "
 
         # get children account data
-        childaccounts = Account.objects.filter(account_parent_id=self.id)
+        childaccounts = Account.objects.filter(account_parent_id=self.id, deleted=False)
         childcount = childaccounts.count()
         # is this all done with DB queries?  Can I do it all in memory?
         if (childcount > 0):  # If children, account is virtual, only check childrens
@@ -472,6 +485,7 @@ class AccountCategory(models.Model):
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=200)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -481,7 +495,7 @@ class AccountCategory(models.Model):
 
 
 class AccountAudit(models.Model):
-    # Force an account to a specific balance on a given date.
+    # deprecated?
     class Meta:
         verbose_name = 'Account audit point'
         verbose_name_plural = 'Account audit points'
@@ -492,6 +506,7 @@ class AccountAudit(models.Model):
     audit_date = models.DateField('date of the audit')
     audit_amount = models.DecimalField('audit amount', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
     comment = models.CharField(max_length=200)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.audit_amount
@@ -499,6 +514,7 @@ class AccountAudit(models.Model):
 
 class Vendor(models.Model):
     name = models.CharField(max_length=200)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -525,16 +541,22 @@ class Transaction(models.Model):
     amount_planned = models.DecimalField(
         'planned amount', decimal_places=2, max_digits=10, blank=True, null=True
     )
-
     amount_actual = models.DecimalField(
         'transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
     )
+    Fuel_L = models.DecimalField(
+        'Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True
+    )
+    Fuel_price = models.DecimalField(
+        'Fuel cost', decimal_places=3, max_digits=5, blank=True, null=True
+    )
+
     description = models.CharField('transaction description', max_length=200)
     comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
     cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True)
-
+    ismanual = models.BooleanField('Is this an event that require manual intervention?', default=False)
     account_source = models.ForeignKey(
         Account, on_delete=models.CASCADE, related_name='t_account_source', blank=True, null=True
     )
@@ -543,6 +565,7 @@ class Transaction(models.Model):
     )
     statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
     verified = models.BooleanField('confirmed in a statement.  Prevents deletion in case of budgetedEvent change', default=False)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
     audit = models.BooleanField(
         'Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id',
         default=False,
@@ -602,6 +625,7 @@ class BudgetedEvent(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     budget_only = models.BooleanField('only for budgeting, no actual expense planned', default=False)  # is this useful?
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)
+    ismanual = models.BooleanField('Is this an event that require manual intervention?', default=False)
     repeat_start = models.DateField('date of the first event')
     repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
     nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
@@ -610,6 +634,7 @@ class BudgetedEvent(models.Model):
     repeat_interval_years = models.IntegerField('period in years, 0 if not applicable', default=0)
     repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
     repeat_interval_weeks = models.IntegerField('period in weeks, 0 if not applicable', default=0)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     ######################################
     # binary masks are ALWAYS APPLICABLE #
@@ -722,13 +747,13 @@ class BudgetedEvent(models.Model):
         return event_date_list
 
     def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id)
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
-    def createTransactions(self, n=80, begin_interval=None, interval_length_months=60):
+    def createTransactions(self, n=400, begin_interval=None, interval_length_months=60):
         if begin_interval is None:
             begin_interval = self.repeat_start
         transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
@@ -742,6 +767,7 @@ class BudgetedEvent(models.Model):
                                                          date_actual=date,
                                                          amount_actual=self.amount_planned,
                                                          amount_planned=self.amount_planned,
+                                                         ismanual=self.ismanual,
                                                          description=self.description,
                                                          budgetedevent_id=self.id,
                                                          account_destination=self.account_destination,
@@ -756,7 +782,7 @@ class BudgetedEvent(models.Model):
             self.generated_interval_stop = date
 
     def deleteUnverifiedTransaction(self):
-        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False)
+        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False, deleted=False)
         transactions.delete()
         self.generated_interval_start = None
         self.generated_interval_stop = None
@@ -771,11 +797,140 @@ class Statement (models.Model):
     modified_date = models.DateTimeField(auto_now=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='statement_account')
     balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
+    minimum_payment = models.DecimalField('Minimum Payment', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
     statement_date = models.DateField('date of the statement')
     statement_due_date = models.DateField('date where payment is due', blank=True, null=True)
-    comment = models.CharField(max_length=200)
+    comment = models.CharField(max_length=200, blank=True, null=True)
     payment_transaction = models.ForeignKey('Transaction', on_delete=models.CASCADE, related_name='payment_transaction',
                                             blank=True, null=True)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
-        return self.comment
+        return self.account.name + " " + self.statement_date.strftime('%Y-%m-%d')
+    
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_statement', kwargs={'pk': self.pk})
+
+
+class Recurring(models.Model):
+    # description of budgeted events
+    class Meta:
+        verbose_name = 'Recurring'
+        verbose_name_plural = 'Recurring'
+
+    generated_interval_start = models.DateTimeField('begining of the generated events interval', blank=True, null=True)
+    generated_interval_stop = models.DateTimeField('end of the generated events interval', blank=True, null=True)
+    repeat_start = models.DateField('date of the first event')
+    repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
+    nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
+                                       null=True)  # is this implementable on complex patterns?
+    repeat_interval_days = models.IntegerField('period in days, 0 if not applicable', default=0)
+    repeat_interval_years = models.IntegerField('period in years, 0 if not applicable', default=0)
+    repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
+    repeat_interval_weeks = models.IntegerField('period in weeks, 0 if not applicable', default=0)
+
+    repeat_months_mask = models.IntegerField(
+        'binary mask of applicable months. Always Applicable jan=1 feb=2 mar=4 ... dec=2048 ALL=4095',
+        default=4095)
+    repeat_dayofmonth_mask = models.IntegerField(
+        'binary mask of applicable month days. Always Applicable ALL=2147483647', default=2147483647
+    )
+    repeat_weekofmonth_mask = models.IntegerField('binary mask of applicable month week. Always Applicable ALL=15',
+                                                  default=63)
+
+    repeat_weekday_mask = models.IntegerField('binary mask of applicable week day. Always Applicable ALL=127',
+                                              default=127)
+    # Mon=1, Tue=2,Wed=4, Thu=8, Fri=16, Sat=32, Sun=64, all=127
+    # workweek=31   weekend=96
+
+    def checkDate(self, dateCheck):
+        # verifies if the event happens on the dateCheck. should handle all the recurring patterns
+
+        # https://stackoverflow.com/a/13565185
+        # get close to the end of the month for any day, and add 4 days 'over'
+        next_month = dateCheck.replace(day=28) + relativedelta(days=4)
+        # subtract the number of remaining 'overage' days to get last day of current month,
+        # or said programattically said, the previous day of the first of next month
+        last_day_month = next_month + relativedelta(days=-next_month.day)
+
+        # not before first event
+        if dateCheck < self.repeat_start:
+            return False
+        # same day OK
+        elif self.repeat_start == dateCheck:
+            return True
+        # applying masks
+        elif (1 << dateCheck.weekday()) & self.repeat_weekday_mask == 0:
+            return False
+        elif (1 << (dateCheck.month-1)) & self.repeat_months_mask == 0:
+            return False
+        elif (1 << (dateCheck.day-1)) & self.repeat_dayofmonth_mask == 0:
+            return False
+        elif (1 << int((dateCheck.day-1) / 7)) & self.repeat_weekofmonth_mask == 0:
+            return False
+        # not after last event
+        elif self.repeat_stop is not None \
+                and dateCheck > self.repeat_stop:
+            return False
+        # if day interval is used, check if the difference is a repeat of interval
+        elif self.repeat_interval_days != 0 \
+                and (dateCheck - self.repeat_start).days % self.repeat_interval_days != 0:
+            return False
+        # if year interval is used, check if the difference is a repeat of interval.
+        # Days and months must match
+        elif self.repeat_interval_years != 0 and \
+                ((dateCheck.day != self.repeat_start.day) or (dateCheck.month != self.repeat_start.month)
+                 or (dateCheck.year - self.repeat_start.year) % self.repeat_interval_years != 0):
+            return False
+        # if month interval is used, check if the difference is a repeat of interval.
+        # Days must match OR must be last day of the month and planned day is after
+        # *************************************************************
+        elif self.repeat_interval_months != 0 and \
+                (
+                    (
+                        dateCheck.day != self.repeat_start.day
+                        and
+                        (self.repeat_start.day < last_day_month.day
+                         or
+                         last_day_month != dateCheck)
+                    )
+                or
+                 (dateCheck.month - self.repeat_start.month) % self.repeat_interval_months != 0):
+            return False
+        # if weeks interval is used, check if the difference is a repeat of interval. Weekday must match
+        elif self.repeat_interval_weeks != 0 and \
+                (dateCheck.weekday() != self.repeat_start.weekday() or
+                 ((dateCheck - self.repeat_start).days / 7) % self.repeat_interval_weeks != 0):
+            return False
+        else:
+            return True
+
+    def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
+        transactions = transactions.filter(date_actual__gt=begin_interval)
+        end_date = begin_interval + relativedelta(months=interval_length_months)
+        transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
+        return transactions
+
+    def listPreviousTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
+        transactions = transactions.filter(date_actual__lte=begin_interval)
+        end_date = begin_interval + relativedelta(months=-interval_length_months)
+        transactions = transactions.filter(date_actual__gt=end_date).order_by('date_actual')[:n]
+        return transactions
+
+
+class JoinedTransactions(models.Model):
+    class Meta:
+        verbose_name = 'Joined Transactions'
+        verbose_name_plural = 'Joined Transactions'
+
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+    name = models.CharField(max_length=200)
+    comment = models.CharField(max_length=200, blank=True, null=True)
+    transactions = models.ManyToManyField(Transaction, related_name='transactions')
+    budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='budgeted_events')
+    isrecurring = models.BooleanField('Is this a recurring event?', default=True)
+    recurring = models.ForeignKey(Recurring, on_delete=models.CASCADE, null=True)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
