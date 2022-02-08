@@ -148,6 +148,16 @@ urlpatterns = [
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
          name='update_be'),
 
+    # Statement
+    path('statement/', views.StatementListView.as_view(),
+         name='list_statement'),
+    path('statement/<int:pk>/', views.StatementDetailView.as_view(),
+         name='details_statement'),
+    path('statement/create/', views.StatementCreate.as_view(),
+         name='create_statement'),
+    path('statement/update/<int:pk>/', views.StatementUpdate.as_view(),
+         name='update_statement'),
+
     # Transaction
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
@@ -163,6 +173,8 @@ urlpatterns = [
          name='create_transaction_from_date_account'),
     path('transaction/update/<int:pk>/', views.TransactionUpdateView.as_view(),
          name='update_transaction'),
+    path('transaction/update_popup/<int:pk>/', views.TransactionUpdatePopupView.as_view(),
+         name='update_transaction_popup'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
          name='details_transaction_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),

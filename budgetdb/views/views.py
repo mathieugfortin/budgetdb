@@ -1,4 +1,4 @@
-from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
+# from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
 from django.forms import ModelForm
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -73,20 +73,29 @@ def TransactionReceiptToggleJSON(request):
 
 def PreferenceGetJSON(request):
     preference = Preference.objects.get(pk=request.user.id)
-    transactions = Transaction.objects.all().order_by("date_actual")
+    transactions = Transaction.objects.filter(deleted=False).order_by("date_actual")
+
+    start_slider = preference.min_interval_slider
+    stop_slider = preference.max_interval_slider
+    if (preference.min_interval_slider is None):
+        start_slider = transactions.first().date_actual
+    if (preference.max_interval_slider is None):
+        stop_slider = transactions.last().date_actual
 
     data = {
         'start_interval': preference.start_interval,
         'end_interval': preference.end_interval,
-        'begin_data': transactions.first().date_actual,
-        'end_data': transactions.last().date_actual,
+        'begin_data': start_slider,
+        'end_data': stop_slider,
+        # 'begin_data': transactions.first().date_actual,
+        # 'end_data': transactions.last().date_actual,
     }
 
     return JsonResponse(data, safe=False)
 
 
 def GetAccountListJSON(request):
-    queryset = Account.objects.all()
+    queryset = Account.objects.filter(deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -98,7 +107,7 @@ def GetAccountListJSON(request):
 
 
 def GetAccountCatListJSON(request):
-    queryset = AccountCategory.objects.all()
+    queryset = AccountCategory.objects.filter(deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -110,7 +119,7 @@ def GetAccountCatListJSON(request):
 
 
 def GetAccountHostListJSON(request):
-    queryset = AccountHost.objects.all()
+    queryset = AccountHost.objects.filter(deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -122,7 +131,7 @@ def GetAccountHostListJSON(request):
 
 
 def GetVendorListJSON(request):
-    queryset = Vendor.objects.all()
+    queryset = Vendor.objects.filter(deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -134,7 +143,7 @@ def GetVendorListJSON(request):
 
 
 def GetCat1ListJSON(request):
-    queryset = Cat1.objects.all()
+    queryset = Cat1.objects.filter(deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -146,7 +155,7 @@ def GetCat1ListJSON(request):
 
 
 def GetCatTypeListJSON(request):
-    queryset = CatType.objects.all()
+    queryset = CatType.objects.filter(deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -243,7 +252,7 @@ def GetCat1TotalBarChartData(request):
     endstr = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
     cattype = CatType.objects.get(pk=cat_type_pk)
-    cats = Cat1.objects.filter()
+    cats = Cat1.objects.filter(deleted=False)
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
@@ -303,7 +312,7 @@ def GetCat2TotalBarChartData(request):
     cat1_pk = request.GET.get('cat1', None)
     cat1 = Cat1.objects.get(pk=cat1_pk)
 
-    cats = Cat2.objects.filter(cat1=cat1)
+    cats = Cat2.objects.filter(cat1=cat1, deleted=False)
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
@@ -368,9 +377,9 @@ def timeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
 
     if accountcategoryID is None or accountcategoryID == 'None':
-        accounts = Account.objects.all().order_by('name')
+        accounts = Account.objects.filter(deleted=False).order_by('name')
     else:
-        accounts = Account.objects.filter(account_categories=accountcategoryID).order_by('name')
+        accounts = Account.objects.filter(deleted=False, account_categories=accountcategoryID).order_by('name')
 
     preference = Preference.objects.get(pk=request.user.id)
     begin = preference.start_interval
@@ -507,7 +516,7 @@ class timeline2(TemplateView):
             accountcategory = AccountCategory.objects.get(id=accountcategoryID)
             context['accountcategory'] = accountcategory
 
-        accountcategories = AccountCategory.objects.all()
+        accountcategories = AccountCategory.objects.filter(deleted=False)
         context['accountcategories'] = accountcategories
 
         # preference = Preference.objects.get(pk=self.request.user.id)
@@ -548,7 +557,7 @@ class AutocompleteAccount(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated:
             return Account.objects.none()
 
-        qs = Account.objects.all()
+        qs = Account.objects.filter(deleted=False)
 
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
@@ -562,7 +571,7 @@ class AutocompleteCat1(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated:
             return Cat1.objects.none()
 
-        qs = Cat1.objects.all()
+        qs = Cat1.objects.filter(deleted=False)
 
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
@@ -576,7 +585,7 @@ class AutocompleteCat2(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated:
             return Cat2.objects.none()
 
-        qs = Cat2.objects.all()
+        qs = Cat2.objects.filter(deleted=False)
         category = self.forwarded.get('cat1', None)
 
         if category:
@@ -600,7 +609,7 @@ class AutocompleteVendor(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated:
             return Vendor.objects.none()
 
-        qs = Vendor.objects.all()
+        qs = Vendor.objects.filter(deleted=False)
 
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
@@ -688,6 +697,7 @@ class AccountUpdateView(UpdateView):
         'account_host',
         'account_parent',
         'account_number',
+        'comment',
         )
 
     def form_valid(self, form):
@@ -761,10 +771,10 @@ class JoinedTransactionsDetailView(DetailView):
         day = self.kwargs['day']
         month = self.kwargs['month']
         year = self.kwargs['year']
-        transactions = JoinedTransactions.objects.get(pk=pk).transactions.all()
+        transactions = JoinedTransactions.objects.get(deleted=False, pk=pk).transactions.filter(deleted=False)
         transactiondate = datetime(year=year, month=month, day=day)
-        for budgetedevent in JoinedTransactions.objects.get(pk=pk).budgetedevents.all():
-            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
+        for budgetedevent in JoinedTransactions.objects.get(deleted=False, pk=pk).budgetedevents.filter(deleted=False):
+            transactions = transactions | Transaction.objects.filter(deleted=False, budgetedevent=budgetedevent, date_actual=transactiondate)
 
         context['transactions'] = transactions
         return context
@@ -810,13 +820,12 @@ class AccountSummaryView(ListView):
     template_name = 'budgetdb/account_list_detailed.html'
 
     def get_queryset(self):
-        accountps = AccountPresentation.objects.all()
+        accountps = AccountPresentation.objects.filter(deleted=False)
 
-        # accounts = Account.objects.filter(account_parent=None).order_by('name')
         for accountp in accountps:
             account = Account.objects.get(id=accountp.id)
             balance = account.balance_by_EOD(datetime.today())
-            categories = account.account_categories.all()
+            categories = account.account_categories.filter(deleted=False)
             accountp.account_cat = ''
             i = 0
             for category in categories:
@@ -834,9 +843,9 @@ class AccountListViewSimple(ListView):
     template_name = 'budgetdb/account_list_simple.html'
 
     def get_queryset(self):
-        accounts = Account.objects.all().order_by('name')
+        accounts = Account.objects.filter(deleted=False).order_by('name')
         for account in accounts:
-            categories = account.account_categories.all()
+            categories = account.account_categories.filter(deleted=False)
             account.account_cat = ''
             i = 0
             for category in categories:
@@ -852,7 +861,7 @@ class AccountHostListView(ListView):
     context_object_name = 'account_host_list'
 
     def get_queryset(self):
-        return AccountHost.objects.all().order_by('name')
+        return AccountHost.objects.filter(deleted=False).order_by('name')
 
 
 class VendorListView(ListView):
@@ -918,7 +927,7 @@ class AccountperiodicView(ListView):
         # else:
         #    begin = preference.start_interval
 
-        context['account_list'] = Account.objects.all().order_by('name')
+        context['account_list'] = Account.objects.filter(deleted=False).order_by('name')
         # context['begin'] = begin.strftime("%Y-%m-%d")
         # context['end'] = end.strftime("%Y-%m-%d")
         context['pk'] = pk
@@ -953,7 +962,9 @@ class AccountCreateView(CreateView):
         'name',
         'account_host',
         'account_parent',
-        'account_number']
+        'account_number',
+        'comment',
+        ]
 
     def form_valid(self, form):
         return super().form_valid(form)
@@ -1043,7 +1054,8 @@ class Cat2Create(CreateView):
         return form
 
 
-class VendorCreate(CreatePopupMixin, CreateView):
+# class VendorCreate(CreatePopupMixin, CreateView):
+class VendorCreate(CreateView):
     model = Vendor
     fields = ['name']
 

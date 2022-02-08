@@ -1,0 +1,16 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}Statement - {{ statement.account }} for {{ statement.statement_date }}{% endblock %}
+
+{% block content %}
+
+<h1>{{ statement.account }}</h1>
+<h5>Date: {{ statement.statement_date }}</h6>
+<h5>Due Date: {{ statement.statement_due_date }}</h5>
+<h5>Ballance: {{ statement.balance }}</h5>
+<h5>Minimum Payment: {{ statement.minimum_payment }}</h5>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+
+
+{% endblock %}

@@ -20,14 +20,13 @@ class budgetedEventsListView(ListView):
 
 class BudgetedEventDetailView(DetailView):
     model = BudgetedEvent
-    # queryset = BudgetedEvent.objects.all()
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
         # Add in a QuerySet of all the books
-        all_be = BudgetedEvent.objects.all().order_by('description')
+        all_be = BudgetedEvent.objects.filter(deleted=False).order_by('description')
         grab_next = False
         previous = all_be.last()
         next_be = all_be.first()
@@ -43,11 +42,11 @@ class BudgetedEventDetailView(DetailView):
 
         context['previous_be'] = previous_be
         context['next_be'] = next_be
-        context['vendor_list'] = Vendor.objects.all()
-        context['cat1_list'] = Cat1.objects.all()
-        context['cat2_list'] = Cat2.objects.all()
-        begin_interval = datetime.today().date() + relativedelta(months=-2)
-        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=25, begin_interval=begin_interval, interval_length_months=60)
+        context['vendor_list'] = Vendor.objects.filter(deleted=False)
+        context['cat1_list'] = Cat1.objects.filter(deleted=False)
+        context['cat2_list'] = Cat2.objects.filter(deleted=False)
+        begin_interval = datetime.today().date() + relativedelta(months=-6)
+        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context
 
 

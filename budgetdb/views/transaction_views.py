@@ -50,6 +50,7 @@ class TransactionCreateView(CreateView):
 
 class TransactionCreateViewFromDateAccount(CreateView):
     model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
     fields = [
         'description',
         'cat1',
@@ -63,6 +64,8 @@ class TransactionCreateViewFromDateAccount(CreateView):
         'audit',
         'vendor',
         'amount_actual',
+        'Fuel_L',
+        'Fuel_price',
         'date_actual',
         'date_planned',
         'budgetedevent',
@@ -101,10 +104,49 @@ class TransactionUpdateView(UpdateView):
         'audit',
         'vendor',
         'amount_actual',
+        'Fuel_L',
+        'Fuel_price',
         'date_actual',
         'date_planned',
         'budgetedevent',
         'comment',
+        'deleted',
+        ]
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
+class TransactionUpdatePopupView(UpdateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
+    fields = [
+        'description',
+        'cat1',
+        'cat2',
+        'ismanual',
+        'account_source',
+        'account_destination',
+        'statement',
+        'verified',
+        'receipt',
+        'audit',
+        'vendor',
+        'amount_actual',
+        'Fuel_L',
+        'Fuel_price',
+        'date_actual',
+        'date_planned',
+        'budgetedevent',
+        'comment',
+        'deleted',
         ]
 
     def form_valid(self, form):
