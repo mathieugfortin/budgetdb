@@ -1,4 +1,5 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.forms import BudgetedEventForm
 from datetime import datetime, date
@@ -10,7 +11,7 @@ from django.urls import reverse, reverse_lazy
 from decimal import *
 
 
-class budgetedEventsListView(ListView):
+class budgetedEventsListView(LoginRequiredMixin, ListView):
     model = BudgetedEvent
     context_object_name = 'budgetedevent_list'
 
@@ -18,7 +19,7 @@ class budgetedEventsListView(ListView):
         return BudgetedEvent.objects.order_by('description')
 
 
-class BudgetedEventDetailView(DetailView):
+class BudgetedEventDetailView(LoginRequiredMixin, DetailView):
     model = BudgetedEvent
 
     def get_context_data(self, **kwargs):
@@ -50,7 +51,7 @@ class BudgetedEventDetailView(DetailView):
         return context
 
 
-class BudgetedEventUpdate(UpdateView):
+class BudgetedEventUpdate(LoginRequiredMixin, UpdateView):
     # template_name = 'budgetdb/budgetedeventmod_form.html'
     model = BudgetedEvent
     fields = (
@@ -83,7 +84,7 @@ class BudgetedEventUpdate(UpdateView):
         return form
 
 
-class BudgetedEventCreate(CreateView):
+class BudgetedEventCreate(LoginRequiredMixin, CreateView):
     # template_name = 'budgetdb/budgetedeventmod_form.html'
     model = BudgetedEvent
     fields = (
@@ -116,7 +117,7 @@ class BudgetedEventCreate(CreateView):
         return form
 
 
-class BudgetedEventCreateFromTransaction(CreateView):
+class BudgetedEventCreateFromTransaction(LoginRequiredMixin, CreateView):
     # template_name = 'budgetdb/budgetedeventmod_form.html'
     model = BudgetedEvent
     fields = (
@@ -162,7 +163,7 @@ class BudgetedEventCreateFromTransaction(CreateView):
         return form
 
 
-class BudgetedEventCreateView(CreateView):
+class BudgetedEventCreateView(LoginRequiredMixin, CreateView):
     model = BudgetedEvent
     form_class = BudgetedEventForm
     success_url = reverse_lazy('budgetdb:list_be')

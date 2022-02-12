@@ -332,6 +332,7 @@ class AccountPresentation(models.Model):
     name = models.CharField(max_length=200)
     account_number = models.CharField(max_length=200, blank=True)
     childrens = models.CharField(max_length=200, blank=True, null=True)
+    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
 
 class Account(models.Model):
@@ -807,7 +808,7 @@ class Statement (models.Model):
 
     def __str__(self):
         return self.account.name + " " + self.statement_date.strftime('%Y-%m-%d')
-    
+
     def get_absolute_url(self):
         return reverse('budgetdb:details_statement', kwargs={'pk': self.pk})
 

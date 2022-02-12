@@ -1,4 +1,5 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
 from datetime import datetime, date
@@ -89,7 +90,7 @@ class TransactionCreateViewFromDateAccount(CreateView):
         return form
 
 
-class TransactionUpdateView(UpdateView):
+class TransactionUpdateView(LoginRequiredMixin, UpdateView):
     model = Transaction
     fields = [
         'description',
@@ -160,7 +161,7 @@ class TransactionUpdatePopupView(UpdateView):
         return form
 
 
-class JoinedTransactionUpdateView(UpdateView):
+class JoinedTransactionUpdateView(LoginRequiredMixin, UpdateView):
     ArticleFormSet = formset_factory(JoinedTransactions)
 
 

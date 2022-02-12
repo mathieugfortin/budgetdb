@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
+from django.contrib.auth.mixins import LoginRequiredMixin
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -617,12 +618,12 @@ class AutocompleteVendor(autocomplete.Select2QuerySetView):
         return qs
 
 
-class Cat1DetailView(DetailView):
+class Cat1DetailView(LoginRequiredMixin, DetailView):
     model = Cat1
     template_name = 'budgetdb/cat1_detail.html'
 
 
-class Cat1UpdateView(UpdateView):
+class Cat1UpdateView(LoginRequiredMixin, UpdateView):
     model = Cat1
     fields = (
         'name',
@@ -640,7 +641,7 @@ class Cat1UpdateView(UpdateView):
         return form
 
 
-class Cat2UpdateView(UpdateView):
+class Cat2UpdateView(LoginRequiredMixin, UpdateView):
     model = Cat2
     fields = (
         'name',
@@ -658,7 +659,7 @@ class Cat2UpdateView(UpdateView):
         return form
 
 
-class CatTypeUpdateView(UpdateView):
+class CatTypeUpdateView(LoginRequiredMixin, UpdateView):
     model = CatType
     fields = (
         'name',
@@ -675,7 +676,7 @@ class CatTypeUpdateView(UpdateView):
         return form
 
 
-class VendorUpdateView(UpdateView):
+class VendorUpdateView(LoginRequiredMixin, UpdateView):
     model = Vendor
     fields = ('name',)
 
@@ -690,7 +691,8 @@ class VendorUpdateView(UpdateView):
         return form
 
 
-class AccountUpdateView(UpdateView):
+class AccountUpdateView(LoginRequiredMixin, UpdateView):
+    # login_url = '/admin/login/'
     model = Account
     fields = (
         'name',
@@ -711,7 +713,7 @@ class AccountUpdateView(UpdateView):
         return form
 
 
-class AccountCatUpdateView(UpdateView):
+class AccountCatUpdateView(LoginRequiredMixin, UpdateView):
     model = AccountCategory
     fields = (
         'name',
@@ -729,7 +731,7 @@ class AccountCatUpdateView(UpdateView):
         return form
 
 
-class AccountHostUpdateView(UpdateView):
+class AccountHostUpdateView(LoginRequiredMixin, UpdateView):
     model = AccountHost
     fields = (
         'name',
@@ -746,22 +748,22 @@ class AccountHostUpdateView(UpdateView):
         return form
 
 
-class Cat2DetailView(DetailView):
+class Cat2DetailView(LoginRequiredMixin, DetailView):
     model = Cat2
     template_name = 'budgetdb/cat2_detail.html'
 
 
-class CatTypeDetailView(DetailView):
+class CatTypeDetailView(LoginRequiredMixin, DetailView):
     model = CatType
     template_name = 'budgetdb/cattype_detail.html'
 
 
-class VendorDetailView(DetailView):
+class VendorDetailView(LoginRequiredMixin, DetailView):
     model = Vendor
     template_name = 'budgetdb/vendor_detail.html'
 
 
-class JoinedTransactionsDetailView(DetailView):
+class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
     model = JoinedTransactions
     template_name = 'budgetdb/joinedtransactions_detail.html'
 
@@ -780,12 +782,12 @@ class JoinedTransactionsDetailView(DetailView):
         return context
 
 
-class AccountDetailView(DetailView):
+class AccountDetailView(LoginRequiredMixin, DetailView):
     model = Account
     template_name = 'budgetdb/account_detail.html'
 
 
-class AccountHostDetailView(DetailView):
+class AccountHostDetailView(LoginRequiredMixin, DetailView):
     model = AccountHost
     template_name = 'budgetdb/accounthost_detail.html'
 
@@ -798,7 +800,7 @@ class IndexView(ListView):
         return Cat1.objects.order_by('name')
 
 
-class Cat1ListView(ListView):
+class Cat1ListView(LoginRequiredMixin, ListView):
     model = Cat1
     context_object_name = 'categories_list'
 
@@ -806,7 +808,7 @@ class Cat1ListView(ListView):
         return Cat1.objects.order_by('name')
 
 
-class Cat2ListView(ListView):
+class Cat2ListView(LoginRequiredMixin, ListView):
     model = Cat2
     context_object_name = 'categories_list'
 
@@ -814,7 +816,7 @@ class Cat2ListView(ListView):
         return Cat2.objects.order_by('name')
 
 
-class AccountSummaryView(ListView):
+class AccountSummaryView(LoginRequiredMixin, ListView):
     model = Account
     context_object_name = 'account_list'
     template_name = 'budgetdb/account_list_detailed.html'
@@ -837,7 +839,7 @@ class AccountSummaryView(ListView):
         return accountps
 
 
-class AccountListViewSimple(ListView):
+class AccountListViewSimple(LoginRequiredMixin, ListView):
     model = Account
     context_object_name = 'account_list'
     template_name = 'budgetdb/account_list_simple.html'
@@ -856,7 +858,7 @@ class AccountListViewSimple(ListView):
         return accounts
 
 
-class AccountHostListView(ListView):
+class AccountHostListView(LoginRequiredMixin, ListView):
     model = AccountHost
     context_object_name = 'account_host_list'
 
@@ -864,7 +866,7 @@ class AccountHostListView(ListView):
         return AccountHost.objects.filter(deleted=False).order_by('name')
 
 
-class VendorListView(ListView):
+class VendorListView(LoginRequiredMixin, ListView):
     model = Vendor
     context_object_name = 'vendor_list'
 
@@ -872,7 +874,7 @@ class VendorListView(ListView):
         return Vendor.objects.order_by('name')
 
 
-class CatTypeListView(ListView):
+class CatTypeListView(LoginRequiredMixin, ListView):
     model = CatType
     context_object_name = 'cattype_list'
 
@@ -880,7 +882,7 @@ class CatTypeListView(ListView):
         return CatType.objects.order_by('name')
 
 
-class AccountCatListView(ListView):
+class AccountCatListView(LoginRequiredMixin, ListView):
     model = AccountCategory
     context_object_name = 'accountcat_list'
 
@@ -888,9 +890,9 @@ class AccountCatListView(ListView):
         return AccountCategory.objects.order_by('name')
 
 
-class AccountperiodicView(ListView):
+class AccountListActivityView(LoginRequiredMixin, ListView):
     model = Account
-    template_name = 'budgetdb/AccountperiodicView.html'
+    template_name = 'budgetdb/AccountListActivityView.html'
 
     def get_queryset(self):
         pk = self.kwargs['pk']
@@ -938,7 +940,7 @@ class AccountperiodicView(ListView):
         return context
 
 
-class Cat1CreateView(CreateView):
+class Cat1CreateView(LoginRequiredMixin, CreateView):
     model = Cat1
     fields = [
         'name',
@@ -956,7 +958,7 @@ class Cat1CreateView(CreateView):
         return form
 
 
-class AccountCreateView(CreateView):
+class AccountCreateView(LoginRequiredMixin, CreateView):
     model = Account
     fields = [
         'name',
@@ -977,7 +979,7 @@ class AccountCreateView(CreateView):
         return form
 
 
-class AccountCatCreateView(CreateView):
+class AccountCatCreateView(LoginRequiredMixin, CreateView):
     model = AccountCategory
     fields = (
         'name',
@@ -995,7 +997,7 @@ class AccountCatCreateView(CreateView):
         return form
 
 
-class AccountHostCreateView(CreateView):
+class AccountHostCreateView(LoginRequiredMixin, CreateView):
     model = AccountHost
     fields = ['name']
 
@@ -1010,7 +1012,7 @@ class AccountHostCreateView(CreateView):
         return form
 
 
-class CatTypeCreate(CreateView):
+class CatTypeCreate(LoginRequiredMixin, CreateView):
     model = CatType
     fields = [
         'name',
@@ -1027,7 +1029,7 @@ class CatTypeCreate(CreateView):
         return form
 
 
-class Cat2Create(CreateView):
+class Cat2Create(LoginRequiredMixin, CreateView):
     model = Cat2
     fields = [
         'name',
@@ -1055,7 +1057,7 @@ class Cat2Create(CreateView):
 
 
 # class VendorCreate(CreatePopupMixin, CreateView):
-class VendorCreate(CreateView):
+class VendorCreate(LoginRequiredMixin, CreateView):
     model = Vendor
     fields = ['name']
 

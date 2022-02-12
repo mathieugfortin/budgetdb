@@ -63,8 +63,7 @@ urlpatterns = [
          name='update_account'),
     path('account/ac/', views.AutocompleteAccount.as_view(),
          name='autocomplete_account'),
-
-    path('account/list/<int:pk>/', views.AccountperiodicView.as_view(),
+    path('account/listactivity/<int:pk>/', views.AccountListActivityView.as_view(),
          name='list_account_activity'),
 
     # AccountCategory
