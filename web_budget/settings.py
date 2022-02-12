@@ -3,9 +3,13 @@ from pathlib import Path
 import json
 import os
 from django.core.exceptions import ImproperlyConfigured
+from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOGIN_URL = reverse_lazy('admin:login')
+LOGOUT_REDIRECT_URL = reverse_lazy('budgetdb:home')
+
 filename = os.path.join(BASE_DIR, 'secrets.json')
 with open(filename, 'r') as f:
     secrets = json.loads(f.read())
@@ -46,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'crispy_forms',
     'django.contrib.humanize',
+    'django_extensions',
     # 'debug_toolbar',
     'chartjs',
 ]
@@ -147,3 +152,4 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+

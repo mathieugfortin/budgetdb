@@ -111,12 +111,12 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" >
                         <a class="dropdown-item" href="#">Preferences</a>
-                        <a class="dropdown-item" href="#">Logout</a>
+                        <a class="dropdown-item" href="{% url 'admin:logout' %}">Logout</a>
                     </div>
                 </li>
                 {% else %}
                 <li class="nav-item active">
-                    <a class="nav-link" href="/admin">Please Login</a>
+                    <a class="nav-link" href="{% url 'admin:login' %}?next={% url 'budgetdb:home' %}">Please Login</a>
                 </li>                
                 {% endif %}
         </ul>

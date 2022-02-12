@@ -59,3 +59,7 @@ class BudgetedEventForm(forms.ModelForm):
 
         self.helper.add_input(Submit('submit', 'Submit'))
         # self.fields['cat2'].queryset = Cat2.objects.none()
+
+
+class JoinedTransactionsForm(forms.ModelForm):
+    pass
