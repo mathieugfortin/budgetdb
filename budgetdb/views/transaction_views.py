@@ -2,6 +2,7 @@ from django.views.generic import ListView, CreateView, UpdateView, View, Templat
 from django.contrib.auth.mixins import LoginRequiredMixin
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
+from budgetdb.forms import TransactionForm
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
@@ -51,117 +52,47 @@ class TransactionCreateView(CreateView):
 
 class TransactionCreateViewFromDateAccount(CreateView):
     model = Transaction
+    # template_name = 'budgetdb/crispytest.html'
     template_name = 'budgetdb/transaction_popup_form.html'
-    fields = [
-        'description',
-        'cat1',
-        'cat2',
-        'ismanual',
-        'account_source',
-        'account_destination',
-        'statement',
-        'verified',
-        'receipt',
-        'audit',
-        'vendor',
-        'amount_actual',
-        'Fuel_L',
-        'Fuel_price',
-        'date_actual',
-        'date_planned',
-        'budgetedevent',
-        'comment',
-        ]
-
-    def form_valid(self, form):
-        return super().form_valid(form)
+    form_class = TransactionForm
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.helper = FormHelper()
         date = self.kwargs['date']
         account_id = self.kwargs['account_pk']
         account = Account.objects.get(id=account_id)
         form.initial['date_actual'] = date
         form.initial['account_source'] = account
-
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form
 
 
 class TransactionUpdateView(LoginRequiredMixin, UpdateView):
     model = Transaction
-    fields = [
-        'description',
-        'cat1',
-        'cat2',
-        'ismanual',
-        'account_source',
-        'account_destination',
-        'statement',
-        'verified',
-        'receipt',
-        'audit',
-        'vendor',
-        'amount_actual',
-        'Fuel_L',
-        'Fuel_price',
-        'date_actual',
-        'date_planned',
-        'budgetedevent',
-        'comment',
-        'deleted',
-        ]
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
+    # template_name = 'budgetdb/crispytest.html'
+    template_name = 'budgetdb/transaction_form.html'
+    # template_name = 'budgetdb/transaction_popup_form.html'
+    form_class = TransactionForm
 
 
-class TransactionUpdatePopupView(UpdateView):
+class TransactionUpdatePopupView(LoginRequiredMixin, UpdateView):
     model = Transaction
+    # template_name = 'budgetdb/crispytest.html'
     template_name = 'budgetdb/transaction_popup_form.html'
-    fields = [
-        'description',
-        'cat1',
-        'cat2',
-        'ismanual',
-        'account_source',
-        'account_destination',
-        'statement',
-        'verified',
-        'receipt',
-        'audit',
-        'vendor',
-        'amount_actual',
-        'Fuel_L',
-        'Fuel_price',
-        'date_actual',
-        'date_planned',
-        'budgetedevent',
-        'comment',
-        'deleted',
-        ]
+    form_class = TransactionForm
 
-    def form_valid(self, form):
-        return super().form_valid(form)
+    # def form_valid(self, form):
+    #    form.instance.save()
+    #    return super().form_valid(form)
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
+    # def form_invalid(self, form):
+    #    return super().form_invalid(form)
 
 
 class JoinedTransactionUpdateView(LoginRequiredMixin, UpdateView):
+    ArticleFormSet = formset_factory(JoinedTransactions)
+
+
+class JoinedTransactionCreateView(LoginRequiredMixin, CreateView):
     ArticleFormSet = formset_factory(JoinedTransactions)
 
 

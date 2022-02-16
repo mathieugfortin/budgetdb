@@ -1,13 +1,15 @@
-<!-- template name: Transaction_popup_form -->
 {% extends 'budgetdb/basecrispy.html' %}
-{% load static %}
-{% load crispy_forms_tags %}
 
-{% block title %}Transaction Form Popup{% endblock %}
 {% load crispy_forms_tags %}
-{% block content %}
-  {% crispy form %}
+{% load static %}
+{% block title %}
+    Transaction Update Form
 {% endblock %}
+
+{% block content %}
+    {% crispy form %}
+{% endblock %}
+
 {% block script %}
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 
@@ -50,14 +52,6 @@ $("#id_cat1").change(function () {
 
     });
 
-    function closeSelf(){
-        window.opener.location.reload();
-        window.close();
-    }
-    window.onunload = refreshParent;
-    function refreshParent() {
-        window.opener.location.reload();
-    }
-    
+        
 </script>
 {% endblock %}

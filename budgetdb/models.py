@@ -275,6 +275,8 @@ class Cat1(models.Model):
     class Meta:
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
+        ordering = ['name']
+
     name = models.CharField(max_length=200)
     CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE,
                                   blank=True, null=True)
@@ -292,6 +294,7 @@ class Cat2(models.Model):
     class Meta:
         verbose_name = 'Sub Category'
         verbose_name_plural = 'Sub Categories'
+        ordering = ['name']
 
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
@@ -310,6 +313,8 @@ class AccountHost(models.Model):
     class Meta:
         verbose_name = 'Financial Institution'
         verbose_name_plural = 'Financial Institutions'
+        ordering = ['name']
+
     name = models.CharField(max_length=200)
     deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
@@ -324,6 +329,8 @@ class AccountPresentation(models.Model):
     class Meta:
         managed = False
         db_table = 'budgetdb_account_presentation'
+        ordering = ['name']
+
     id = models.BigIntegerField(primary_key=True)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -339,6 +346,7 @@ class Account(models.Model):
     class Meta:
         verbose_name = 'Account'
         verbose_name_plural = 'Accounts'
+        ordering = ['name']
 
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -482,6 +490,8 @@ class AccountCategory(models.Model):
     class Meta:
         verbose_name = 'Account Category'
         verbose_name_plural = 'Account Categories'
+        ordering = ['name']
+
     accounts = models.ManyToManyField(Account, related_name='account_categories')
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -552,7 +562,7 @@ class Transaction(models.Model):
         'Fuel cost', decimal_places=3, max_digits=5, blank=True, null=True
     )
 
-    description = models.CharField('transaction description', max_length=200)
+    description = models.CharField('Description', max_length=200)
     comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
@@ -565,10 +575,10 @@ class Transaction(models.Model):
         Account, on_delete=models.CASCADE, related_name='t_account_destination', blank=True, null=True
     )
     statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
-    verified = models.BooleanField('confirmed in a statement.  Prevents deletion in case of budgetedEvent change', default=False)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
+    verified = models.BooleanField('Verified in a statement', default=False)
+    deleted = models.BooleanField('Deleted', default=False)
     audit = models.BooleanField(
-        'Special transaction that overrides an account balance.  Used to set the initial value.  Use account_source as account_id',
+        'Audit',
         default=False,
         )
     receipt = models.BooleanField(
@@ -783,7 +793,10 @@ class BudgetedEvent(models.Model):
             self.generated_interval_stop = date
 
     def deleteUnverifiedTransaction(self):
-        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False, deleted=False)
+        # don't delete if it's verified in a statement
+        # don't delete if it's verified with a receipt
+        # don't delete if it's flagged as deleted
+        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False, deleted=False, receipt=False)
         transactions.delete()
         self.generated_interval_start = None
         self.generated_interval_stop = None

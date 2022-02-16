@@ -52,26 +52,9 @@ class BudgetedEventDetailView(LoginRequiredMixin, DetailView):
 
 
 class BudgetedEventUpdate(LoginRequiredMixin, UpdateView):
-    # template_name = 'budgetdb/budgetedeventmod_form.html'
+    template_name = 'budgetdb/budgetedevent_form.html'
     model = BudgetedEvent
-    fields = (
-            'description',
-            'amount_planned',
-            'cat1',
-            'cat2',
-            'ismanual',
-            'repeat_start',
-            'repeat_stop',
-            'vendor',
-            'account_source',
-            'account_destination',
-            'budget_only',
-            'isrecurring',
-            'repeat_interval_days',
-            'repeat_interval_weeks',
-            'repeat_interval_months',
-            'repeat_interval_years',
-        )
+    form_class = BudgetedEventForm
 
     def form_valid(self, form):
         return super().form_valid(form)
