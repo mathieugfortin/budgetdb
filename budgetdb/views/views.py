@@ -692,7 +692,6 @@ class VendorUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class AccountUpdateView(LoginRequiredMixin, UpdateView):
-    # login_url = '/admin/login/'
     model = Account
     fields = (
         'name',
@@ -701,6 +700,7 @@ class AccountUpdateView(LoginRequiredMixin, UpdateView):
         'account_number',
         'comment',
         )
+    template_name = 'budgetdb/account_form.html'
 
     def form_valid(self, form):
         return super().form_valid(form)

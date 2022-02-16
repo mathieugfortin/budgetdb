@@ -119,12 +119,12 @@ tr.VERIFIED button.verify::before {
         {% endif %}
         id=T{{event.id}}
     >
-        <td><a href="{% url 'budgetdb:create_transaction_from_date_account' event.date_actual|date:'Y-m-d' pk %}" target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' event.date_actual|date:'Y-m-d' pk %}','popup','width=900,height=600'); return false;" >
+        <td><a href="{% url 'budgetdb:create_transaction_from_date_account' event.date_actual|date:'Y-m-d' pk %}" target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' event.date_actual|date:'Y-m-d' pk %}','popup','width=1000,height=700'); return false;" >
             <i class="fas fa-plus"></i>
         </a></td>
         <td>{{ event.date_actual|date:'Y-m-d' }}</td>
         <td>{% if event.statement != None %} {{ event.statement }} {% endif %}</td>
-        <td><a href="{% url 'budgetdb:update_transaction_popup' event.id %}" target="popup" onclick="window.open('{% url 'budgetdb:update_transaction_popup' event.id %}','popup','width=900,height=600'); return false;"    >{{ event.description }}</a></td>
+        <td><a href="{% url 'budgetdb:update_transaction_popup' event.id %}" target="popup" onclick="window.open('{% url 'budgetdb:update_transaction_popup' event.id %}','popup','width=1000,height=700'); return false;"    >{{ event.description }}</a></td>
         <td>{% if event.budgetedevent_id != None %} 
             <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>
             {% endif %}</td>
