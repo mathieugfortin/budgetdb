@@ -524,6 +524,11 @@ class AccountAudit(models.Model):
 
 
 class Vendor(models.Model):
+    class Meta:
+        verbose_name = 'Account audit point'
+        verbose_name_plural = 'Account audit points'
+        ordering = ['name']
+
     name = models.CharField(max_length=200)
     deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 

@@ -1,0 +1,14 @@
+{% extends 'budgetdb/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Transaction Form{% endblock %}
+
+{% block content %}
+  <h2>Transaction Form</h2>
+  {% load crispy_forms_tags %}
+  {% crispy form %}
+{% endblock %}
+{% block script %}
+
+{% endblock %}

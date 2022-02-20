@@ -184,9 +184,9 @@ urlpatterns = [
     # Joined Transactions
     path('joinedtransaction/add/', views.JoinedTransactionUpdateView.as_view(),
          name='create_joined_transaction'),
-    path('joinedtransaction/update/<int:pk>/', views.JoinedTransactionUpdateView.as_view(),
+    path('joinedtransaction/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionUpdateView.as_view(),
          name='update_joined_transaction'),
-    path('joinedtransaction/<int:pk>/', views.JoinedTransactionsDetailView.as_view(),
+    path('joinedtransaction/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsDetailView.as_view(),
          name='details_joined_transaction'),
 
     # Vendor
