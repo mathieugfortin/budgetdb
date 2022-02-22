@@ -1,8 +1,6 @@
 {% load crispy_forms_tags %}
 
 <div class="formset">
-  
-
     {% for form in formset.forms %}
       {% for hidden in form.hidden_fields %}
         {{ hidden|as_crispy_field }}
