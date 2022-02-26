@@ -114,7 +114,6 @@ class JoinedTransactionsForm(forms.ModelForm):
         fields = [
             'name',
         ]
-    # formset = formset_factory(TransactionFormShort)
 
     def __init__(self, *args, **kwargs):
         pk = kwargs.pop('pk', None)
@@ -123,6 +122,8 @@ class JoinedTransactionsForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_method = 'POST'
         self.helper.layout = Layout(
+            # Hidden('name', self.initial),
+            Field('name'),
             Div(
                 HTML("<div class='col-md-2' >Description</div>"),
                 HTML("<div class='col-md-1' >Category</div>"),
@@ -137,7 +138,7 @@ class JoinedTransactionsForm(forms.ModelForm):
 
             ),
             Div(
-                Fieldset('', Formset('formset')),
+                # Fieldset('', Formset('formset')),
             )
         )
         self.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))

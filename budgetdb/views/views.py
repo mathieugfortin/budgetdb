@@ -763,25 +763,6 @@ class VendorDetailView(LoginRequiredMixin, DetailView):
     template_name = 'budgetdb/vendor_detail.html'
 
 
-class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
-    model = JoinedTransactions
-    template_name = 'budgetdb/joinedtransactions_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
-        day = self.kwargs['day']
-        month = self.kwargs['month']
-        year = self.kwargs['year']
-        transactions = JoinedTransactions.objects.get(deleted=False, pk=pk).transactions.filter(deleted=False)
-        transactiondate = datetime(year=year, month=month, day=day)
-        for budgetedevent in JoinedTransactions.objects.get(deleted=False, pk=pk).budgetedevents.filter(deleted=False):
-            transactions = transactions | Transaction.objects.filter(deleted=False, budgetedevent=budgetedevent, date_actual=transactiondate)
-
-        context['transactions'] = transactions
-        return context
-
-
 class AccountDetailView(LoginRequiredMixin, DetailView):
     model = Account
     template_name = 'budgetdb/account_detail.html'

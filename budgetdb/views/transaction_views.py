@@ -81,13 +81,33 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UpdateView):
     form_class = TransactionFormFull
 
 
-class JoinedTransactionUpdateView(LoginRequiredMixin, UpdateView):
+class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
+    model = JoinedTransactions
+    template_name = 'budgetdb/joinedtransactions_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
+        date = self.kwargs['date']
+        transactions = JoinedTransactions.objects.get(deleted=False, pk=pk).transactions.filter(deleted=False)
+        transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
+        for budgetedevent in JoinedTransactions.objects.get(deleted=False, pk=pk).budgetedevents.filter(deleted=False):
+            transactions = transactions | Transaction.objects.filter(deleted=False, budgetedevent=budgetedevent, date_actual=transactiondate)
+
+        context['transactions'] = transactions
+        return context
+
+
+class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
     model = JoinedTransactions
     form_class = JoinedTransactionsForm
     template_name = 'budgetdb/joinedtransactions_form.html'
 
+    def get_success_url(self):
+        return reverse('budgetdb:details_joined_transaction')
+
     def get_form_kwargs(self):
-        kwargs = super(JoinedTransactionUpdateView, self).get_form_kwargs()
+        kwargs = super(JoinedTransactionsUpdateView, self).get_form_kwargs()
         kwargs.update(self.kwargs)
         return kwargs
 
