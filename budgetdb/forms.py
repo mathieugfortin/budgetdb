@@ -4,7 +4,7 @@ from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransa
 from django.urls import reverse_lazy
 from django_addanother.widgets import AddAnotherWidgetWrapper, AddAnotherEditSelectedWidgetWrapper
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML
+from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden
 from django.template.loader import render_to_string
 from crispy_forms.bootstrap import AppendedText, PrependedText
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
@@ -118,12 +118,14 @@ class JoinedTransactionsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         pk = kwargs.pop('pk', None)
         date = kwargs.pop('date', None)
-        super().__init__(*args, **kwargs)
+        super(JoinedTransactionsForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.form_method = 'POST'
+        self.helper.form_show_labels = False
+        self.helper.form_class = 'form-horizontal'
+        self.helper.form_tag = False
         self.helper.layout = Layout(
-            # Hidden('name', self.initial),
-            Field('name'),
+            Hidden('name', self.initial['name']),
+            # Field('name'),
             Div(
                 HTML("<div class='col-md-2' >Description</div>"),
                 HTML("<div class='col-md-1' >Category</div>"),
@@ -135,13 +137,11 @@ class JoinedTransactionsForm(forms.ModelForm):
                 HTML("<div class='col-md-1 text-center' >Deleted</div>"),
                 HTML("<div class='col-md-1' >Ammount</div>"),
                 css_class='form-row'
-
             ),
             Div(
-                # Fieldset('', Formset('formset')),
+                Fieldset('', Formset('formset')),
             )
         )
-        self.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
 
 
 class TransactionFormFull(forms.ModelForm):
@@ -181,19 +181,19 @@ class TransactionFormFull(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = 'POST'
-        self.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-
-        # self.helper.form_class = 'form-horizontal'
-        self.fields['cat1'].label = "Category"
-        self.fields['cat2'].label = "Sub-Category"
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
                 self.fields['cat2'].queryset = Cat2.objects.filter(cat1=cat1, deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'POST'
+        self.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        # self.helper.form_class = 'form-horizontal'
+        self.fields['cat1'].label = "Category"
+        self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Ammount"
         self.helper.layout = Layout(
             Field('description'),
@@ -269,23 +269,16 @@ class TransactionFormShort(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = 'POST'
-
-        # self.helper.form_class = 'form-horizontal'
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
                 self.fields['cat2'].queryset = Cat2.objects.filter(cat1=cat1, deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
-        # self.fields['cat1'].label = "Cat"
-        # self.fields['cat2'].label = "SubCat"
-        # self.fields['amount_actual'].label = "Ammount"
-        # self.fields['verified'].label = "Checked"
-        # self.fields['account_source'].label = "Source"
-        # self.fields['account_destination'].label = "Destination"
+
+        self.helper = FormHelper()
         self.helper.form_show_labels = False
+        self.helper.form_tag = False
         self.helper.layout = Layout(
             Div(
                 Div('description', css_class='form-group col-md-2'),
@@ -293,12 +286,12 @@ class TransactionFormShort(forms.ModelForm):
                 Div('cat2', css_class='form-group col-md-2'),
                 Div('account_source', css_class='form-group col-md-1'),
                 Div('account_destination', css_class='form-group col-md-1'),
-                # Div('amount_actual', css_class='form-group col-md-1'),
                 Div('verified', css_class='form-group col-md-1'),
                 Div('receipt', css_class='form-group col-md-1'),
                 Div('deleted', css_class='form-group col-md-1'),
                 Div(PrependedText('amount_actual', '$')),
-#                Div('budgetedevent', css_class='form-group col-md-1'),
+                # Div('amount_actual', css_class='form-group col-md-1'),
+                # Div('budgetedevent', css_class='form-group col-md-1'),
                 # HTML('<a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>'),
                 css_class='form-row'
             ),

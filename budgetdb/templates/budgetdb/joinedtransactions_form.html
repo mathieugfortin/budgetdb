@@ -18,8 +18,11 @@
 
 </div>
   
-  {% load crispy_forms_tags %}
-  {% crispy form %}
+
+{% load crispy_forms_tags %}
+<form  class="form-horizontal" method="post" >
+{% crispy form %}
+</form>
 {% endblock %}
 {% block script %}
 

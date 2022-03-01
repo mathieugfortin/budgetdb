@@ -103,13 +103,37 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
     form_class = JoinedTransactionsForm
     template_name = 'budgetdb/joinedtransactions_form.html'
 
+    def post(self, request, *args, **kwargs):
+        return super().post(request, args, kwargs)
+
+    def clean(self):
+        return super().clean(self)
+
+    def form_invalid(self, form):
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        transactions = context['formset']
+        self.object = form.save()
+        if transactions.is_valid():
+            transactions.instance = self.object
+            transactions.save()
+        return super().form_valid(form)
+
     def get_success_url(self):
-        return reverse('budgetdb:details_joined_transaction')
+        return reverse('budgetdb:details_joined_transaction', kwargs={'pk': self.kwargs['pk'], 'date': self.kwargs['date']})
 
     def get_form_kwargs(self):
         kwargs = super(JoinedTransactionsUpdateView, self).get_form_kwargs()
         kwargs.update(self.kwargs)
         return kwargs
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -119,22 +143,26 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
         # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
         transactions = joinedtransaction.transactions.all()
         transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
-        # nextrecurrence = Transaction.objects.none()
-        # previousrecurrence = Transaction.objects.none()
         firstbudgetedevent = joinedtransaction.budgetedevents.filter(deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first()
         previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first()
         for budgetedevent in joinedtransaction.budgetedevents.filter(deleted=False):
             transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
         transactions = transactions.order_by('joined_order')
-        transactionFormSet = modelformset_factory(Transaction, form=TransactionFormShort, exclude=())
-        formset = transactionFormSet(queryset=transactions)
-
-        # context['transactions'] = transactions
-        context['formset'] = formset
+        transactionFormSet = modelformset_factory(Transaction, form=TransactionFormShort, exclude=(), extra=0)
+        # transactionFormSet = inlineformset_factory(JoinedTransactions, Transaction, form=TransactionFormShort, exclude=(), extra=0)
+        formset = transactionFormSet(queryset=transactions,)
+        formsetPost = transactionFormSet(self.request.POST, queryset=transactions)
+        # self.form.helper = FormHelper()
+        if self.request.POST:
+            context['formset'] = transactionFormSet(self.request.POST, queryset=transactions)
+            # check if formset is valid here?
+        else:
+            context['formset'] = formset
+        context['joinedtransaction'] = joinedtransaction
+        context['helper'] = context.get('form').helper
         context['pdate'] = previousrecurrence.date_actual.strftime("%Y-%m-%d")
         context['ndate'] = nextrecurrence.date_actual.strftime("%Y-%m-%d")
-        context['joinedtransaction'] = joinedtransaction
         context['transactiondate'] = transactiondate.strftime("%Y-%m-%d")
         return context
 
