@@ -1,0 +1,9 @@
+{% load crispy_forms_tags %}
+
+<div class="formset">
+    {{ formset.management_form|crispy }}
+    {% for form in formset.forms %}
+      
+      {% crispy form %}
+    {% endfor %}
+</div>

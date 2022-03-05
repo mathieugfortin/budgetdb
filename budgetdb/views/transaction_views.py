@@ -2,7 +2,8 @@ from django.views.generic import ListView, CreateView, UpdateView, View, Templat
 from django.contrib.auth.mixins import LoginRequiredMixin
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
-from budgetdb.forms import TransactionForm
+from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet
+from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
@@ -54,7 +55,7 @@ class TransactionCreateViewFromDateAccount(CreateView):
     model = Transaction
     # template_name = 'budgetdb/crispytest.html'
     template_name = 'budgetdb/transaction_popup_form.html'
-    form_class = TransactionForm
+    form_class = TransactionFormFull
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -71,25 +72,82 @@ class TransactionUpdateView(LoginRequiredMixin, UpdateView):
     # template_name = 'budgetdb/crispytest.html'
     template_name = 'budgetdb/transaction_form.html'
     # template_name = 'budgetdb/transaction_popup_form.html'
-    form_class = TransactionForm
+    form_class = TransactionFormFull
 
 
 class TransactionUpdatePopupView(LoginRequiredMixin, UpdateView):
     model = Transaction
-    # template_name = 'budgetdb/crispytest.html'
     template_name = 'budgetdb/transaction_popup_form.html'
-    form_class = TransactionForm
-
-    # def form_valid(self, form):
-    #    form.instance.save()
-    #    return super().form_valid(form)
-
-    # def form_invalid(self, form):
-    #    return super().form_invalid(form)
+    form_class = TransactionFormFull
 
 
-class JoinedTransactionUpdateView(LoginRequiredMixin, UpdateView):
-    ArticleFormSet = formset_factory(JoinedTransactions)
+class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
+    model = JoinedTransactions
+    template_name = 'budgetdb/joinedtransactions_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
+        date = self.kwargs['date']
+        transactions = JoinedTransactions.objects.get(deleted=False, pk=pk).transactions.filter(deleted=False)
+        transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
+        for budgetedevent in JoinedTransactions.objects.get(deleted=False, pk=pk).budgetedevents.filter(deleted=False):
+            transactions = transactions | Transaction.objects.filter(deleted=False, budgetedevent=budgetedevent, date_actual=transactiondate)
+
+        context['transactions'] = transactions
+        return context
+
+
+class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
+    model = JoinedTransactions
+    form_class = JoinedTransactionsForm
+    template_name = 'budgetdb/joinedtransactions_form.html'
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        transactions = context['formset']
+
+        if transactions.is_valid():
+            transactions.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('budgetdb:details_joined_transaction', kwargs={'pk': self.kwargs['pk'], 'date': self.kwargs['date']})
+
+    def get_form_kwargs(self):
+        kwargs = super(JoinedTransactionsUpdateView, self).get_form_kwargs()
+        kwargs.update(self.kwargs)
+        return kwargs
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
+        date = self.kwargs['date']
+        joinedtransaction = JoinedTransactions.objects.get(pk=pk)
+        transactions = joinedtransaction.transactions.all()
+        transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
+        # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
+        firstbudgetedevent = joinedtransaction.budgetedevents.filter(deleted=False).order_by('joined_order').first()
+        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
+        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
+        for budgetedevent in joinedtransaction.budgetedevents.filter(deleted=False):
+            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
+        transactions = transactions.order_by('joined_order')
+        if self.request.POST:
+            context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions)
+        else:
+            context['formset'] = TransactionFormSet(queryset=transactions)
+        context['joinedtransaction'] = joinedtransaction
+        context['pdate'] = previousrecurrence
+        context['ndate'] = nextrecurrence
+        context['transactiondate'] = date
+        return context
 
 
 class JoinedTransactionCreateView(LoginRequiredMixin, CreateView):

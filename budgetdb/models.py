@@ -524,6 +524,11 @@ class AccountAudit(models.Model):
 
 
 class Vendor(models.Model):
+    class Meta:
+        verbose_name = 'Account audit point'
+        verbose_name_plural = 'Account audit points'
+        ordering = ['name']
+
     name = models.CharField(max_length=200)
     deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
@@ -548,7 +553,8 @@ class Transaction(models.Model):
     # date_planned only populated if linked to a budgeted_event
     # will break if repetition pattern of BE changes... so BE can't change if it has attached Ts
     date_actual = models.DateField('date of the transaction')
-
+    joined_order = models.IntegerField('position in a joined transaction', blank=True,
+                                       null=True)
     amount_planned = models.DecimalField(
         'planned amount', decimal_places=2, max_digits=10, blank=True, null=True
     )
@@ -641,6 +647,8 @@ class BudgetedEvent(models.Model):
     repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
     nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
                                        null=True)  # is this implementable on complex patterns?
+    joined_order = models.IntegerField('position in a joined transaction', blank=True,
+                                       null=True)
     repeat_interval_days = models.IntegerField('period in days, 0 if not applicable', default=0)
     repeat_interval_years = models.IntegerField('period in years, 0 if not applicable', default=0)
     repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
@@ -764,6 +772,13 @@ class BudgetedEvent(models.Model):
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
+    def listPreviousTransaction(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
+        transactions = transactions.filter(date_actual__lt=begin_interval)
+        end_date = begin_interval - relativedelta(months=interval_length_months)
+        transactions = transactions.filter(date_actual__gt=end_date).order_by('-date_actual')[:n]
+        return transactions
+
     def createTransactions(self, n=400, begin_interval=None, interval_length_months=60):
         if begin_interval is None:
             begin_interval = self.repeat_start
@@ -786,7 +801,8 @@ class BudgetedEvent(models.Model):
                                                          cat1=self.cat1,
                                                          cat2=self.cat2,
                                                          vendor=self.vendor,
-                                                         budget_only=self.budget_only
+                                                         budget_only=self.budget_only,
+                                                         joined_order=self.joined_order
                                                          )
             new_transaction.save()
             # Needs a lot more work with these interval management  #######

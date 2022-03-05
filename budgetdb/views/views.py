@@ -1,7 +1,7 @@
 # from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
 from django.forms import ModelForm
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
@@ -761,25 +761,6 @@ class CatTypeDetailView(LoginRequiredMixin, DetailView):
 class VendorDetailView(LoginRequiredMixin, DetailView):
     model = Vendor
     template_name = 'budgetdb/vendor_detail.html'
-
-
-class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
-    model = JoinedTransactions
-    template_name = 'budgetdb/joinedtransactions_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
-        day = self.kwargs['day']
-        month = self.kwargs['month']
-        year = self.kwargs['year']
-        transactions = JoinedTransactions.objects.get(deleted=False, pk=pk).transactions.filter(deleted=False)
-        transactiondate = datetime(year=year, month=month, day=day)
-        for budgetedevent in JoinedTransactions.objects.get(deleted=False, pk=pk).budgetedevents.filter(deleted=False):
-            transactions = transactions | Transaction.objects.filter(deleted=False, budgetedevent=budgetedevent, date_actual=transactiondate)
-
-        context['transactions'] = transactions
-        return context
 
 
 class AccountDetailView(LoginRequiredMixin, DetailView):
