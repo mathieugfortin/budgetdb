@@ -5,8 +5,6 @@ https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Generic_views
 
 # Don't forget to filter out results depending on the visitor !
 
-Take care to escape anything you put in HTML code to avoid XSS attacks when displaying data that may have been input by a user! format_html helps.
-
 autocomplete:
 https://django-autocomplete-light.readthedocs.io/en/master/tutorial.html#filtering-results-based-on-the-value-of-other-fields-in-the-form)
 
@@ -47,3 +45,4 @@ https://stackoverflow.com/questions/30256695/chart-js-drawing-an-arbitrary-verti
 modelformset_factory with crispy:
 https://dev.to/zxenia/django-inline-formsets-with-class-based-views-and-crispy-forms-14o6
 
+to get formset errors: formset.errors.....

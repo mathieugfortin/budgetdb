@@ -7,39 +7,21 @@
 {% block content %}
 <div class="row">
     <div class="col-md-1">
-    <button type="button" class="btn btn-info" href="{% url 'budgetdb:update_joined_transaction' joinedtransaction.id pdate %}"> {{ pdate }} </button>
+    <a href="{% url 'budgetdb:update_joined_transaction' joinedtransaction.id pdate %}" class="btn btn-info" role="button"> {{ pdate }} </a>
     </div>
     <div class="col-md-10">
     <button type="button" class="btn btn-outline-info btn-block">{{joinedtransaction.name}}  -  {{ transactiondate }}</button>
     </div>
     <div class="col-md-1">
-    <button type="button" class="btn btn-info" href="{% url 'budgetdb:update_joined_transaction' joinedtransaction.id ndate %} "> {{ ndate }} </button>
+    <a href="{% url 'budgetdb:update_joined_transaction' joinedtransaction.id ndate %} " class="btn btn-info" role="button"> {{ ndate }} </a>
     </div>
 </div>
-  
 
 {% load crispy_forms_tags %}
-{{ form.manageorm }}
+
 {% crispy form %}
-
-{% if form.errors %}
-    {% for field in form %}
-        {% for error in field.errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
-    {% endfor %}
-    {% for error in form.non_field_errors %}
-        <div class="alert alert-danger">
-            <strong>{{ error|escape }}</strong>
-        </div>
-    {% endfor %}
-{% endif %}
-
-
-
 {% endblock %}
+
 {% block script %}
 
 {% endblock %}

@@ -284,8 +284,7 @@ class TransactionFormShort(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Div(
-                # Hidden('id', self.initial['id']),
-                Div('id', css_class='form-group col-md-1'),
+                Field('id', css_class='form-group col-md-1', type='hidden'),
                 Div('description', css_class='form-group col-md-2'),
                 Div('cat1', css_class='form-group col-md-1'),
                 Div('cat2', css_class='form-group col-md-2'),
@@ -295,10 +294,9 @@ class TransactionFormShort(forms.ModelForm):
                 Div('receipt', css_class='form-group col-md-1'),
                 Div('deleted', css_class='form-group col-md-1'),
                 Div(PrependedText('amount_actual', '$'), css_class='form-group col-md-1'),
-                Div('date_actual', css_class='form-group col-md-2 mb-0'),
-                # Hidden('date_actual', self.initial['date_actual'].strftime("%Y-%m-%d")),
+                Field('date_actual', css_class='form-group col-md-2 mb-0', type='hidden'),
                 # Div('amount_actual', css_class='form-group col-md-1'),
-                # Div('budgetedevent', css_class='form-group col-md-1'),
+                Field('budgetedevent', css_class='form-group col-md-1', type='hidden'),
                 # HTML('<a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>'),
                 css_class='form-row'
             ),

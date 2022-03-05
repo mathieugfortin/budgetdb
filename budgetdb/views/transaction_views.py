@@ -103,31 +103,12 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
     form_class = JoinedTransactionsForm
     template_name = 'budgetdb/joinedtransactions_form.html'
 
-    def post(self, request, *args, **kwargs):
-        return super().post(request, args, kwargs)
-
-    def clean(self):
-        return super().clean(self)
-
-    def form_invalid(self, form):
-        return super().form_invalid(form)
-
     def form_valid(self, form):
         context = self.get_context_data()
         transactions = context['formset']
-        # pk = kwargs.pop('pk', None)
-        # self.object = form.save()
-        # transactions.clean()
+
         if transactions.is_valid():
-            for transaction in transactions:
-                # the form empties fields that are not included in the form.  There must be a better way...
-                tosave = Transaction.objects.get(pk=transaction.fields['id'].initial)
-                for field in transaction.changed_data:
-                    if field == 'budgetedevent':
-                        pass
-                    else:
-                        setattr(tosave, field, transaction.cleaned_data[field])
-                tosave.save()
+            transactions.save()
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -149,30 +130,23 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
         pk = self.kwargs['pk']
         date = self.kwargs['date']
         joinedtransaction = JoinedTransactions.objects.get(pk=pk)
-        # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
         transactions = joinedtransaction.transactions.all()
         transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
+        # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
         firstbudgetedevent = joinedtransaction.budgetedevents.filter(deleted=False).order_by('joined_order').first()
-        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first()
-        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first()
+        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
+        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
         for budgetedevent in joinedtransaction.budgetedevents.filter(deleted=False):
             transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
         transactions = transactions.order_by('joined_order')
-        transactionFormSet = modelformset_factory(Transaction, form=TransactionFormShort, exclude=(), extra=0)
-        # transactionFormSet = inlineformset_factory(JoinedTransactions, Transaction, form=TransactionFormShort, exclude=(), extra=0)
-        formset = transactionFormSet(queryset=transactions,)
-        formsetPost = transactionFormSet(self.request.POST, queryset=transactions)
-        # self.form.helper = FormHelper()
         if self.request.POST:
-            context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions, initial=transactions)
-            # check if formset is valid here?
+            context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions)
         else:
             context['formset'] = TransactionFormSet(queryset=transactions)
         context['joinedtransaction'] = joinedtransaction
-        context['helper'] = context.get('form').helper
-        context['pdate'] = previousrecurrence.date_actual.strftime("%Y-%m-%d")
-        context['ndate'] = nextrecurrence.date_actual.strftime("%Y-%m-%d")
-        context['transactiondate'] = transactiondate.strftime("%Y-%m-%d")
+        context['pdate'] = previousrecurrence
+        context['ndate'] = nextrecurrence
+        context['transactiondate'] = date
         return context
 
 
