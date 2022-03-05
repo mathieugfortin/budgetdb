@@ -102,7 +102,6 @@ class BudgetedEventForm(forms.ModelForm):
         # self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
         self.helper.form_class = 'form-horizontal'
-        self.helper.form_action = 'submit/'
 
         self.helper.add_input(Submit('submit', 'Submit'))
         # self.fields['cat2'].queryset = Cat2.objects.none()
@@ -115,6 +114,9 @@ class JoinedTransactionsForm(forms.ModelForm):
             'name',
         ]
 
+    def save(self):
+        return super().save(self)
+
     def __init__(self, *args, **kwargs):
         pk = kwargs.pop('pk', None)
         date = kwargs.pop('date', None)
@@ -122,7 +124,7 @@ class JoinedTransactionsForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_show_labels = False
         self.helper.form_class = 'form-horizontal'
-        self.helper.form_tag = False
+        self.helper.form_tag = True
         self.helper.layout = Layout(
             Hidden('name', self.initial['name']),
             # Field('name'),
@@ -243,12 +245,13 @@ class TransactionFormShort(forms.ModelForm):
     class Meta:
         model = Transaction
         fields = [
+            'id',
             'description',
             'cat1',
             'cat2',
             'account_source',
             'account_destination',
-            'amount_planned',
+            # 'amount_planned',
             'amount_actual',
             'verified',
             'date_actual',
@@ -281,6 +284,8 @@ class TransactionFormShort(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Div(
+                # Hidden('id', self.initial['id']),
+                Div('id', css_class='form-group col-md-1'),
                 Div('description', css_class='form-group col-md-2'),
                 Div('cat1', css_class='form-group col-md-1'),
                 Div('cat2', css_class='form-group col-md-2'),
@@ -289,10 +294,35 @@ class TransactionFormShort(forms.ModelForm):
                 Div('verified', css_class='form-group col-md-1'),
                 Div('receipt', css_class='form-group col-md-1'),
                 Div('deleted', css_class='form-group col-md-1'),
-                Div(PrependedText('amount_actual', '$')),
+                Div(PrependedText('amount_actual', '$'), css_class='form-group col-md-1'),
+                Div('date_actual', css_class='form-group col-md-2 mb-0'),
+                # Hidden('date_actual', self.initial['date_actual'].strftime("%Y-%m-%d")),
                 # Div('amount_actual', css_class='form-group col-md-1'),
                 # Div('budgetedevent', css_class='form-group col-md-1'),
                 # HTML('<a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>'),
                 css_class='form-row'
             ),
         )
+        pass
+
+
+TransactionFormSet = modelformset_factory(
+    Transaction,
+    form=TransactionFormShort,
+    fields=[
+            'id',
+            'description',
+            'cat1',
+            'cat2',
+            'account_source',
+            'account_destination',
+            'amount_planned',
+            'amount_actual',
+            'verified',
+            'date_actual',
+            'budgetedevent',
+            'deleted',
+            'receipt',
+        ],
+    extra=0,
+    )

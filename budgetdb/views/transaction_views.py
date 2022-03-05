@@ -2,7 +2,7 @@ from django.views.generic import ListView, CreateView, UpdateView, View, Templat
 from django.contrib.auth.mixins import LoginRequiredMixin
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
-from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm
+from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -115,10 +115,19 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         context = self.get_context_data()
         transactions = context['formset']
-        self.object = form.save()
+        # pk = kwargs.pop('pk', None)
+        # self.object = form.save()
+        # transactions.clean()
         if transactions.is_valid():
-            transactions.instance = self.object
-            transactions.save()
+            for transaction in transactions:
+                # the form empties fields that are not included in the form.  There must be a better way...
+                tosave = Transaction.objects.get(pk=transaction.fields['id'].initial)
+                for field in transaction.changed_data:
+                    if field == 'budgetedevent':
+                        pass
+                    else:
+                        setattr(tosave, field, transaction.cleaned_data[field])
+                tosave.save()
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -155,10 +164,10 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
         formsetPost = transactionFormSet(self.request.POST, queryset=transactions)
         # self.form.helper = FormHelper()
         if self.request.POST:
-            context['formset'] = transactionFormSet(self.request.POST, queryset=transactions)
+            context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions, initial=transactions)
             # check if formset is valid here?
         else:
-            context['formset'] = formset
+            context['formset'] = TransactionFormSet(queryset=transactions)
         context['joinedtransaction'] = joinedtransaction
         context['helper'] = context.get('form').helper
         context['pdate'] = previousrecurrence.date_actual.strftime("%Y-%m-%d")

@@ -1,7 +1,7 @@
 # from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
 from django.forms import ModelForm
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
