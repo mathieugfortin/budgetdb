@@ -154,7 +154,7 @@ class JoinedTransactionCreateView(LoginRequiredMixin, CreateView):
     ArticleFormSet = formset_factory(JoinedTransactions)
 
 
-class TransactionDetailView(DetailView):
+class TransactionDetailView(LoginRequiredMixin, DetailView):
     model = Transaction
     template_name = 'budgetdb/transact_detail.html'
 
@@ -163,7 +163,7 @@ def saveTransaction(request, transaction_id):
     return HttpResponse("You're working on transaction %s." % transaction_id)
 
 
-class TransactionListView(ListView):
+class TransactionListView(LoginRequiredMixin, ListView):
     # Patate rebuild this without calendar to gain speed
     model = Transaction
     context_object_name = 'calendar_list'
@@ -195,7 +195,35 @@ class TransactionListView(ListView):
         return context
 
 
-class TransactionCalendarView(ListView):
+class TransactionUnverifiedListView(LoginRequiredMixin, ListView):
+    # Patate rebuild this without calendar to gain speed
+    model = Transaction
+    template_name = 'budgetdb/transaction_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        today = date.today()
+        transactions = Transaction.objects.filter(deleted=0, verified=0, date_actual_lt=today)
+        context['transactions'] = transactions
+        return context
+
+
+class TransactionManualListView(LoginRequiredMixin, ListView):
+    # Patate rebuild this without calendar to gain speed
+    model = Transaction
+    template_name = 'budgetdb/transaction_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        inamonth = (date.today() + relativedelta(months=+1)).month
+        transactions = Transaction.objects.filter(deleted=0, verified=0, manual=1, date_actual_lt=inamonth)
+        context['transactions'] = transactions
+        return context
+
+
+class TransactionCalendarView(LoginRequiredMixin, ListView):
     model = Transaction
     template_name = 'budgetdb/calendar.html'
 
