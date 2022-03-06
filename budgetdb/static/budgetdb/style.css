@@ -1,25 +1,9 @@
-  
-  #content {
+    #content {
     position: absolute;
     top: 10.5%;
     left: 2%;
     width: 96%;
   }
   
-  /* List formatting, color by Transaction type */
-  
-  tr.AUDIT {
-    background-color: rgb(147, 154, 185)
-  }
-  tr.BUDGET {
-    background-color: rgb(78, 167, 240)
-  }
-  tr.UNVERIFIED {
-    background-color: rgb(252, 221, 156)
-  }
-  tr.UNVERIFIED {
-    background-color: rgb(252, 221, 156)
-  }
-
 
   

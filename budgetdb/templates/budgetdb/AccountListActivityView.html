@@ -1,7 +1,12 @@
 <!-- template name: AccountListActivityView-->
 {% extends "budgetdb/base.html" %}
 {% load static %}
-{% block title %}{{ account_name }}{% endblock %}
+{% block title %}
+    {{ account_name }}
+{% endblock %}
+{% block headblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/colorcodes.css' %}">
+{% endblock %}
 {% block content %}
 
 <style>
@@ -70,15 +75,32 @@ button.RECEIPT::before {
 }
 
 
+tr.UNVERIFIED_MANUAL_BUDGET button.verify::before {
+  font-family: fontAwesome;
+  content: "\f0c8";
+}
+tr.UNVERIFIED_BUDGET button.verify::before {
+  font-family: fontAwesome;
+  content: "\f0c8";
+}
+tr.UNVERIFIED_MANUAL button.verify::before {
+  font-family: fontAwesome;
+  content: "\f0c8";
+}
 tr.UNVERIFIED button.verify::before {
   font-family: fontAwesome;
   content: "\f0c8";
 }
-tr.BUDGET button.verify::before {
+
+tr.VERIFIED_MANUAL_BUDGET button.verify::before {
   font-family: fontAwesome;
-  content: "\f0c8";
+  content: "\f14a";
 }
-tr.VERIFIEDBUDGET button.verify::before {
+tr.VERIFIED_BUDGET button.verify::before {
+  font-family: fontAwesome;
+  content: "\f14a";
+}
+tr.VERIFIED_MANUAL button.verify::before {
   font-family: fontAwesome;
   content: "\f14a";
 }
@@ -86,6 +108,11 @@ tr.VERIFIED button.verify::before {
   font-family: fontAwesome;
   content: "\f14a";
 }
+
+
+
+
+
 
 </style>
 
@@ -112,10 +139,14 @@ tr.VERIFIED button.verify::before {
 
     {% for event in object_list reversed %}
     <tr {% if event.audit == 1 %} class="AUDIT" 
-        {% elif event.budgetedevent_id != None and event.verified == 0 %} class="BUDGET" 
-        {% elif event.budgetedevent_id != None and event.verified == 1 %} class="VERIFIEDBUDGET" 
-        {% elif event.verified == 0 %} class="UNVERIFIED" 
+        {% elif event.budgetedevent_id != None and event.verified == 0 and event.ismanual == 1 %} class="UNVERIFIED_MANUAL_BUDGET" 
+        {% elif event.budgetedevent_id != None and event.verified == 1 and event.ismanual == 1 %} class="VERIFIED_MANUAL_BUDGET" 
+        {% elif event.budgetedevent_id != None and event.verified == 0 and event.ismanual == 0 %} class="UNVERIFIED_BUDGET" 
+        {% elif event.budgetedevent_id != None and event.verified == 1 and event.ismanual == 0 %} class="VERIFIED_BUDGET" 
+        {% elif event.verified == 1 and event.ismanual == 1 %} class="VERIFIED_MANUAL" 
+        {% elif event.verified == 0 and event.ismanual == 1 %} class="UNVERIFIED_MANUAL" 
         {% elif event.verified == 1 %} class="VERIFIED" 
+        {% else %} class="UNVERIFIED" 
         {% endif %}
         id=T{{event.id}}
     >
@@ -162,6 +193,7 @@ tr.VERIFIED button.verify::before {
 
 {% endblock %}
 
+
 {% block script %}
 <script>
     function toggleverifyT(transaction_id){
@@ -172,10 +204,18 @@ tr.VERIFIED button.verify::before {
             modifiedtr.setAttribute('class','UNVERIFIED');
         else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED')
             modifiedtr.setAttribute('class','VERIFIED');
-        else if (modifiedtr.attributes.class.nodeValue=='BUDGET')
-            modifiedtr.setAttribute('class','VERIFIEDBUDGET');
-        else if (modifiedtr.attributes.class.nodeValue=='VERIFIEDBUDGET')
-            modifiedtr.setAttribute('class','BUDGET');
+        else if (modifiedtr.attributes.class.nodeValue=='VERIFIED_BUDGET')
+            modifiedtr.setAttribute('class','UNVERIFIED_BUDGET');
+        else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED_BUDGET')
+            modifiedtr.setAttribute('class','VERIFIED_BUDGET');
+        else if (modifiedtr.attributes.class.nodeValue=='VERIFIED_MANUAL')
+            modifiedtr.setAttribute('class','UNVERIFIED_MANUAL');
+        else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED_MANUAL')
+            modifiedtr.setAttribute('class','VERIFIED_MANUAL');
+        else if (modifiedtr.attributes.class.nodeValue=='VERIFIED_MANUAL_BUDGET')
+            modifiedtr.setAttribute('class','UNVERIFIED_MANUAL_BUDGET');
+        else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED_MANUAL_BUDGET')
+            modifiedtr.setAttribute('class','VERIFIED_MANUAL_BUDGET');
 
     }
    

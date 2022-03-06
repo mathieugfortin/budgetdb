@@ -89,6 +89,15 @@
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="timeline_menu">
                     </div>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Checks
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="transaction_menu">
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_unverified_transaction' %}">Old Unverified</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_manual_transaction' %}">Manual</a>
+                    </div>
+                </li>
   
             </ul>
             <ul class="navbar-nav nav-fill flex-grow-1">

@@ -37,10 +37,6 @@ register_converter(FourDigitYearConverter, 'yyyy')
 register_converter(TwoDigitMonthConverter, 'mm')
 register_converter(TwoDigitDayConverter, 'dd')
 
-
-# from budgetdb.views import Cat1DetailView, TransactionDetailView,
-# # saveTransaction, BudgetedEventList
-
 app_name = 'budgetdb'
 
 urlpatterns = [
@@ -174,12 +170,16 @@ urlpatterns = [
          name='update_transaction'),
     path('transaction/update_popup/<int:pk>/', views.TransactionUpdatePopupView.as_view(),
          name='update_transaction_popup'),
-    path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
-         name='details_transaction_Audit'),
+    # path('audit/<int:pk>/', views..as_view(),
+    #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),
          name='calendar_transaction'),
     path('transaction/list/', views.TransactionListView.as_view(),
          name='list_transaction'),
+    path('transaction/unverified_list/', views.TransactionUnverifiedListView.as_view(),
+         name='list_unverified_transaction'),
+    path('transaction/manual_list/', views.TransactionManualListView.as_view(),
+         name='list_manual_transaction'),
 
     # Joined Transactions
     path('joinedtransactions/add/', views.JoinedTransactionsUpdateView.as_view(),

@@ -1,0 +1,18 @@
+  /* List formatting, color by transaction caracteristics */
+  
+  tr.AUDIT {
+    background-color: rgb(147, 154, 185)
+  }
+  tr.UNVERIFIED_BUDGET {
+    background-color: rgb(78, 167, 240)
+  }
+  tr.UNVERIFIED {
+    background-color: rgb(252, 221, 156)
+  }
+  tr.UNVERIFIED_MANUAL_BUDGET {
+    background-color: rgb(243, 59, 26)
+  }
+  tr.UNVERIFIED_MANUAL {
+    background-color: rgb(243, 59, 26)
+  }
+

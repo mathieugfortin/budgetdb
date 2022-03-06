@@ -154,7 +154,7 @@ class JoinedTransactionCreateView(LoginRequiredMixin, CreateView):
     ArticleFormSet = formset_factory(JoinedTransactions)
 
 
-class TransactionDetailView(DetailView):
+class TransactionDetailView(LoginRequiredMixin, DetailView):
     model = Transaction
     template_name = 'budgetdb/transact_detail.html'
 
@@ -163,7 +163,7 @@ def saveTransaction(request, transaction_id):
     return HttpResponse("You're working on transaction %s." % transaction_id)
 
 
-class TransactionListView(ListView):
+class TransactionListView(LoginRequiredMixin, ListView):
     # Patate rebuild this without calendar to gain speed
     model = Transaction
     context_object_name = 'calendar_list'
@@ -195,7 +195,41 @@ class TransactionListView(ListView):
         return context
 
 
-class TransactionCalendarView(ListView):
+class TransactionUnverifiedListView(LoginRequiredMixin, ListView):
+    # Patate rebuild this without calendar to gain speed
+    model = Transaction
+    template_name = 'budgetdb/transaction_list.html'
+    context_object_name = 'transaction_list'
+
+    def get_queryset(self):
+        today = date.today()
+        transactions = Transaction.objects.filter(deleted=0, verified=0, audit=0, date_actual__lt=today).order_by('date_actual')
+        return transactions
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Past Unverified Transactions'
+        return context
+
+
+class TransactionManualListView(LoginRequiredMixin, ListView):
+    # Patate rebuild this without calendar to gain speed
+    model = Transaction
+    template_name = 'budgetdb/transaction_list.html'
+    context_object_name = 'transaction_list'
+
+    def get_queryset(self):
+        inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
+        transactions = Transaction.objects.filter(deleted=0, verified=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
+        return transactions
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Upcoming Manual Transactions'
+        return context
+
+
+class TransactionCalendarView(LoginRequiredMixin, ListView):
     model = Transaction
     template_name = 'budgetdb/calendar.html'
 
