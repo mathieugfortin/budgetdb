@@ -9,6 +9,20 @@ from django.template.loader import render_to_string
 from crispy_forms.bootstrap import AppendedText, PrependedText
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from .models import User
+
+
+class UserCreationForm(UserCreationForm):
+    class Meta:
+        model = User
+        fields = ('username', 'email')
+
+
+class UserChangeForm(UserChangeForm):
+    class Meta:
+        model = User
+        fields = ('username', 'email')
 
 
 class Formset(LayoutObject):

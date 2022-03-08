@@ -8,6 +8,11 @@ from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 from django.urls import reverse
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser
+
+
+class User(AbstractUser):
+    pass
 
 
 class Preference(models.Model):

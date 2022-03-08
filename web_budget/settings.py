@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'dal_select2',
     # 'django_addanother',
     'budgetdb.apps.BudgetdbConfig',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -55,6 +56,8 @@ INSTALLED_APPS = [
     'chartjs',
 ]
 
+AUTH_USER_MODEL = 'budgetdb.User'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
@@ -89,7 +92,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'web_budget.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
