@@ -99,8 +99,8 @@ WSGI_APPLICATION = 'web_budget.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'budgetdb',
-        'USER': 'budgetdb',
+        'NAME': get_secret('DB_NAME'),
+        'USER': get_secret('DB_USER'),
         'PASSWORD': get_secret('DB_PASSWORD'),
         'HOST': get_secret('DB_HOST'),
         'PORT': get_secret('DB_PORT'),

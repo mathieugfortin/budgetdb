@@ -8,11 +8,40 @@ from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 from django.urls import reverse
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 
 
 class User(AbstractUser):
     pass
+
+
+class UserPermissions(models.Model):
+    class Meta:
+        abstract = True
+
+    owner = models.ForeignKey("User", on_delete=models.CASCADE, blank=False, null=False,
+        related_name='object_owner_%(app_label)s_%(class)s'
+        )
+    groups_mod = models.ManyToManyField(Group, related_name='g_can_mod_%(app_label)s_%(class)s')
+    groups_view = models.ManyToManyField(Group, related_name='g_can_view_%(app_label)s_%(class)s')
+
+    def save(self, *args, **kwargs):
+        super(UserPermissions, self).save(*args, **kwargs)
+
+
+class BaseSoftDelete(models.Model):
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True)
+    deleted_by = models.ForeignKey("User", null=True, on_delete=models.CASCADE, related_name='deleted_by_%(app_label)s_%(class)s')
+
+    class Meta:
+        abstract = True
+
+    def soft_delete(self, user_id=None):
+        self.is_deleted = True
+        self.deleted_by = user_id
+        self.deleted_at = timezone.now()
+        self.save()
 
 
 class Preference(models.Model):
@@ -262,7 +291,7 @@ class CatBudget(models.Model):
             return 0
 
 
-class CatType(models.Model):
+class CatType(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Category Type'
         verbose_name_plural = 'Categories Type'
@@ -276,7 +305,7 @@ class CatType(models.Model):
         return reverse('budgetdb:list_cattype')
 
 
-class Cat1(models.Model):
+class Cat1(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
@@ -295,7 +324,7 @@ class Cat1(models.Model):
         return reverse('budgetdb:list_cat1')
 
 
-class Cat2(models.Model):
+class Cat2(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Sub Category'
         verbose_name_plural = 'Sub Categories'
@@ -314,7 +343,7 @@ class Cat2(models.Model):
         return reverse('budgetdb:details_cat1', kwargs={'pk': self.cat1.pk})
 
 
-class AccountHost(models.Model):
+class AccountHost(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Financial Institution'
         verbose_name_plural = 'Financial Institutions'
@@ -347,7 +376,7 @@ class AccountPresentation(models.Model):
     deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
 
-class Account(models.Model):
+class Account(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Account'
         verbose_name_plural = 'Accounts'
@@ -491,7 +520,7 @@ class Account(models.Model):
         return dailybalances
 
 
-class AccountCategory(models.Model):
+class AccountCategory(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Account Category'
         verbose_name_plural = 'Account Categories'
@@ -510,25 +539,7 @@ class AccountCategory(models.Model):
         return reverse('budgetdb:list_accountcat')
 
 
-class AccountAudit(models.Model):
-    # deprecated?
-    class Meta:
-        verbose_name = 'Account audit point'
-        verbose_name_plural = 'Account audit points'
-
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='audit_account')
-    audit_date = models.DateField('date of the audit')
-    audit_amount = models.DecimalField('audit amount', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
-    comment = models.CharField(max_length=200)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
-
-    def __str__(self):
-        return self.audit_amount
-
-
-class Vendor(models.Model):
+class Vendor(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Account audit point'
         verbose_name_plural = 'Account audit points'
@@ -544,7 +555,7 @@ class Vendor(models.Model):
         return reverse('budgetdb:list_vendor')
 
 
-class Transaction(models.Model):
+class Transaction(BaseSoftDelete):
     class Meta:
         verbose_name = 'Transaction'
         verbose_name_plural = 'Transactions'
@@ -618,7 +629,7 @@ class Transaction(models.Model):
             super(Transaction, self).save(*args, **kwargs)
 
 
-class BudgetedEvent(models.Model):
+class BudgetedEvent(BaseSoftDelete):
     # description of budgeted events
     class Meta:
         verbose_name = 'Budgeted Event'
@@ -823,7 +834,7 @@ class BudgetedEvent(models.Model):
         self.generated_interval_stop = None
 
 
-class Statement (models.Model):
+class Statement (BaseSoftDelete):
     class Meta:
         verbose_name = 'Statement'
         verbose_name_plural = 'Statements'

@@ -1,4 +1,4 @@
-from django.urls import path, register_converter
+from django.urls import path, register_converter, include
 
 from . import views
 
@@ -42,11 +42,22 @@ app_name = 'budgetdb'
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
 
-    path('preference/getJSON', views.PreferenceGetJSON, name='preferences_json'),
-    path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON, name='setinterval_json'),
+    path('preference/getJSON', views.PreferenceGetJSON,
+         name='preferences_json'),
+    path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
+         name='setinterval_json'),
+
+    # User
+#     path('user/', include('django.contrib.auth.urls')),
+    path('user/signup/', views.UserSignupView.as_view(),
+         name='signup'),
+    path('user/login/', views.UserLoginView.as_view(),
+         name='login'),
+
 
     # Account
-    path('account/ListJSON', views.GetAccountListJSON, name='account_list_json'),
+    path('account/ListJSON', views.GetAccountListJSON,
+         name='account_list_json'),
     path('account/', views.AccountListViewSimple.as_view(),
          name='list_account_simple'),
     path('account/details', views.AccountSummaryView.as_view(),

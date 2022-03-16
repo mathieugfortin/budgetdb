@@ -1,0 +1,12 @@
+{% extends 'budgetdb/basecrispy.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Log in{% endblock %}
+
+{% csrf_token %}
+
+{% block content %}
+  {% load crispy_forms_tags %}
+  {% crispy form %}
+{% endblock %}

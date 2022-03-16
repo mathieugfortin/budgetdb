@@ -1,21 +1,22 @@
 # from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
 from django.forms import ModelForm
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
+from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import login
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, User
 from budgetdb.models import JoinedTransactions, CatSums, CatType, AccountHost, Preference, AccountPresentation
 from budgetdb.utils import Calendar
+from budgetdb.forms import UserSignUpForm
 import pytz
 from decimal import *
-# from chartjs.views.lines import BaseLineChartView
-# from chartjs.views.pie import HighChartDonutView, HighChartPieView
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
 
@@ -180,7 +181,6 @@ def GetCat1TotalPieChartData(request):
     indexes = []  # cat1_ids
 
     cat1sums = CatSums()
-    # dailybalances = AccountBalances.objects.raw(sqlst)
     cat_totals = cat1sums.build_cat1_totals_array(begin, end)
 
     for cat in cat_totals:
@@ -221,7 +221,6 @@ def GetCat2TotalPieChartData(request):
     labels = []  # categories
     data = []  # totals
 
-    # dailybalances = AccountBalances.objects.raw(sqlst)
     cat2sums = CatSums()
     cat_totals = cat2sums.build_cat2_totals_array(begin, end)
 
@@ -773,7 +772,7 @@ class AccountHostDetailView(LoginRequiredMixin, DetailView):
     template_name = 'budgetdb/accounthost_detail.html'
 
 
-class IndexView(ListView):
+class IndexView(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/index.html'
     context_object_name = 'categories_list'
 
@@ -939,6 +938,40 @@ class Cat1CreateView(LoginRequiredMixin, CreateView):
         return form
 
 
+class UserSignupView(CreateView):
+    model = User
+    form_class = UserSignUpForm
+    template_name = 'budgetdb/user_form.html'
+
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        return redirect('budgetdb:home')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Sign Up!', css_class='btn-primary'))
+        return form
+
+
+class UserLoginView(LoginView):
+    model = User
+    template_name = 'budgetdb/login.html'
+
+    def form_valid(self, form):
+        login(self.request, form.get_user())
+        return redirect('budgetdb:home')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
+        return form
+
+
 class AccountCreateView(LoginRequiredMixin, CreateView):
     model = Account
     fields = [
@@ -1037,7 +1070,6 @@ class Cat2Create(LoginRequiredMixin, CreateView):
         return form
 
 
-# class VendorCreate(CreatePopupMixin, CreateView):
 class VendorCreate(LoginRequiredMixin, CreateView):
     model = Vendor
     fields = ['name']
