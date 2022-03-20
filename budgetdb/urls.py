@@ -154,6 +154,10 @@ urlpatterns = [
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
          name='update_be'),
 
+    # Preferences
+    path('preferences/update/', views.PreferencesUpdateView.as_view(),
+         name='update_preferences'),
+
     # Statement
     path('statement/', views.StatementListView.as_view(),
          name='list_statement'),

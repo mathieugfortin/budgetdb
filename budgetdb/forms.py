@@ -1,6 +1,6 @@
 from django import forms
 from dal import autocomplete
-from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransactions
+from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransactions, User, Preference
 from django.urls import reverse_lazy
 from django_addanother.widgets import AddAnotherWidgetWrapper, AddAnotherEditSelectedWidgetWrapper
 from crispy_forms.helper import FormHelper
@@ -10,7 +10,6 @@ from crispy_forms.bootstrap import AppendedText, PrependedText
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
-from .models import User
 
 
 class UserSignUpForm(UserCreationForm):
@@ -250,6 +249,46 @@ class TransactionFormFull(forms.ModelForm):
                 Div('budgetedevent', css_class='form-group col-md-4 mb-0'),
                 Div('vendor', css_class='form-group col-md-4 mb-0'),
                 Div('statement', css_class='form-group col-md-4 mb-0 '),
+                css_class='form-row'
+            ),
+        )
+
+
+class PreferenceForm(forms.ModelForm):
+    class Meta:
+        model = Preference
+        fields = '__all__'
+        widgets = {
+            'start_interval': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+            'end_interval': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+            'max_interval_slider': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+            'min_interval_slider': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Div(
+                Div('start_interval', css_class='form-group col-md-4 mb-0'),
+                Div('end_interval', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('min_interval_slider', css_class='form-group col-md-4 mb-0'),
+                Div('min_interval_slider', css_class='form-group col-md-4 mb-0'),
                 css_class='form-row'
             ),
         )

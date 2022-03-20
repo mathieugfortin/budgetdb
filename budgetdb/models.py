@@ -9,6 +9,7 @@ from django.db.models import Sum, Q
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group
+from crum import get_current_user
 
 
 class User(AbstractUser):
@@ -20,12 +21,16 @@ class UserPermissions(models.Model):
         abstract = True
 
     owner = models.ForeignKey("User", on_delete=models.CASCADE, blank=False, null=False,
-        related_name='object_owner_%(app_label)s_%(class)s'
-        )
+                              related_name='object_owner_%(app_label)s_%(class)s')
     groups_mod = models.ManyToManyField(Group, related_name='g_can_mod_%(app_label)s_%(class)s')
     groups_view = models.ManyToManyField(Group, related_name='g_can_view_%(app_label)s_%(class)s')
 
     def save(self, *args, **kwargs):
+        user = get_current_user()
+        if user and not user.pk:
+            user = None
+        if not self.pk and self._state.adding:
+            self.owner = user
         super(UserPermissions, self).save(*args, **kwargs)
 
 

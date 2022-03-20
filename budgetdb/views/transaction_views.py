@@ -89,12 +89,20 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
         date = self.kwargs['date']
-        transactions = JoinedTransactions.objects.get(deleted=False, pk=pk).transactions.filter(deleted=False)
+        joinedtransaction = JoinedTransactions.objects.get(pk=pk)
+        transactions = joinedtransaction.transactions.all()
         transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
-        for budgetedevent in JoinedTransactions.objects.get(deleted=False, pk=pk).budgetedevents.filter(deleted=False):
-            transactions = transactions | Transaction.objects.filter(deleted=False, budgetedevent=budgetedevent, date_actual=transactiondate)
-
+        firstbudgetedevent = joinedtransaction.budgetedevents.filter(deleted=False).order_by('joined_order').first()
+        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
+        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
+        for budgetedevent in joinedtransaction.budgetedevents.filter(deleted=False):
+            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
+        transactions = transactions.order_by('joined_order')
+        context['joinedtransaction'] = joinedtransaction
         context['transactions'] = transactions
+        context['pdate'] = previousrecurrence
+        context['ndate'] = nextrecurrence
+        context['transactiondate'] = date
         return context
 
 

@@ -1,0 +1,206 @@
+output of: python manage.py show_urls
+
+?: (urls.W005) URL namespace 'admin' isn't unique. You may not be able to reverse all URLs in this namespace
+/en-us/__debug__/history_refresh/       debug_toolbar.panels.history.views.history_refresh      djdt:history_refresh
+/en-us/__debug__/history_sidebar/       debug_toolbar.panels.history.views.history_sidebar      djdt:history_sidebar
+/en-us/__debug__/render_panel/  debug_toolbar.views.render_panel        djdt:render_panel
+/en-us/__debug__/sql_explain/   debug_toolbar.panels.sql.views.sql_explain      djdt:sql_explain
+/en-us/__debug__/sql_profile/   debug_toolbar.panels.sql.views.sql_profile      djdt:sql_profile
+/en-us/__debug__/sql_select/    debug_toolbar.panels.sql.views.sql_select       djdt:sql_select
+/en-us/__debug__/template_source/       debug_toolbar.panels.templates.views.template_source    djdt:template_source
+/en-us/admin/   django.contrib.admin.sites.index        admin:index
+/en-us/admin/<app_label>/       django.contrib.admin.sites.app_index    admin:app_list
+/en-us/admin/<url>      django.contrib.admin.sites.catch_all_view
+/en-us/admin/auth/group/        django.contrib.admin.options.changelist_view    admin:auth_group_changelist
+/en-us/admin/auth/group/<path:object_id>/       django.views.generic.base.view
+/en-us/admin/auth/group/<path:object_id>/change/        django.contrib.admin.options.change_view        admin:auth_group_change
+/en-us/admin/auth/group/<path:object_id>/delete/        django.contrib.admin.options.delete_view        admin:auth_group_delete
+/en-us/admin/auth/group/<path:object_id>/history/       django.contrib.admin.options.history_view       admin:auth_group_history
+/en-us/admin/auth/group/add/    django.contrib.admin.options.add_view   admin:auth_group_add
+/en-us/admin/autocomplete/      django.contrib.admin.sites.autocomplete_view    admin:autocomplete
+/en-us/admin/budgetdb/accounthost/      django.contrib.admin.options.changelist_view    admin:budgetdb_accounthost_changelist
+/en-us/admin/budgetdb/accounthost/<path:object_id>/     django.views.generic.base.view
+/en-us/admin/budgetdb/accounthost/<path:object_id>/change/      django.contrib.admin.options.change_view        admin:budgetdb_accounthost_change
+/en-us/admin/budgetdb/accounthost/<path:object_id>/delete/      django.contrib.admin.options.delete_view        admin:budgetdb_accounthost_delete
+/en-us/admin/budgetdb/accounthost/<path:object_id>/history/     django.contrib.admin.options.history_view       admin:budgetdb_accounthost_history
+/en-us/admin/budgetdb/accounthost/add/  django.contrib.admin.options.add_view   admin:budgetdb_accounthost_add
+/en-us/admin/budgetdb/budgetedevent/    django.contrib.admin.options.changelist_view    admin:budgetdb_budgetedevent_changelist
+/en-us/admin/budgetdb/budgetedevent/<path:object_id>/   django.views.generic.base.view
+/en-us/admin/budgetdb/budgetedevent/<path:object_id>/change/    django.contrib.admin.options.change_view        admin:budgetdb_budgetedevent_change
+/en-us/admin/budgetdb/budgetedevent/<path:object_id>/delete/    django.contrib.admin.options.delete_view        admin:budgetdb_budgetedevent_delete
+/en-us/admin/budgetdb/budgetedevent/<path:object_id>/history/   django.contrib.admin.options.history_view       admin:budgetdb_budgetedevent_history
+/en-us/admin/budgetdb/budgetedevent/add/        django.contrib.admin.options.add_view   admin:budgetdb_budgetedevent_add
+/en-us/admin/budgetdb/cat1/     django.contrib.admin.options.changelist_view    admin:budgetdb_cat1_changelist
+/en-us/admin/budgetdb/cat1/<path:object_id>/    django.views.generic.base.view
+/en-us/admin/budgetdb/cat1/<path:object_id>/change/     django.contrib.admin.options.change_view        admin:budgetdb_cat1_change
+/en-us/admin/budgetdb/cat1/<path:object_id>/delete/     django.contrib.admin.options.delete_view        admin:budgetdb_cat1_delete
+/en-us/admin/budgetdb/cat1/<path:object_id>/history/    django.contrib.admin.options.history_view       admin:budgetdb_cat1_history
+/en-us/admin/budgetdb/cat1/add/ django.contrib.admin.options.add_view   admin:budgetdb_cat1_add
+/en-us/admin/budgetdb/catbudget/        django.contrib.admin.options.changelist_view    admin:budgetdb_catbudget_changelist
+/en-us/admin/budgetdb/catbudget/<path:object_id>/       django.views.generic.base.view
+/en-us/admin/budgetdb/catbudget/<path:object_id>/change/        django.contrib.admin.options.change_view        admin:budgetdb_catbudget_change
+/en-us/admin/budgetdb/catbudget/<path:object_id>/delete/        django.contrib.admin.options.delete_view        admin:budgetdb_catbudget_delete
+/en-us/admin/budgetdb/catbudget/<path:object_id>/history/       django.contrib.admin.options.history_view       admin:budgetdb_catbudget_history
+/en-us/admin/budgetdb/catbudget/add/    django.contrib.admin.options.add_view   admin:budgetdb_catbudget_add
+/en-us/admin/budgetdb/transaction/      django.contrib.admin.options.changelist_view    admin:budgetdb_transaction_changelist
+/en-us/admin/budgetdb/transaction/<path:object_id>/     django.views.generic.base.view
+/en-us/admin/budgetdb/transaction/<path:object_id>/change/      django.contrib.admin.options.change_view        admin:budgetdb_transaction_change
+/en-us/admin/budgetdb/transaction/<path:object_id>/delete/      django.contrib.admin.options.delete_view        admin:budgetdb_transaction_delete
+/en-us/admin/budgetdb/transaction/<path:object_id>/history/     django.contrib.admin.options.history_view       admin:budgetdb_transaction_history
+/en-us/admin/budgetdb/transaction/add/  django.contrib.admin.options.add_view   admin:budgetdb_transaction_add
+/en-us/admin/budgetdb/user/     django.contrib.admin.options.changelist_view    admin:budgetdb_user_changelist
+/en-us/admin/budgetdb/user/<id>/password/       django.contrib.auth.admin.user_change_password  admin:auth_user_password_change
+/en-us/admin/budgetdb/user/<path:object_id>/    django.views.generic.base.view
+/en-us/admin/budgetdb/user/<path:object_id>/change/     django.contrib.admin.options.change_view        admin:budgetdb_user_change
+/en-us/admin/budgetdb/user/<path:object_id>/delete/     django.contrib.admin.options.delete_view        admin:budgetdb_user_delete
+/en-us/admin/budgetdb/user/<path:object_id>/history/    django.contrib.admin.options.history_view       admin:budgetdb_user_history
+/en-us/admin/budgetdb/user/add/ django.contrib.auth.admin.add_view      admin:budgetdb_user_add
+/en-us/admin/budgetdb/vendor/   django.contrib.admin.options.changelist_view    admin:budgetdb_vendor_changelist
+/en-us/admin/budgetdb/vendor/<path:object_id>/  django.views.generic.base.view
+/en-us/admin/budgetdb/vendor/<path:object_id>/change/   django.contrib.admin.options.change_view        admin:budgetdb_vendor_change
+/en-us/admin/budgetdb/vendor/<path:object_id>/delete/   django.contrib.admin.options.delete_view        admin:budgetdb_vendor_delete
+/en-us/admin/budgetdb/vendor/<path:object_id>/history/  django.contrib.admin.options.history_view       admin:budgetdb_vendor_history
+/en-us/admin/budgetdb/vendor/add/       django.contrib.admin.options.add_view   admin:budgetdb_vendor_add
+/en-us/admin/jsi18n/    django.contrib.admin.sites.i18n_javascript      admin:jsi18n
+/en-us/admin/login/     django.contrib.admin.sites.login        admin:login
+/en-us/admin/logout/    django.contrib.admin.sites.index        admin:index
+/en-us/admin/logout/    django.contrib.admin.sites.logout       admin:logout
+/en-us/admin/logout/<app_label>/        django.contrib.admin.sites.app_index    admin:app_list
+/en-us/admin/logout/<url>       django.contrib.admin.sites.catch_all_view
+/en-us/admin/logout/auth/group/ django.contrib.admin.options.changelist_view    admin:auth_group_changelist
+/en-us/admin/logout/auth/group/<path:object_id>/        django.views.generic.base.view
+/en-us/admin/logout/auth/group/<path:object_id>/change/ django.contrib.admin.options.change_view        admin:auth_group_change
+/en-us/admin/logout/auth/group/<path:object_id>/delete/ django.contrib.admin.options.delete_view        admin:auth_group_delete
+/en-us/admin/logout/auth/group/<path:object_id>/history/        django.contrib.admin.options.history_view       admin:auth_group_history
+/en-us/admin/logout/auth/group/add/     django.contrib.admin.options.add_view   admin:auth_group_add
+/en-us/admin/logout/autocomplete/       django.contrib.admin.sites.autocomplete_view    admin:autocomplete
+/en-us/admin/logout/budgetdb/accounthost/       django.contrib.admin.options.changelist_view    admin:budgetdb_accounthost_changelist
+/en-us/admin/logout/budgetdb/accounthost/<path:object_id>/      django.views.generic.base.view
+/en-us/admin/logout/budgetdb/accounthost/<path:object_id>/change/       django.contrib.admin.options.change_view        admin:budgetdb_accounthost_change
+/en-us/admin/logout/budgetdb/accounthost/<path:object_id>/delete/       django.contrib.admin.options.delete_view        admin:budgetdb_accounthost_delete
+/en-us/admin/logout/budgetdb/accounthost/<path:object_id>/history/      django.contrib.admin.options.history_view       admin:budgetdb_accounthost_history
+/en-us/admin/logout/budgetdb/accounthost/add/   django.contrib.admin.options.add_view   admin:budgetdb_accounthost_add
+/en-us/admin/logout/budgetdb/budgetedevent/     django.contrib.admin.options.changelist_view    admin:budgetdb_budgetedevent_changelist
+/en-us/admin/logout/budgetdb/budgetedevent/<path:object_id>/    django.views.generic.base.view
+/en-us/admin/logout/budgetdb/budgetedevent/<path:object_id>/change/     django.contrib.admin.options.change_view        admin:budgetdb_budgetedevent_change
+/en-us/admin/logout/budgetdb/budgetedevent/<path:object_id>/delete/     django.contrib.admin.options.delete_view        admin:budgetdb_budgetedevent_delete
+/en-us/admin/logout/budgetdb/budgetedevent/<path:object_id>/history/    django.contrib.admin.options.history_view       admin:budgetdb_budgetedevent_history
+/en-us/admin/logout/budgetdb/budgetedevent/add/ django.contrib.admin.options.add_view   admin:budgetdb_budgetedevent_add
+/en-us/admin/logout/budgetdb/cat1/      django.contrib.admin.options.changelist_view    admin:budgetdb_cat1_changelist
+/en-us/admin/logout/budgetdb/cat1/<path:object_id>/     django.views.generic.base.view
+/en-us/admin/logout/budgetdb/cat1/<path:object_id>/change/      django.contrib.admin.options.change_view        admin:budgetdb_cat1_change
+/en-us/admin/logout/budgetdb/cat1/<path:object_id>/delete/      django.contrib.admin.options.delete_view        admin:budgetdb_cat1_delete
+/en-us/admin/logout/budgetdb/cat1/<path:object_id>/history/     django.contrib.admin.options.history_view       admin:budgetdb_cat1_history
+/en-us/admin/logout/budgetdb/cat1/add/  django.contrib.admin.options.add_view   admin:budgetdb_cat1_add
+/en-us/admin/logout/budgetdb/catbudget/ django.contrib.admin.options.changelist_view    admin:budgetdb_catbudget_changelist
+/en-us/admin/logout/budgetdb/catbudget/<path:object_id>/        django.views.generic.base.view
+/en-us/admin/logout/budgetdb/catbudget/<path:object_id>/change/ django.contrib.admin.options.change_view        admin:budgetdb_catbudget_change
+/en-us/admin/logout/budgetdb/catbudget/<path:object_id>/delete/ django.contrib.admin.options.delete_view        admin:budgetdb_catbudget_delete
+/en-us/admin/logout/budgetdb/catbudget/<path:object_id>/history/        django.contrib.admin.options.history_view       admin:budgetdb_catbudget_history
+/en-us/admin/logout/budgetdb/catbudget/add/     django.contrib.admin.options.add_view   admin:budgetdb_catbudget_add
+/en-us/admin/logout/budgetdb/transaction/       django.contrib.admin.options.changelist_view    admin:budgetdb_transaction_changelist
+/en-us/admin/logout/budgetdb/transaction/<path:object_id>/      django.views.generic.base.view
+/en-us/admin/logout/budgetdb/transaction/<path:object_id>/change/       django.contrib.admin.options.change_view        admin:budgetdb_transaction_change
+/en-us/admin/logout/budgetdb/transaction/<path:object_id>/delete/       django.contrib.admin.options.delete_view        admin:budgetdb_transaction_delete
+/en-us/admin/logout/budgetdb/transaction/<path:object_id>/history/      django.contrib.admin.options.history_view       admin:budgetdb_transaction_history
+/en-us/admin/logout/budgetdb/transaction/add/   django.contrib.admin.options.add_view   admin:budgetdb_transaction_add
+/en-us/admin/logout/budgetdb/user/      django.contrib.admin.options.changelist_view    admin:budgetdb_user_changelist
+/en-us/admin/logout/budgetdb/user/<id>/password/        django.contrib.auth.admin.user_change_password  admin:auth_user_password_change
+/en-us/admin/logout/budgetdb/user/<path:object_id>/     django.views.generic.base.view
+/en-us/admin/logout/budgetdb/user/<path:object_id>/change/      django.contrib.admin.options.change_view        admin:budgetdb_user_change
+/en-us/admin/logout/budgetdb/user/<path:object_id>/delete/      django.contrib.admin.options.delete_view        admin:budgetdb_user_delete
+/en-us/admin/logout/budgetdb/user/<path:object_id>/history/     django.contrib.admin.options.history_view       admin:budgetdb_user_history
+/en-us/admin/logout/budgetdb/user/add/  django.contrib.auth.admin.add_view      admin:budgetdb_user_add
+/en-us/admin/logout/budgetdb/vendor/    django.contrib.admin.options.changelist_view    admin:budgetdb_vendor_changelist
+/en-us/admin/logout/budgetdb/vendor/<path:object_id>/   django.views.generic.base.view
+/en-us/admin/logout/budgetdb/vendor/<path:object_id>/change/    django.contrib.admin.options.change_view        admin:budgetdb_vendor_change
+/en-us/admin/logout/budgetdb/vendor/<path:object_id>/delete/    django.contrib.admin.options.delete_view        admin:budgetdb_vendor_delete
+/en-us/admin/logout/budgetdb/vendor/<path:object_id>/history/   django.contrib.admin.options.history_view       admin:budgetdb_vendor_history
+/en-us/admin/logout/budgetdb/vendor/add/        django.contrib.admin.options.add_view   admin:budgetdb_vendor_add
+/en-us/admin/logout/jsi18n/     django.contrib.admin.sites.i18n_javascript      admin:jsi18n
+/en-us/admin/logout/login/      django.contrib.admin.sites.login        admin:login
+/en-us/admin/logout/logout/     django.contrib.admin.sites.logout       admin:logout
+/en-us/admin/logout/password_change/    django.contrib.admin.sites.password_change      admin:password_change
+/en-us/admin/logout/password_change/done/       django.contrib.admin.sites.password_change_done admin:password_change_done
+/en-us/admin/logout/r/<int:content_type_id>/<path:object_id>/   django.contrib.contenttypes.views.shortcut      admin:view_on_site
+/en-us/admin/password_change/   django.contrib.admin.sites.password_change      admin:password_change
+/en-us/admin/password_change/done/      django.contrib.admin.sites.password_change_done admin:password_change_done
+/en-us/admin/r/<int:content_type_id>/<path:object_id>/  django.contrib.contenttypes.views.shortcut      admin:view_on_site
+/en-us/budgetdb/        budgetdb.views.views.view       budgetdb:home
+/en-us/budgetdb/<int:pk>/saveTransaction/       budgetdb.views.transaction_views.saveTransaction        budgetdb:saveTransaction
+/en-us/budgetdb/account/        budgetdb.views.views.view       budgetdb:list_account_simple
+/en-us/budgetdb/account/<int:pk>/       budgetdb.views.views.view       budgetdb:details_account
+/en-us/budgetdb/account/ListJSON        budgetdb.views.views.GetAccountListJSON budgetdb:account_list_json
+/en-us/budgetdb/account/ac/     budgetdb.views.views.view       budgetdb:autocomplete_account
+/en-us/budgetdb/account/add/    budgetdb.views.views.view       budgetdb:create_account
+/en-us/budgetdb/account/details budgetdb.views.views.view       budgetdb:list_account_summary
+/en-us/budgetdb/account/listactivity/<int:pk>/  budgetdb.views.views.view       budgetdb:list_account_activity
+/en-us/budgetdb/account/update/<int:pk>/        budgetdb.views.views.view       budgetdb:update_account
+/en-us/budgetdb/accountHost/    budgetdb.views.views.view       budgetdb:list_account_host
+/en-us/budgetdb/accountHost/<int:pk>/   budgetdb.views.views.view       budgetdb:details_account_host
+/en-us/budgetdb/accountHost/ListJSON    budgetdb.views.views.GetAccountHostListJSON     budgetdb:account_host_list_json
+/en-us/budgetdb/accountHost/add/        budgetdb.views.views.view       budgetdb:create_account_host
+/en-us/budgetdb/accountHost/update/<int:pk>/    budgetdb.views.views.view       budgetdb:update_account_host
+/en-us/budgetdb/accountcat/     budgetdb.views.views.view       budgetdb:list_accountcat
+/en-us/budgetdb/accountcat/ListJSON     budgetdb.views.views.GetAccountCatListJSON      budgetdb:accountcat_list_json
+/en-us/budgetdb/accountcat/add/ budgetdb.views.views.view       budgetdb:create_accountcat
+/en-us/budgetdb/accountcat/update/<int:pk>/     budgetdb.views.views.view       budgetdb:update_accountcat
+/en-us/budgetdb/ajax/load-cat2/ budgetdb.views.views.load_cat2  budgetdb:ajax_load_cat2
+/en-us/budgetdb/budgetedEvent/  budgetdb.views.budgetedevent_views.view budgetdb:list_be
+/en-us/budgetdb/budgetedEvent/<int:pk>/ budgetdb.views.budgetedevent_views.view budgetdb:details_be
+/en-us/budgetdb/budgetedEvent/create/   budgetdb.views.budgetedevent_views.view budgetdb:create_be
+/en-us/budgetdb/budgetedEvent/create/submit/    budgetdb.views.budgetedevent_views.BudgetedEventSubmit  budgetdb:submit_be
+/en-us/budgetdb/budgetedEvent/createfromt/<int:transaction_id>/ budgetdb.views.budgetedevent_views.view budgetdb:create_be_from_t
+/en-us/budgetdb/budgetedEvent/update/<int:pk>/  budgetdb.views.budgetedevent_views.view budgetdb:update_be
+/en-us/budgetdb/calendar/       budgetdb.views.transaction_views.view   budgetdb:calendar_transaction
+/en-us/budgetdb/cat1/   budgetdb.views.views.view       budgetdb:list_cat
+/en-us/budgetdb/cat1/<int:pk>/  budgetdb.views.views.view       budgetdb:details_cat1
+/en-us/budgetdb/cat1/BarChartJSON       budgetdb.views.views.GetCat1TotalBarChartData   budgetdb:cat1_barchart_json
+/en-us/budgetdb/cat1/ListJSON   budgetdb.views.views.GetCat1ListJSON    budgetdb:cat1_list_json
+/en-us/budgetdb/cat1/PieChartJSON       budgetdb.views.views.GetCat1TotalPieChartData   budgetdb:cat1_piechart_json
+/en-us/budgetdb/cat1/ac/        budgetdb.views.views.view       budgetdb:autocomplete_cat1
+/en-us/budgetdb/cat1/add/       budgetdb.views.views.view       budgetdb:create_cat1
+/en-us/budgetdb/cat1/update/<int:pk>/   budgetdb.views.views.view       budgetdb:update_cat1
+/en-us/budgetdb/cat2/<int:pk>/  budgetdb.views.views.view       budgetdb:details_cat2
+/en-us/budgetdb/cat2/BarChartJSON       budgetdb.views.views.GetCat2TotalBarChartData   budgetdb:cat2_barchart_json
+/en-us/budgetdb/cat2/PieChartJSON       budgetdb.views.views.GetCat2TotalPieChartData   budgetdb:cat2_piechart_json
+/en-us/budgetdb/cat2/ac/        budgetdb.views.views.view       budgetdb:autocomplete_cat2
+/en-us/budgetdb/cat2/add/<int:cat1_id>  budgetdb.views.views.view       budgetdb:create_cat2
+/en-us/budgetdb/cat2/update/<int:pk>/   budgetdb.views.views.view       budgetdb:update_cat2
+/en-us/budgetdb/cattype/        budgetdb.views.views.view       budgetdb:list_cattype
+/en-us/budgetdb/cattype/<int:pk>/       budgetdb.views.views.view       budgetdb:details_cattype
+/en-us/budgetdb/cattype/ListJSON        budgetdb.views.views.GetCatTypeListJSON budgetdb:cattype_list_json
+/en-us/budgetdb/cattype/add/    budgetdb.views.views.view       budgetdb:create_cattype
+/en-us/budgetdb/cattype/bar-chart/<int:cat_type_pk>     budgetdb.views.views.view       budgetdb:cattype_bar
+/en-us/budgetdb/cattype/pie-chart/<int:cat_type_pk>     budgetdb.views.views.view       budgetdb:cattype_pie
+/en-us/budgetdb/cattype/update/<int:pk>/        budgetdb.views.views.view       budgetdb:update_cattype
+/en-us/budgetdb/joinedtransactions/<int:pk>/<slug:date>/        budgetdb.views.transaction_views.view   budgetdb:details_joined_transaction
+/en-us/budgetdb/joinedtransactions/add/ budgetdb.views.transaction_views.view   budgetdb:create_joined_transaction
+/en-us/budgetdb/joinedtransactions/update/<int:pk>/<slug:date>/ budgetdb.views.transaction_views.view   budgetdb:update_joined_transaction
+/en-us/budgetdb/preference/getJSON      budgetdb.views.views.PreferenceGetJSON  budgetdb:preferences_json
+/en-us/budgetdb/preference/setIntervalJSON      budgetdb.views.views.PreferenceSetIntervalJSON  budgetdb:setinterval_json
+/en-us/budgetdb/statement/      budgetdb.views.statement_views.view     budgetdb:list_statement
+/en-us/budgetdb/statement/<int:pk>/     budgetdb.views.statement_views.view     budgetdb:details_statement
+/en-us/budgetdb/statement/create/       budgetdb.views.statement_views.view     budgetdb:create_statement
+/en-us/budgetdb/statement/update/<int:pk>/      budgetdb.views.statement_views.view     budgetdb:update_statement
+/en-us/budgetdb/timeline2/      budgetdb.views.views.view       budgetdb:timeline_chart
+/en-us/budgetdb/timeline2JSON   budgetdb.views.views.timeline2JSON      budgetdb:timeline2_chart_json
+/en-us/budgetdb/transaction/<int:pk>/   budgetdb.views.transaction_views.view   budgetdb:details_transaction
+/en-us/budgetdb/transaction/add/        budgetdb.views.transaction_views.view   budgetdb:create_transaction
+/en-us/budgetdb/transaction/add/<slug:date>/<int:account_pk>    budgetdb.views.transaction_views.view   budgetdb:create_transaction_from_date_account
+/en-us/budgetdb/transaction/list/       budgetdb.views.transaction_views.view   budgetdb:list_transaction
+/en-us/budgetdb/transaction/manual_list/        budgetdb.views.transaction_views.view   budgetdb:list_manual_transaction
+/en-us/budgetdb/transaction/togglereceiptJSON   budgetdb.views.views.TransactionReceiptToggleJSON       budgetdb:togglereceipttransaction_json
+/en-us/budgetdb/transaction/toggleverifyJSON    budgetdb.views.views.TransactionVerifyToggleJSON        budgetdb:toggleverifytransaction_json
+/en-us/budgetdb/transaction/unverified_list/    budgetdb.views.transaction_views.view   budgetdb:list_unverified_transaction
+/en-us/budgetdb/transaction/update/<int:pk>/    budgetdb.views.transaction_views.view   budgetdb:update_transaction
+/en-us/budgetdb/transaction/update_popup/<int:pk>/      budgetdb.views.transaction_views.view   budgetdb:update_transaction_popup
+/en-us/budgetdb/user/login/     budgetdb.views.views.view       budgetdb:login
+/en-us/budgetdb/user/signup/    budgetdb.views.views.view       budgetdb:signup
+/en-us/budgetdb/vendor/ budgetdb.views.views.view       budgetdb:list_vendor
+/en-us/budgetdb/vendor/<int:pk> budgetdb.views.views.view       budgetdb:details_vendor
+/en-us/budgetdb/vendor/ac/      budgetdb.views.views.view       budgetdb:autocomplete_vendor
+/en-us/budgetdb/vendor/add/     budgetdb.views.views.view       budgetdb:create_vendor
+/en-us/budgetdb/vendor/update/<int:pk>/ budgetdb.views.views.view       budgetdb:update_vendor
+/en-us/budgetdb/vendorListJSON  budgetdb.views.views.GetVendorListJSON  budgetdb:vendor_list_json
+/en-us/favicon.ico      django.views.generic.base.view

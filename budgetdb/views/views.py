@@ -14,11 +14,13 @@ from dateutil.relativedelta import relativedelta
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar, User
 from budgetdb.models import JoinedTransactions, CatSums, CatType, AccountHost, Preference, AccountPresentation
 from budgetdb.utils import Calendar
-from budgetdb.forms import UserSignUpForm
+from budgetdb.forms import UserSignUpForm, PreferenceForm
 import pytz
 from decimal import *
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
+from crum import get_current_user
+
 
 # colors stolen from django chart js library
 COLORS = [
@@ -670,6 +672,25 @@ class CatTypeUpdateView(LoginRequiredMixin, UpdateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
+class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
+    model = Preference
+    form_class = PreferenceForm
+
+    def get_object(self):
+        user = get_current_user()
+        return Preference.objects.get(user=user)
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # form.helper = FormHelper()
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
         return form

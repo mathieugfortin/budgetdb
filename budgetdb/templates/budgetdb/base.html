@@ -112,7 +112,7 @@
                         {{ user.get_username }}
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" >
-                        <a class="dropdown-item" href="#">Preferences</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preferences</a>
                         <a class="dropdown-item" href="{% url 'admin:logout' %}">Logout</a>
                     </div>
                 </li>
