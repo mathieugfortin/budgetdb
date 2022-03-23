@@ -14,7 +14,7 @@ class StatementListView(ListView):
     context_object_name = 'statement_list'
 
     def get_queryset(self):
-        return Statement.objects.filter(deleted=False).order_by('account', 'statement_date')
+        return Statement.view_objects.filter(deleted=False).order_by('account', 'statement_date')
 
 
 class StatementDetailView(DetailView):

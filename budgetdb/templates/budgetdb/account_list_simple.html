@@ -33,8 +33,9 @@
     </tr>
     {% for account in account_list %}
     <tr>
-        <td><a href="{% url 'budgetdb:update_account' account.id %}">{{ account.name }}</a></td>
-        <td><a href="{% url 'budgetdb:update_account_host' account.account_host.id %}">{{ account.account_host }}</a></td>
+        <td><a href="{% url 'budgetdb:account_max_redirect' account.id %}">{{ account.name }}</a></td>
+        
+        <td><a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a></td>
         {% if account.account_parent == None %}
             <td></td>
         {% else %}
@@ -43,7 +44,7 @@
         {% if account.account_cat == None %}
             <td></td>
         {% else %}
-            <td><a href="{% url 'budgetdb:accountcat_list_json' %}">{{ account.account_cat }}</a></td>
+            <td><a href="{% url 'budgetdb:accountcat_view_list_json' %}">{{ account.account_cat }}</a></td>
         {% endif %}     
     </tr>
     {% endfor %}

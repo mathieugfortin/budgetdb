@@ -46,3 +46,6 @@ modelformset_factory with crispy:
 https://dev.to/zxenia/django-inline-formsets-with-class-based-views-and-crispy-forms-14o6
 
 to get formset errors: formset.errors.....
+
+Get current user
+https://django-crum.readthedocs.io/en/latest/

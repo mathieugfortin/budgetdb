@@ -54,12 +54,19 @@ urlpatterns = [
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
 
+    # redirects
+    path('account/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Account'),
+         name='account_max_redirect'),
+    path('accountHost/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='AccountHost'),
+         name='accounthost_max_redirect'),
+
 
     # Account
-    path('account/ListJSON', views.GetAccountListJSON,
-         name='account_list_json'),
+    path('account/ListJSON', views.GetAccountViewListJSON,
+         name='account_list_view_json'),
     path('account/', views.AccountListViewSimple.as_view(),
          name='list_account_simple'),
+
     path('account/details', views.AccountSummaryView.as_view(),
          name='list_account_summary'),
     path('account/<int:pk>/', views.AccountDetailView.as_view(),
@@ -74,7 +81,7 @@ urlpatterns = [
          name='list_account_activity'),
 
     # AccountCategory
-    path('accountcat/ListJSON', views.GetAccountCatListJSON, name='accountcat_list_json'),
+    path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
     path('accountcat/update/<int:pk>/', views.AccountCatUpdateView.as_view(),
          name='update_accountcat'),
     path('accountcat/', views.AccountCatListView.as_view(),
@@ -83,15 +90,15 @@ urlpatterns = [
          name='create_accountcat'),
 
     # Account_Host
-    path('accountHost/ListJSON', views.GetAccountHostListJSON, name='account_host_list_json'),
+    path('accountHost/ListJSON', views.GetAccountHostViewListJSON, name='account_host_list_json'),
     path('accountHost/<int:pk>/', views.AccountHostDetailView.as_view(),
-         name='details_account_host'),
+         name='details_accounthost'),
     path('accountHost/add/', views.AccountHostCreateView.as_view(),
-         name='create_account_host'),
+         name='create_accounthost'),
     path('accountHost/update/<int:pk>/', views.AccountHostUpdateView.as_view(),
-         name='update_account_host'),
+         name='update_accounthost'),
     path('accountHost/', views.AccountHostListView.as_view(),
-         name='list_account_host'),
+         name='list_accounthost'),
 
     # chart JS
     path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
@@ -117,7 +124,7 @@ urlpatterns = [
     path('cat2/BarChartJSON', views.GetCat2TotalBarChartData, name='cat2_barchart_json'),
     path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
          name='details_cat2'),
-    path('cat2/add/<int:cat1_id>', views.Cat2Create.as_view(),
+    path('cat2/add/<int:cat1_id>', views.Cat2CreateView.as_view(),
          name='create_cat2'),
     path('cat2/update/<int:pk>/', views.Cat2UpdateView.as_view(),
          name='update_cat2'),
@@ -135,7 +142,7 @@ urlpatterns = [
          name='list_cattype'),
     path('cattype/<int:pk>/', views.CatTypeDetailView.as_view(),
          name='details_cattype'),
-    path('cattype/add/', views.CatTypeCreate.as_view(),
+    path('cattype/add/', views.CatTypeCreateView.as_view(),
          name='create_cattype'),
     path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),
          name='update_cattype'),
@@ -211,7 +218,7 @@ urlpatterns = [
          name='list_vendor'),
     path('vendor/<int:pk>', views.VendorDetailView.as_view(),
          name='details_vendor'),
-    path('vendor/add/', views.VendorCreate.as_view(),
+    path('vendor/add/', views.VendorCreateView.as_view(),
          name='create_vendor'),
     path('vendor/update/<int:pk>/', views.VendorUpdateView.as_view(),
          name='update_vendor'),

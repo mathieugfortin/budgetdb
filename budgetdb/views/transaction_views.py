@@ -18,26 +18,13 @@ from django import forms
 
 
 class TransactionCreateView(CreateView):
-    account_source = forms.ModelChoiceField(queryset=Account.objects.order_by('name'))
+    account_source = forms.ModelChoiceField(queryset=Account.admin_objects.order_by('name'))
     model = Transaction
 
     fields = [
             'description',
-            'cat1',
-            'cat2',
-            'ismanual',
-            'account_source',
-            'account_destination',
-            'statement',
-            'verified',
-            'receipt',
-            'audit',
-            'vendor',
-            'amount_actual',
-            'date_actual',
-            'date_planned',
-            'budgetedevent',
-            'comment',
+            'users_view',
+            'users_admin',
             ]
 
     def form_valid(self, form):
@@ -61,9 +48,11 @@ class TransactionCreateViewFromDateAccount(CreateView):
         form = super().get_form(form_class)
         date = self.kwargs['date']
         account_id = self.kwargs['account_pk']
-        account = Account.objects.get(id=account_id)
+        account = Account.admin_objects.get(id=account_id)
         form.initial['date_actual'] = date
         form.initial['account_source'] = account
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form
 
 
@@ -74,11 +63,23 @@ class TransactionUpdateView(LoginRequiredMixin, UpdateView):
     # template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionFormFull
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
 
 class TransactionUpdatePopupView(LoginRequiredMixin, UpdateView):
     model = Transaction
     template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionFormFull
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
 
 
 class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):

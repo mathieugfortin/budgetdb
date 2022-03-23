@@ -9,8 +9,8 @@
 
 {% if account_host_list %}
     <ul>
-    {% for account in account_host_list %}
-        <li><a href="{% url 'budgetdb:update_account_host' account.id %}">{{ account.name }}</a></li>
+    {% for account_host in account_host_list %}
+        <li><a href="{% url 'budgetdb:accounthost_max_redirect' account_host.id %}">{{ account_host.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
@@ -18,7 +18,7 @@
 {% endif %}
 
 <div class="clearfix">
-    <a class="btn btn-info top" href="{% url 'budgetdb:create_account_host' %}">Create new host</a>
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_accounthost' %}">Create new host</a>
 </div>
 
 {% endblock %}

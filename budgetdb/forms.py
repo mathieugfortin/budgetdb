@@ -1,6 +1,6 @@
 from django import forms
 from dal import autocomplete
-from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransactions, User, Preference
+from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransactions, User, Preference, Account, AccountHost
 from django.urls import reverse_lazy
 from django_addanother.widgets import AddAnotherWidgetWrapper, AddAnotherEditSelectedWidgetWrapper
 from crispy_forms.helper import FormHelper
@@ -10,6 +10,7 @@ from crispy_forms.bootstrap import AppendedText, PrependedText
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
+from crum import get_current_user
 
 
 class UserSignUpForm(UserCreationForm):
@@ -65,6 +66,87 @@ class DateInput(forms.DateInput):
     input_type = 'date'
 
 
+class AccountForm(forms.ModelForm):
+    class Meta:
+        model = Account
+        fields = (
+            'name',
+            'account_host',
+            'account_parent',
+            'account_number',
+            'comment',
+            'TFSA',
+            'RRSP',
+            'users_admin',
+            'users_view',
+            )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["account_host"].queryset = AccountHost.view_objects.all()
+        self.fields["account_parent"].queryset = Account.view_objects.all()
+        self.helper.layout = Layout(
+            Div(
+                Div('name', css_class='form-group col-md-4 mb-0'),
+                Div('account_number', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div('comment', css_class='form-group col-md-6 mb-0'),
+            Div(
+                Div('account_host', css_class='form-group col-md-4 mb-0'),
+                Div('account_parent', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('TFSA', css_class='form-group col-md-4 mb-0'),
+                Div('RRSP', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
+class AccountHostForm(forms.ModelForm):
+    class Meta:
+        model = AccountHost
+        fields = (
+            'name',
+            'users_admin',
+            'users_view',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'AccountHostForm'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
 class BudgetedEventForm(forms.ModelForm):
     class Meta:
         model = BudgetedEvent
@@ -86,38 +168,66 @@ class BudgetedEventForm(forms.ModelForm):
             'repeat_interval_weeks',
             'repeat_interval_months',
             'repeat_interval_years',
+            'users_admin',
+            'users_view',
         )
 
         widgets = {
-            #            'account_source': AddAnotherWidgetWrapper(
-            #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_account'), reverse_lazy('budgetdb:create_account')
-            #              ),
-            #         'account_destination': AddAnotherWidgetWrapper(
-            #            autocomplete.ModelSelect2(url='budgetdb:autocomplete_account'), reverse_lazy('budgetdb:create_account')
-            #           ),
-            #            'cat1': AddAnotherWidgetWrapper(
-            #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat1'), reverse_lazy('budgetdb:create_cat1')
-            #              ),
-            #            'cat2': AddAnotherWidgetWrapper(
-            #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_cat2', forward=['cat1']), reverse_lazy('budgetdb:create_cat2')
-            #              ),
-            #            'vendor': AddAnotherWidgetWrapper(
-            #               autocomplete.ModelSelect2(url='budgetdb:autocomplete_vendor'), reverse_lazy('budgetdb:create_vendor')
-            #              ),
             'repeat_start': forms.widgets.DateInput(attrs={'type': 'date'}),
             'repeat_stop': forms.widgets.DateInput(attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
         self.helper = FormHelper()
         self.helper.form_id = 'BudgetedEventForm'
-        # self.helper.form_class = 'blueForms'
-        self.helper.form_method = 'post'
-        self.helper.form_class = 'form-horizontal'
-
-        self.helper.add_input(Submit('submit', 'Submit'))
-        # self.fields['cat2'].queryset = Cat2.objects.none()
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('description', css_class='form-group col-md-6 mb-0'),
+                Div('vendor', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('cat1', css_class='form-group col-md-4 mb-0'),
+                Div('cat2', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                #Div('amount_planned', css_class='form-group col-md-4 mb-0'),
+                Div(PrependedText('amount_planned', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
+                Div('account_source', css_class='form-group col-md-4 mb-0'),
+                Div('account_destination', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('budget_only', css_class='form-group col-md-4 mb-0'),
+                Div('ismanual', css_class='form-group col-md-4 mb-0'),
+                Div('isrecurring', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('repeat_start', css_class='form-group col-md-4 mb-0'),
+                Div('repeat_stop', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('repeat_interval_days', css_class='form-group col-md-2 mb-0'),
+                Div('repeat_interval_weeks', css_class='form-group col-md-2 mb-0'),
+                Div('repeat_interval_months', css_class='form-group col-md-2 mb-0'),
+                Div('repeat_interval_years', css_class='form-group col-md-2 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
 
 
 class JoinedTransactionsForm(forms.ModelForm):
@@ -196,17 +306,13 @@ class TransactionFormFull(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.objects.filter(cat1=cat1, deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
-
-        self.helper = FormHelper()
-        self.helper.form_method = 'POST'
-        self.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        # self.helper.form_class = 'form-horizontal'
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Ammount"
@@ -328,7 +434,7 @@ class TransactionFormShort(forms.ModelForm):
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.objects.filter(cat1=cat1, deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
 
