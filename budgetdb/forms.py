@@ -147,6 +147,37 @@ class AccountHostForm(forms.ModelForm):
         )
 
 
+class AccountCategoryForm(forms.ModelForm):
+    class Meta:
+        model = AccountHost
+        fields = (
+            'name',
+            'users_admin',
+            'users_view',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'AccountHostForm'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
 class BudgetedEventForm(forms.ModelForm):
     class Meta:
         model = BudgetedEvent
@@ -290,7 +321,7 @@ class TransactionFormFull(forms.ModelForm):
             'budgetedevent',
             'audit',
             'ismanual',
-            'deleted',
+            'is_deleted',
             'comment',
         ]
         widgets = {
@@ -310,7 +341,7 @@ class TransactionFormFull(forms.ModelForm):
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         self.fields['cat1'].label = "Category"
@@ -342,7 +373,7 @@ class TransactionFormFull(forms.ModelForm):
             Div(
                 Div('verified', css_class='form-group col-md-4 mb-0'),
                 Div('receipt', css_class='form-group col-md-4 mb-0 '),
-                Div('deleted', css_class='form-group col-md-4 mb-0 '),
+                Div('is_deleted', css_class='form-group col-md-4 mb-0 '),
                 css_class='form-row'
             ),
             Div(
@@ -415,7 +446,6 @@ class TransactionFormShort(forms.ModelForm):
             'verified',
             'date_actual',
             'budgetedevent',
-            'deleted',
             'receipt'
         ]
         widgets = {
@@ -434,7 +464,7 @@ class TransactionFormShort(forms.ModelForm):
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
 
@@ -451,7 +481,6 @@ class TransactionFormShort(forms.ModelForm):
                 Div('account_destination', css_class='form-group col-md-1'),
                 Div('verified', css_class='form-group col-md-1'),
                 Div('receipt', css_class='form-group col-md-1'),
-                Div('deleted', css_class='form-group col-md-1'),
                 Div(PrependedText('amount_actual', '$'), css_class='form-group col-md-1'),
                 Field('date_actual', css_class='form-group col-md-2 mb-0', type='hidden'),
                 # Div('amount_actual', css_class='form-group col-md-1'),
@@ -478,7 +507,7 @@ TransactionFormSet = modelformset_factory(
             'verified',
             'date_actual',
             'budgetedevent',
-            'deleted',
+            'is_deleted',
             'receipt',
         ],
     extra=0,

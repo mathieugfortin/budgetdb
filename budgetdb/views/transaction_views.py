@@ -93,10 +93,10 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
         joinedtransaction = JoinedTransactions.objects.get(pk=pk)
         transactions = joinedtransaction.transactions.all()
         transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
-        firstbudgetedevent = joinedtransaction.budgetedevents.filter(deleted=False).order_by('joined_order').first()
+        firstbudgetedevent = joinedtransaction.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
         previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
-        for budgetedevent in joinedtransaction.budgetedevents.filter(deleted=False):
+        for budgetedevent in joinedtransaction.budgetedevents.filter(is_deleted=False):
             transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
         transactions = transactions.order_by('joined_order')
         context['joinedtransaction'] = joinedtransaction
@@ -142,10 +142,10 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
         transactions = joinedtransaction.transactions.all()
         transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
         # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
-        firstbudgetedevent = joinedtransaction.budgetedevents.filter(deleted=False).order_by('joined_order').first()
+        firstbudgetedevent = joinedtransaction.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
         previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
-        for budgetedevent in joinedtransaction.budgetedevents.filter(deleted=False):
+        for budgetedevent in joinedtransaction.budgetedevents.filter(is_deleted=False):
             transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
         transactions = transactions.order_by('joined_order')
         if self.request.POST:
@@ -212,7 +212,7 @@ class TransactionUnverifiedListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         today = date.today()
-        transactions = Transaction.objects.filter(deleted=0, verified=0, audit=0, date_actual__lt=today).order_by('date_actual')
+        transactions = Transaction.objects.filter(is_deleted=0, verified=0, audit=0, date_actual__lt=today).order_by('date_actual')
         return transactions
 
     def get_context_data(self, **kwargs):
@@ -229,7 +229,7 @@ class TransactionManualListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
-        transactions = Transaction.objects.filter(deleted=0, verified=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
+        transactions = Transaction.objects.filter(is_deleted=0, verified=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
         return transactions
 
     def get_context_data(self, **kwargs):

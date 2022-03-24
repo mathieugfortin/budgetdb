@@ -28,9 +28,9 @@ class BudgetedEventDetailView(LoginRequiredMixin, DetailView):
         budgetedEvent = BudgetedEvent.objects.get(pk=self.kwargs['pk'])
         editable = budgetedEvent.can_edit()
 
-        # context['vendor_list'] = Vendor.view_objects.filter(deleted=False)
-        # context['cat1_list'] = Cat1.view_objects.filter(deleted=False)
-        # context['cat2_list'] = Cat2.view_objects.filter(deleted=False)
+        # context['vendor_list'] = Vendor.view_objects.filter(is_deleted==False)
+        # context['cat1_list'] = Cat1.view_objects.filter(is_deleted=False)
+        # context['cat2_list'] = Cat2.view_objects.filter(is_deleted=False)
         context['editable'] = editable
         begin_interval = datetime.today().date() + relativedelta(months=-6)
         context['next_transactions'] = budgetedEvent.listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)

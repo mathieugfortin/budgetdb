@@ -140,7 +140,6 @@ class AccountHost(BaseSoftDelete, UserPermissions):
         ordering = ['name']
 
     name = models.CharField(max_length=200)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -163,7 +162,6 @@ class AccountPresentation(models.Model):
     name = models.CharField(max_length=200)
     account_number = models.CharField(max_length=200, blank=True)
     childrens = models.CharField(max_length=200, blank=True, null=True)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
 
 class Account(BaseSoftDelete, UserPermissions):
@@ -181,7 +179,6 @@ class Account(BaseSoftDelete, UserPermissions):
     comment = models.CharField("Comment", max_length=200, blank=True, null=True)
     TFSA = models.BooleanField('Account is a TFSA for canadian fiscal considerations', default=False)
     RRSP = models.BooleanField('Account is a RRSP for canadian fiscal considerations', default=False)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -190,14 +187,14 @@ class Account(BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_account_simple')
 
     def balance_by_EOD(self, dateCheck):
-        closestAudit = Transaction.view_objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True, deleted=False).order_by('-date_actual')[:1]
+        closestAudit = Transaction.view_objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True, is_deleted=False).order_by('-date_actual')[:1]
 
         if closestAudit.count() == 0:
             balance = Decimal(0.00)
-            events = Transaction.view_objects.filter(date_actual__lte=dateCheck, deleted=False)
+            events = Transaction.view_objects.filter(date_actual__lte=dateCheck, is_deleted=False)
         else:
             balance = Decimal(closestAudit.first().amount_actual)
-            events = Transaction.view_objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck, deleted=False)
+            events = Transaction.view_objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck, is_deleted=False)
 
         events = events.filter(account_source_id=self.id) | events.filter(account_destination_id=self.id)
 
@@ -219,8 +216,8 @@ class Account(BaseSoftDelete, UserPermissions):
         return balance
 
     def build_report_with_balance(self, start_date, end_date):
-        events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, deleted=False).order_by('date_actual', 'audit')
-        account_list = Account.view_objects.filter(deleted=False)
+        events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', 'audit')
+        account_list = Account.view_objects.filter(is_deleted=False)
         account_list = account_list.filter(id=self.id) | account_list.filter(account_parent_id=self.id)
         events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
         balance = Decimal(Account.view_objects.get(id=self.id).balance_by_EOD(start_date))
@@ -262,7 +259,7 @@ class Account(BaseSoftDelete, UserPermissions):
                 f"ORDER BY c.db_date "
 
         # get children account data
-        childaccounts = Account.view_objects.filter(account_parent_id=self.id, deleted=False)
+        childaccounts = Account.view_objects.filter(account_parent_id=self.id, is_deleted=False)
         childcount = childaccounts.count()
         # is this all done with DB queries?  Can I do it all in memory?
         if (childcount > 0):  # If children, account is virtual, only check childrens
@@ -308,13 +305,12 @@ class AccountCategory(BaseSoftDelete, UserPermissions):
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=200)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('budgetdb:list_accountcat')
+        return reverse('budgetdb:list_accountcategory')
 
 
 class CatSums(models.Model):
@@ -472,7 +468,6 @@ class CatBudget(models.Model):
     amount = models.DecimalField(decimal_places=2, max_digits=10)
     amount_frequency = models.CharField(max_length=1, choices=FREQUENCIES,
                                         default='D')
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -531,7 +526,6 @@ class CatType(BaseSoftDelete, UserPermissions):
         verbose_name = 'Category Type'
         verbose_name_plural = 'Categories Type'
     name = models.CharField(max_length=200)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -550,7 +544,6 @@ class Cat1(BaseSoftDelete, UserPermissions):
     CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE,
                                   blank=True, null=True)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -569,7 +562,6 @@ class Cat2(BaseSoftDelete, UserPermissions):
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -585,7 +577,6 @@ class Vendor(BaseSoftDelete, UserPermissions):
         ordering = ['name']
 
     name = models.CharField(max_length=200)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.name
@@ -637,7 +628,6 @@ class Transaction(BaseSoftDelete):
     )
     statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
     verified = models.BooleanField('Verified in a statement', default=False)
-    deleted = models.BooleanField('Deleted', default=False)
     audit = models.BooleanField(
         'Audit',
         default=False,
@@ -708,7 +698,6 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
     repeat_interval_years = models.IntegerField('period in years, 0 if not applicable', default=0)
     repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
     repeat_interval_weeks = models.IntegerField('period in weeks, 0 if not applicable', default=0)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     ######################################
     # binary masks are ALWAYS APPLICABLE #
@@ -821,14 +810,14 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         return event_date_list
 
     def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
     def listPreviousTransaction(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
         transactions = transactions.filter(date_actual__lt=begin_interval)
         end_date = begin_interval - relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__gt=end_date).order_by('-date_actual')[:n]
@@ -867,7 +856,7 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         # don't delete if it's verified in a statement
         # don't delete if it's verified with a receipt
         # don't delete if it's flagged as deleted
-        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False, deleted=False, receipt=False)
+        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False, is_deleted=False, receipt=False)
         transactions.delete()
         self.generated_interval_start = None
         self.generated_interval_stop = None
@@ -888,7 +877,6 @@ class Statement (BaseSoftDelete):
     comment = models.CharField(max_length=200, blank=True, null=True)
     payment_transaction = models.ForeignKey('Transaction', on_delete=models.CASCADE, related_name='payment_transaction',
                                             blank=True, null=True)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
 
     def __str__(self):
         return self.account.name + " " + self.statement_date.strftime('%Y-%m-%d')
@@ -991,14 +979,14 @@ class Recurring(models.Model):
             return True
 
     def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
     def listPreviousTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, deleted=False)
+        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
         transactions = transactions.filter(date_actual__lte=begin_interval)
         end_date = begin_interval + relativedelta(months=-interval_length_months)
         transactions = transactions.filter(date_actual__gt=end_date).order_by('date_actual')[:n]
@@ -1018,4 +1006,4 @@ class JoinedTransactions(BaseSoftDelete, UserPermissions):
     budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='budgeted_events')
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)
     recurring = models.ForeignKey(Recurring, on_delete=models.CASCADE, null=True)
-    deleted = models.BooleanField('deleted, should not be used in any calculations', default=False)
+ 

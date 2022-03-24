@@ -59,14 +59,16 @@ urlpatterns = [
          name='account_max_redirect'),
     path('accountHost/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='AccountHost'),
          name='accounthost_max_redirect'),
-
+    path('accountcat/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='AccountCategory'),
+         name='accountcategory_max_redirect'),
+    path('cat1/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Cat1'),
+         name='cat1_max_redirect'),
 
     # Account
     path('account/ListJSON', views.GetAccountViewListJSON,
          name='account_list_view_json'),
     path('account/', views.AccountListViewSimple.as_view(),
          name='list_account_simple'),
-
     path('account/details', views.AccountSummaryView.as_view(),
          name='list_account_summary'),
     path('account/<int:pk>/', views.AccountDetailView.as_view(),
@@ -82,12 +84,14 @@ urlpatterns = [
 
     # AccountCategory
     path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
+    path('accountcat/<int:pk>/', views.AccountCatDetailView.as_view(),
+         name='details_accountcategory'),
     path('accountcat/update/<int:pk>/', views.AccountCatUpdateView.as_view(),
-         name='update_accountcat'),
+         name='update_accountcategory'),
     path('accountcat/', views.AccountCatListView.as_view(),
-         name='list_accountcat'),
+         name='list_accountcategory'),
     path('accountcat/add/', views.AccountCatCreateView.as_view(),
-         name='create_accountcat'),
+         name='create_accountcategory'),
 
     # Account_Host
     path('accountHost/ListJSON', views.GetAccountHostViewListJSON, name='account_host_list_json'),

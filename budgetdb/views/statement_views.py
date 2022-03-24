@@ -14,7 +14,7 @@ class StatementListView(ListView):
     context_object_name = 'statement_list'
 
     def get_queryset(self):
-        return Statement.view_objects.filter(deleted=False).order_by('account', 'statement_date')
+        return Statement.view_objects.filter(is_deleted=False).order_by('account', 'statement_date')
 
 
 class StatementDetailView(DetailView):
@@ -26,7 +26,7 @@ class StatementDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
         # Add in a QuerySet of all the books
-        included_transactions = Transaction.objects.filter(deleted=False, statement=pk).order_by('date_actual')
+        included_transactions = Transaction.objects.filter(is_deleted=False, statement=pk).order_by('date_actual')
         
         context['included_transactions'] = included_transactions
         return context
@@ -42,7 +42,6 @@ class StatementUpdate(UpdateView):
             'statement_due_date',
             'comment',
             'payment_transaction',
-            'deleted',
         )
 
     def form_valid(self, form):
@@ -67,7 +66,6 @@ class StatementCreate(CreateView):
             'statement_due_date',
             'comment',
             'payment_transaction',
-            'deleted',
         )
 
     def form_valid(self, form):

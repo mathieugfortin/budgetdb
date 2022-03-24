@@ -4,11 +4,14 @@
 
 {% block content %}
 
-<h1>{{ accounthost.name }}</h1>
-{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+    <h1>{{ accounthost.name }}</h1>
+    {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
-<div class="clearfix">
-    <a class="btn btn-info top" href="{% url 'budgetdb:update_accounthost' accounthost.id %}">Modify</a>
-</div>
+    <div class="clearfix">
+    {% if accounthost.editable %}
+        <a class="btn btn-info top" href="{% url 'budgetdb:update_accounthost' accounthost.id %}">Modify</a>
+    {% endif %}
+        <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+    </div>
 
 {% endblock %}
