@@ -1,6 +1,6 @@
 from django import forms
 from dal import autocomplete
-from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransactions, User, Preference, Account, AccountHost
+from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransactions, User, Preference, Account, AccountHost, AccountCategory
 from django.urls import reverse_lazy
 from django_addanother.widgets import AddAnotherWidgetWrapper, AddAnotherEditSelectedWidgetWrapper
 from crispy_forms.helper import FormHelper
@@ -149,11 +149,12 @@ class AccountHostForm(forms.ModelForm):
 
 class AccountCategoryForm(forms.ModelForm):
     class Meta:
-        model = AccountHost
+        model = AccountCategory
         fields = (
             'name',
             'users_admin',
             'users_view',
+            'accounts',
         )
 
     def __init__(self, *args, **kwargs):
@@ -165,10 +166,15 @@ class AccountCategoryForm(forms.ModelForm):
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["accounts"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["accounts"].queryset = Account.view_objects.all()
         self.helper.layout = Layout(
             Div(
                 Div('name', css_class='form-group col-md-6 mb-0'),
                 css_class='form-row'
+            ),
+            Div(
+                Div('accounts', css_class='form-group col-md-4 mb-0'),
             ),
             Div(
                 Div('users_admin', css_class='form-group col-md-4 mb-0'),

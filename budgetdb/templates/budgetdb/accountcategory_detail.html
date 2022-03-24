@@ -1,0 +1,26 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}Account Category - {{ object.name }}{% endblock %}
+
+{% block content %}
+
+    <h1>Account Category: {{ object.name }}</h1>
+    {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+    {% if object.accounts %}
+    <H5>Included accounts:</H5>
+    <ul>
+    {% for account in object.my_accounts %}
+    <li><a href="{% url 'budgetdb:account_max_redirect' account.id %}">{{ account.name }}</a></li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+
+    <div class="clearfix">
+    {% if object.editable %}
+        <a class="btn btn-info top" href="{% url 'budgetdb:update_accountcategory' object.id %}">Modify</a>
+    {% endif %}
+        <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+    </div>
+
+{% endblock %}

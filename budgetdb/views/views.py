@@ -745,6 +745,7 @@ class ObjectMaxRedirect(RedirectView):
         raise PermissionDenied
 
 
+###################################################################################################################
 # Account
 
 
@@ -772,9 +773,9 @@ class AccountDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         raise PermissionDenied
 
     def get_object(self, queryset=None):
-        host = super(AccountDetailView, self).get_object(queryset=queryset)
-        host.editable = host.can_edit()
-        return host
+        my_object = super().get_object(queryset=queryset)
+        my_object.editable = my_object.can_edit()
+        return my_object
 
 
 class AccountUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -791,7 +792,7 @@ class AccountUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["object"] = 'Account'
+        context["object"] = self.model
         return context
 
     def get_form(self, form_class=None):
@@ -811,7 +812,7 @@ class AccountCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["object"] = 'Account'
+        context["object"] = self.model
         return context
 
     def get_form(self, form_class=None):
@@ -823,6 +824,7 @@ class AccountCreateView(LoginRequiredMixin, CreateView):
         return form
 
 
+###################################################################################################################
 # AccountCategories
 
 
@@ -834,14 +836,21 @@ class AccountCatListView(LoginRequiredMixin, ListView):
         return AccountCategory.view_objects.filter(is_deleted=False).order_by('name')
 
 
-class AccountCatDetailView(LoginRequiredMixin, DetailView):
+class AccountCatDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = AccountCategory
 
-    def get_queryset(self):
-        account_categories = AccountCategory.view_objects.filter(is_deleted=False).order_by('name')
-        for categorie in account_categories:
-            categorie.editable = categorie.can_edit()
-        return account_categories
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_object(self, queryset=None):
+        category = super().get_object(queryset=queryset)
+        category.editable = category.can_edit()
+        category.my_accounts = category.accounts.filter(is_deleted=False)
+        return category
 
 
 class AccountCatUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -856,6 +865,11 @@ class AccountCatUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def handle_no_permission(self):
         raise PermissionDenied
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = self.model
+        return context
+
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper.form_method = 'POST'
@@ -866,6 +880,26 @@ class AccountCatUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return form
 
 
+class AccountCatCreateView(LoginRequiredMixin, CreateView):
+    model = AccountCategory
+    template_name = 'budgetdb/generic_form.html'
+    form_class = AccountCategoryForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = self.model
+        return context
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
+        return form
+
+###################################################################################################################
 # AccountHost
 
 
@@ -894,9 +928,9 @@ class AccountHostDetailView(LoginRequiredMixin, DetailView):
         raise PermissionDenied
 
     def get_object(self, queryset=None):
-        host = super().get_object(queryset=queryset)
-        host.editable = host.can_edit()
-        return host
+        my_object = super().get_object(queryset=queryset)
+        my_object.editable = my_object.can_edit()
+        return my_object
 
 
 class AccountHostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -913,7 +947,7 @@ class AccountHostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["object"] = 'Account Host'
+        context["object"] = self.model
         return context
 
     def get_form(self, form_class=None):
@@ -933,7 +967,7 @@ class AccountHostCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["object"] = 'Account Host'
+        context["object"] = self.model
         return context
 
     def get_form(self, form_class=None):
@@ -943,6 +977,17 @@ class AccountHostCreateView(LoginRequiredMixin, CreateView):
         form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
                               onclick="javascript:history.back();"))
         return form
+
+###################################################################################################################
+# Cat1
+
+
+class Cat1ListView(LoginRequiredMixin, ListView):
+    model = Cat1
+    context_object_name = 'categories_list'
+
+    def get_queryset(self):
+        return Cat1.objects.order_by('name')
 
 
 class Cat2DetailView(LoginRequiredMixin, DetailView):
@@ -962,14 +1007,6 @@ class VendorDetailView(LoginRequiredMixin, DetailView):
 
 class IndexView(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/index.html'
-    context_object_name = 'categories_list'
-
-    def get_queryset(self):
-        return Cat1.objects.order_by('name')
-
-
-class Cat1ListView(LoginRequiredMixin, ListView):
-    model = Cat1
     context_object_name = 'categories_list'
 
     def get_queryset(self):
@@ -1117,26 +1154,6 @@ class UserLoginView(LoginView):
         form.helper = FormHelper()
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
-        return form
-
-
-class AccountCatCreateView(LoginRequiredMixin, CreateView):
-    model = AccountCategory
-    fields = (
-        'name',
-        'accounts',
-        )
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="javascript:history.back();"))
         return form
 
 
