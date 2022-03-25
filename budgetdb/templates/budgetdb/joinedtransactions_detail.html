@@ -7,13 +7,13 @@
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 <div class="row">
     <div class="col-md-1">
-    <a href="{% url 'budgetdb:details_joined_transaction' joinedtransaction.id pdate %}" class="btn btn-info" role="button"> {{ pdate }} </a>
+    <a href="{% url 'budgetdb:details_joinedtransaction' joinedtransaction.id pdate %}" class="btn btn-info" role="button"> {{ pdate }} </a>
     </div>
     <div class="col-md-10">
     <button type="button" class="btn btn-outline-info btn-block">{{joinedtransaction.name}}  -  {{ transactiondate }}</button>
     </div>
     <div class="col-md-1">
-    <a href="{% url 'budgetdb:details_joined_transaction' joinedtransaction.id ndate %} " class="btn btn-info" role="button"> {{ ndate }} </a>
+    <a href="{% url 'budgetdb:details_joinedtransaction' joinedtransaction.id ndate %} " class="btn btn-info" role="button"> {{ ndate }} </a>
     </div>
 </div>
 

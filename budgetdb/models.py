@@ -28,6 +28,28 @@ class ViewerManager(models.Manager):
         return qs
 
 
+class TransactionViewerManager(models.Manager):
+    def get_queryset(self):
+        user = get_current_user()
+        qs = super().get_queryset()
+        view_accounts = Account.view_objects.all()
+        ok_source = qs.filter(account_source__in=view_accounts)
+        ok_dest = qs.filter(account_destination__in=view_accounts)
+        qs = ok_source | ok_dest
+        return qs
+
+
+class TransactionAdminManager(models.Manager):
+    def get_queryset(self):
+        user = get_current_user()
+        qs = super().get_queryset()
+        view_accounts = Account.admin_objects.all()
+        ok_source = qs.filter(account_source__in=view_accounts)
+        ok_dest = qs.filter(account_destination__in=view_accounts)
+        qs = ok_source | ok_dest
+        return qs
+
+
 class AdminManager(models.Manager):
     def get_queryset(self):
         user = get_current_user()
@@ -47,7 +69,7 @@ class UserPermissions(models.Model):
     # groups_view = models.ManyToManyField(Group, related_name='g_can_view_%(app_label)s_%(class)s', blank=True)
     users_admin = models.ManyToManyField("User", related_name='users_full_access_%(app_label)s_%(class)s', blank=True)
     users_view = models.ManyToManyField("User", related_name='users_view_access_%(app_label)s_%(class)s', blank=True)
-    objects = models.Manager()  # The default manager.  The goal is to remove this
+    objects = models.Manager()  # The default manager.  
     view_objects = ViewerManager()
     admin_objects = AdminManager()
 
@@ -590,6 +612,10 @@ class Transaction(BaseSoftDelete):
         verbose_name = 'Transaction'
         verbose_name_plural = 'Transactions'
 
+    objects = models.Manager()  # The default manager.  
+    view_objects = TransactionViewerManager()
+    admin_objects = TransactionAdminManager()
+
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
 
@@ -656,6 +682,16 @@ class Transaction(BaseSoftDelete):
                 super(Transaction, self).save(*args, **kwargs)
         else:
             super(Transaction, self).save(*args, **kwargs)
+
+    def can_edit(self):
+        if (self.account_destination.can_edit() or self.account_source.can_edit()):
+            return True
+        return False
+
+    def can_view(self):
+        if (self.account_destination.can_edit() or self.account_source.can_edit()):
+            return True
+        return False
 
 
 class BudgetedEvent(BaseSoftDelete, UserPermissions):
@@ -862,7 +898,7 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         self.generated_interval_stop = None
 
 
-class Statement (BaseSoftDelete):
+class Statement (BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Statement'
         verbose_name_plural = 'Statements'
@@ -1006,4 +1042,3 @@ class JoinedTransactions(BaseSoftDelete, UserPermissions):
     budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='budgeted_events')
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)
     recurring = models.ForeignKey(Recurring, on_delete=models.CASCADE, null=True)
- 

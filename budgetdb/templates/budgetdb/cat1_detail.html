@@ -6,23 +6,31 @@
 {% block content %}
 
 <h1>{{ cat1.name }}</h1>
-<h6>{{ cat1.cattype.name }}</h6>
+<h6>Category Type: <a href="{% url 'budgetdb:cattype_max_redirect' cat1.cattype.id %}">{{ cat1.cattype.name }}</a></h6>
+
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <div class="clearfix">
-    <a class="btn btn-info top" href="{% url 'budgetdb:update_cat1' cat1.id %}">Modify</a>
-</div>
+    {% if cat1.editable %}
+        <a class="btn btn-info top" href="{% url 'budgetdb:update_cat1' cat1.id %}">Modify</a>
+    {% endif %}
+
+    </div>
 
 <ul>
     <h2>Subcategories</h2>
 {% for subcategory in cat1.cat2_set.all %}
-    <li><a href="{% url 'budgetdb:details_cat2' subcategory.id %}">{{ subcategory.name }}</a></li>
+    <li><a href="{% url 'budgetdb:cat2_max_redirect' subcategory.id %}">{{ subcategory.name }}</a></li>
 {% endfor %}
 </ul>
 
+{% if cat1.editable %}
 
 <div class="clearfix">
     <a class="btn btn-info top" href="{% url 'budgetdb:create_cat2' cat1.id%}">Create new subcategory</a>
 </div>
+{% endif %}
+
+<button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
 
 {% endblock %}

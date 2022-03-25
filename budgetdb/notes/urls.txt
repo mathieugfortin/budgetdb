@@ -174,9 +174,9 @@ output of: python manage.py show_urls
 /en-us/budgetdb/cattype/bar-chart/<int:cat_type_pk>     budgetdb.views.views.view       budgetdb:cattype_bar
 /en-us/budgetdb/cattype/pie-chart/<int:cat_type_pk>     budgetdb.views.views.view       budgetdb:cattype_pie
 /en-us/budgetdb/cattype/update/<int:pk>/        budgetdb.views.views.view       budgetdb:update_cattype
-/en-us/budgetdb/joinedtransactions/<int:pk>/<slug:date>/        budgetdb.views.transaction_views.view   budgetdb:details_joined_transaction
-/en-us/budgetdb/joinedtransactions/add/ budgetdb.views.transaction_views.view   budgetdb:create_joined_transaction
-/en-us/budgetdb/joinedtransactions/update/<int:pk>/<slug:date>/ budgetdb.views.transaction_views.view   budgetdb:update_joined_transaction
+/en-us/budgetdb/joinedtransactions/<int:pk>/<slug:date>/        budgetdb.views.transaction_views.view   budgetdb:details_joinedtransaction
+/en-us/budgetdb/joinedtransactions/add/ budgetdb.views.transaction_views.view   budgetdb:create_joinedtransaction
+/en-us/budgetdb/joinedtransactions/update/<int:pk>/<slug:date>/ budgetdb.views.transaction_views.view   budgetdb:update_joinedtransaction
 /en-us/budgetdb/preference/getJSON      budgetdb.views.views.PreferenceGetJSON  budgetdb:preferences_json
 /en-us/budgetdb/preference/setIntervalJSON      budgetdb.views.views.PreferenceSetIntervalJSON  budgetdb:setinterval_json
 /en-us/budgetdb/statement/      budgetdb.views.statement_views.view     budgetdb:list_statement

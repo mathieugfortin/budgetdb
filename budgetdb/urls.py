@@ -48,12 +48,12 @@ urlpatterns = [
          name='setinterval_json'),
 
     # User
-#     path('user/', include('django.contrib.auth.urls')),
     path('user/signup/', views.UserSignupView.as_view(),
          name='signup'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
 
+    ##########################################################################################################
     # redirects
     path('account/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Account'),
          name='account_max_redirect'),
@@ -63,6 +63,16 @@ urlpatterns = [
          name='accountcategory_max_redirect'),
     path('cat1/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Cat1'),
          name='cat1_max_redirect'),
+    path('cat2/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Cat2'),
+         name='cat2_max_redirect'),
+    path('cattype/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='CatType'),
+         name='cattype_max_redirect'),
+    path('catbudget/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='CatBudget'),
+         name='catbudget_max_redirect'),
+    path('vendor/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Vendor'),
+         name='vendor_max_redirect'),
+    path('transaction/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Transaction'),
+         name='transaction_max_redirect'),
 
     # Account
     path('account/ListJSON', views.GetAccountViewListJSON,
@@ -113,7 +123,7 @@ urlpatterns = [
     path('cat1/BarChartJSON', views.GetCat1TotalBarChartData, name='cat1_barchart_json'),
     path('cat1/ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
     path('cat1/', views.Cat1ListView.as_view(),
-         name='list_cat'),
+         name='list_cat1'),
     path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
          name='details_cat1'),
     path('cat1/add/', views.Cat1CreateView.as_view(),
@@ -126,6 +136,8 @@ urlpatterns = [
     # Cat2
     path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
     path('cat2/BarChartJSON', views.GetCat2TotalBarChartData, name='cat2_barchart_json'),
+    path('cat2/', views.Cat2ListView.as_view(),
+         name='list_cat2'),
     path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
          name='details_cat2'),
     path('cat2/add/<int:cat1_id>', views.Cat2CreateView.as_view(),
@@ -174,9 +186,9 @@ urlpatterns = [
          name='list_statement'),
     path('statement/<int:pk>/', views.StatementDetailView.as_view(),
          name='details_statement'),
-    path('statement/create/', views.StatementCreate.as_view(),
+    path('statement/create/', views.StatementCreateView.as_view(),
          name='create_statement'),
-    path('statement/update/<int:pk>/', views.StatementUpdate.as_view(),
+    path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
 
     # Transaction
@@ -208,19 +220,21 @@ urlpatterns = [
          name='list_manual_transaction'),
 
     # Joined Transactions
+    path('joinedtransactions/list/', views.JoinedTransactionListView.as_view(),
+         name='list_joinedtransaction'),   
     path('joinedtransactions/add/', views.JoinedTransactionsUpdateView.as_view(),
-         name='create_joined_transaction'),
+         name='create_joinedtransaction'),
     # path('joinedtransactions/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsUpdateView.as_view(),
     path('joinedtransactions/update/<int:pk>/<slug:date>/', views.JoinedTransactionsUpdateView.as_view(),
-         name='update_joined_transaction'),
+         name='update_joinedtransaction'),
     path('joinedtransactions/<int:pk>/<slug:date>/', views.JoinedTransactionsDetailView.as_view(),
-         name='details_joined_transaction'),
+         name='details_joinedtransaction'),
 
     # Vendor
     path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),
     path('vendor/', views.VendorListView.as_view(),
          name='list_vendor'),
-    path('vendor/<int:pk>', views.VendorDetailView.as_view(),
+    path('vendor/<int:pk>/', views.VendorDetailView.as_view(),
          name='details_vendor'),
     path('vendor/add/', views.VendorCreateView.as_view(),
          name='create_vendor'),

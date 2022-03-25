@@ -1,15 +1,14 @@
 from django import forms
-from dal import autocomplete
-from .models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, JoinedTransactions, User, Preference, Account, AccountHost, AccountCategory
-from django.urls import reverse_lazy
-from django_addanother.widgets import AddAnotherWidgetWrapper, AddAnotherEditSelectedWidgetWrapper
+from .models import User, Preference
+from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatType, Vendor, Statement
+from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden
 from django.template.loader import render_to_string
 from crispy_forms.bootstrap import AppendedText, PrependedText
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from crum import get_current_user
 
 
@@ -119,6 +118,120 @@ class AccountForm(forms.ModelForm):
 class AccountHostForm(forms.ModelForm):
     class Meta:
         model = AccountHost
+        fields = (
+            'name',
+            'users_admin',
+            'users_view',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'AccountHostForm'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
+class VendorForm(forms.ModelForm):
+    class Meta:
+        model = Vendor
+        fields = (
+            'name',
+            'users_admin',
+            'users_view',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'AccountHostForm'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
+class StatementForm(forms.ModelForm):
+    class Meta:
+        model = Statement
+        fields = (
+                'account',
+                'statement_date',
+                'balance',
+                'minimum_payment',
+                'statement_due_date',
+                'comment',
+                'payment_transaction',
+                'users_admin',
+                'users_view',
+            )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'AccountHostForm'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('account', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('statement_date', css_class='form-group col-md-4 mb-0'),
+                Div('balance', css_class='form-group col-md-4 mb-0'),
+                Div('minimum_payment', css_class='form-group col-md-4 mb-0'),
+                Div('statement_due_date', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('comment', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('payment_transaction', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
+class CatTypeForm(forms.ModelForm):
+    class Meta:
+        model = CatType
         fields = (
             'name',
             'users_admin',
@@ -257,6 +370,83 @@ class BudgetedEventForm(forms.ModelForm):
                 Div('repeat_interval_weeks', css_class='form-group col-md-2 mb-0'),
                 Div('repeat_interval_months', css_class='form-group col-md-2 mb-0'),
                 Div('repeat_interval_years', css_class='form-group col-md-2 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
+class Cat1Form(forms.ModelForm):
+    class Meta:
+        model = Cat1
+        fields = (
+            'name',
+            'CatBudget',
+            'cattype',
+            'users_admin',
+            'users_view',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'Cat1Form'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('cattype', css_class='form-group col-md-4 mb-0'),
+                Div('CatBudget', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
+
+
+class Cat2Form(forms.ModelForm):
+    class Meta:
+        model = Cat2
+        fields = (
+            'name',
+            'CatBudget',
+            'cattype',
+            'cat1',   # seems like allowing to modify this is a bad idea...
+            'users_admin',
+            'users_view',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'Cat1Form'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('cattype', css_class='form-group col-md-4 mb-0'),
+                Div('CatBudget', css_class='form-group col-md-4 mb-0'),
                 css_class='form-row'
             ),
             Div(

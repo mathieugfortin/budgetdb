@@ -12,9 +12,41 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from decimal import *
 from budgetdb.utils import Calendar
+from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView
 from django.utils.safestring import mark_safe
 from django.forms import formset_factory
 from django import forms
+
+
+class TransactionDetailView(LoginRequiredMixin, MyDetailView):
+    model = Transaction
+    template_name = 'budgetdb/transact_detail.html'
+
+
+class TransactionUpdateView(LoginRequiredMixin, UpdateView):
+    model = Transaction
+    # template_name = 'budgetdb/crispytest.html'
+    template_name = 'budgetdb/transaction_form.html'
+    # template_name = 'budgetdb/transaction_popup_form.html'
+    form_class = TransactionFormFull
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+
+class TransactionUpdatePopupView(LoginRequiredMixin, UpdateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
+    form_class = TransactionFormFull
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
 
 
 class TransactionCreateView(CreateView):
@@ -56,30 +88,12 @@ class TransactionCreateViewFromDateAccount(CreateView):
         return form
 
 
-class TransactionUpdateView(LoginRequiredMixin, UpdateView):
-    model = Transaction
-    # template_name = 'budgetdb/crispytest.html'
-    template_name = 'budgetdb/transaction_form.html'
-    # template_name = 'budgetdb/transaction_popup_form.html'
-    form_class = TransactionFormFull
+class JoinedTransactionListView(LoginRequiredMixin, ListView):
+    model = JoinedTransactions
+    context_object_name = 'vendor_list'
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
-
-
-class TransactionUpdatePopupView(LoginRequiredMixin, UpdateView):
-    model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
-    form_class = TransactionFormFull
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
+    def get_queryset(self):
+        return JoinedTransactions.view_objects.filter(is_deleted=False).order_by('name')
 
 
 class JoinedTransactionsDetailView(LoginRequiredMixin, DetailView):
@@ -121,7 +135,7 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('budgetdb:details_joined_transaction', kwargs={'pk': self.kwargs['pk'], 'date': self.kwargs['date']})
+        return reverse('budgetdb:details_joinedtransaction', kwargs={'pk': self.kwargs['pk'], 'date': self.kwargs['date']})
 
     def get_form_kwargs(self):
         kwargs = super(JoinedTransactionsUpdateView, self).get_form_kwargs()
@@ -161,11 +175,6 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UpdateView):
 
 class JoinedTransactionCreateView(LoginRequiredMixin, CreateView):
     ArticleFormSet = formset_factory(JoinedTransactions)
-
-
-class TransactionDetailView(LoginRequiredMixin, DetailView):
-    model = Transaction
-    template_name = 'budgetdb/transact_detail.html'
 
 
 def saveTransaction(request, transaction_id):

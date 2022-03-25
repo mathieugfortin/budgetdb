@@ -5,12 +5,79 @@
 {% block content %}
 
 <h1>{{ statement.account }}</h1>
-<h5>Date: {{ statement.statement_date }}</h6>
-<h5>Due Date: {{ statement.statement_due_date }}</h5>
-<h5>Ballance: {{ statement.balance }}</h5>
-<h5>Minimum Payment: {{ statement.minimum_payment }}</h5>
-{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<table class="table">
+    <thead class="thead-dark">
+    <tr>
+        <th></th>
+        <th>Balance</th>
+        <th>Minimum Payment</th>
+        <th>Due Date</th>
+    </tr>
+    </thead>
+    <tr>
+        <td>{{ statement.statement_date }}</td>
+        <td>{{ statement.balance }}</td>
+        <td>{{ statement.minimum_payment }}</td>
+        <td>{{ statement.statement_due_date }}</td>
+    </tr>
+</table>
 
 
+{% if statement.payment_transaction %}
+<h5>Payment: {{ statement.payment_transaction.amount_actual }} on {{ statement.payment_transaction.date_actual }} from  {{ statement.payment_transaction.account_source }}</h5>
+{% else %}
+<h5>No payment linked</h5>
+{% endif %}
+
+
+{% if statement.included_transactions %}
+<h2>Transactions</h2>
+
+<table class="table table-hover table-striped">
+    <thead class="thead-dark">
+    <tr>
+        <th>date</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Source Account</th>
+        <th>Destination Account</th>
+    </tr>
+    </thead>
+    {% for transaction in statement.included_transactions %}
+    <tr>
+        <td>{{ transaction.date_actual }}</td>
+        <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
+        <td>{{ transaction.amount_actual }}</td>
+        <td>
+            {% if transaction.account_source %}
+            {{ transaction.account_source }}
+            {% endif %}
+        </td>
+        <td>
+            {% if transaction.account_destination %}
+            {{ transaction.account_destination }}
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+    <p>No transaction in this statement.</p>
+{% endif %}
+
+
+
+
+
+
+
+
+<div class="clearfix">
+    {% if cat2.editable %}
+    <a class="btn btn-info top" href="{% url 'budgetdb:update_statement' statement.id %}">Modify</a>
+    {% endif%}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
 
 {% endblock %}
