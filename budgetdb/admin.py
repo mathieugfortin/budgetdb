@@ -28,7 +28,7 @@ class Cat2Inline(admin.TabularInline):
 class Cat1Admin(admin.ModelAdmin):
     fieldsets = [
         (None,               {'fields': ['name',
-                                         'CatBudget'
+                                         'catbudget'
                                          ]
                               }
          ),
@@ -42,7 +42,7 @@ admin.site.register(Cat1, Cat1Admin)
 class Cat2Admin(admin.ModelAdmin):
     fields = ['name',
               'cat1',
-              'CatBudget'
+              'catbudget'
               ]
     list_filter = ('name', )
 

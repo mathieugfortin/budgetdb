@@ -13,11 +13,9 @@
 
 <div class="clearfix">
     {% if cattype.editable %}
-    <a class="btn btn-info top" href="{% url 'budgetdb:update_cattype' cattype.id %}">Modify</a>
-    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
-
+        <a class="btn btn-info top" href="{% url 'budgetdb:update_cattype' cattype.id %}">Modify</a>
     {% endif %}
-
-    </div>
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
 
 {% endblock %}

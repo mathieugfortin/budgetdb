@@ -475,7 +475,7 @@ class MyCalendar(models.Model):
         return dates_array
 
 
-class CatBudget(models.Model):
+class CatBudget(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Category Budget'
         verbose_name_plural = 'Categories Budgets'
@@ -563,7 +563,7 @@ class Cat1(BaseSoftDelete, UserPermissions):
         ordering = ['name']
 
     name = models.CharField(max_length=200)
-    CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE,
+    catbudget = models.ForeignKey('CatBudget', on_delete=models.CASCADE,
                                   blank=True, null=True)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
 
@@ -583,7 +583,7 @@ class Cat2(BaseSoftDelete, UserPermissions):
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
-    CatBudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
+    catbudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -684,13 +684,21 @@ class Transaction(BaseSoftDelete):
             super(Transaction, self).save(*args, **kwargs)
 
     def can_edit(self):
-        if (self.account_destination.can_edit() or self.account_source.can_edit()):
-            return True
+        if self.account_destination:
+            if self.account_destination.can_edit():
+                return True
+        if self.account_source:
+            if self.account_source.can_edit():
+                return True
         return False
 
     def can_view(self):
-        if (self.account_destination.can_edit() or self.account_source.can_edit()):
-            return True
+        if self.account_destination:
+            if self.account_destination.can_view():
+                return True
+        if self.account_source:
+            if self.account_source.can_view():
+                return True
         return False
 
 

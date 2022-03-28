@@ -7,13 +7,13 @@
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 <div class="row">
     <div class="col-md-1">
-    <a href="{% url 'budgetdb:details_joinedtransaction' joinedtransaction.id pdate %}" class="btn btn-info" role="button"> {{ pdate }} </a>
+    <a href="{% url 'budgetdb:details_joinedtransactions' joinedtransactions.id pdate %}" class="btn btn-info" role="button"> {{ pdate }} </a>
     </div>
     <div class="col-md-10">
-    <button type="button" class="btn btn-outline-info btn-block">{{joinedtransaction.name}}  -  {{ transactiondate }}</button>
+    <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactiondate }}</button>
     </div>
     <div class="col-md-1">
-    <a href="{% url 'budgetdb:details_joinedtransaction' joinedtransaction.id ndate %} " class="btn btn-info" role="button"> {{ ndate }} </a>
+    <a href="{% url 'budgetdb:details_joinedtransactions' joinedtransactions.id ndate %} " class="btn btn-info" role="button"> {{ ndate }} </a>
     </div>
 </div>
 
@@ -35,7 +35,7 @@
         <tbody>
         {% for transaction in transactions.all %}
             <tr>
-                <td><a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.description }}</a></td>
+                <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
                 <td>{{ transaction.date_planned }}</td>
                 <td>{{ transaction.date_actual }}</td>
                 <td>{{ transaction.cat1 }}</td>
@@ -51,6 +51,13 @@
 {% else %}
     <p>No Transaction.</p>
 {% endif %}
+
+<div class="clearfix">
+    {% if joinedtransactions.editable %}
+        <a class="btn btn-info top" href="{% url 'budgetdb:update_joinedtransactions' joinedtransactions.id transactiondate%}">Modify</a>
+    {% endif %}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
 
 
 {% endblock %}

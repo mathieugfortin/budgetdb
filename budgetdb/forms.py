@@ -1,6 +1,7 @@
 from django import forms
+from django.shortcuts import get_object_or_404
 from .models import User, Preference
-from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatType, Vendor, Statement
+from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement
 from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden
@@ -332,6 +333,11 @@ class BudgetedEventForm(forms.ModelForm):
         friends_ids = get_current_user().friends.values('id')
         self.helper = FormHelper()
         self.helper.form_id = 'BudgetedEventForm'
+        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        self.fields['cat2'].queryset = Cat1.objects.none()
+        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
@@ -348,7 +354,7 @@ class BudgetedEventForm(forms.ModelForm):
                 css_class='form-row'
             ),
             Div(
-                #Div('amount_planned', css_class='form-group col-md-4 mb-0'),
+                # Div('amount_planned', css_class='form-group col-md-4 mb-0'),
                 Div(PrependedText('amount_planned', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
                 Div('account_source', css_class='form-group col-md-4 mb-0'),
                 Div('account_destination', css_class='form-group col-md-4 mb-0'),
@@ -385,7 +391,7 @@ class Cat1Form(forms.ModelForm):
         model = Cat1
         fields = (
             'name',
-            'CatBudget',
+            'catbudget',
             'cattype',
             'users_admin',
             'users_view',
@@ -394,6 +400,8 @@ class Cat1Form(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         friends_ids = get_current_user().friends.values('id')
+        self.fields['cattype'].queryset = CatType.admin_objects.filter(is_deleted=False)
+        self.fields['catbudget'].queryset = CatBudget.admin_objects.filter(is_deleted=False)
         self.helper = FormHelper()
         self.helper.form_id = 'Cat1Form'
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
@@ -407,7 +415,7 @@ class Cat1Form(forms.ModelForm):
             ),
             Div(
                 Div('cattype', css_class='form-group col-md-4 mb-0'),
-                Div('CatBudget', css_class='form-group col-md-4 mb-0'),
+                Div('catbudget', css_class='form-group col-md-4 mb-0'),
                 css_class='form-row'
             ),
             Div(
@@ -423,16 +431,23 @@ class Cat2Form(forms.ModelForm):
         model = Cat2
         fields = (
             'name',
-            'CatBudget',
+            'catbudget',
             'cattype',
-            'cat1',   # seems like allowing to modify this is a bad idea...
+            'cat1',  
             'users_admin',
             'users_view',
         )
 
     def __init__(self, *args, **kwargs):
+        cat1_id = kwargs.pop('cat1_id', None)
         super().__init__(*args, **kwargs)
         friends_ids = get_current_user().friends.values('id')
+        if cat1_id:
+            cat1 = get_object_or_404(Cat1, pk=cat1_id)
+            if cat1.can_edit():
+                self.fields['cat1'].initial = cat1
+        self.fields['cattype'].queryset = CatType.admin_objects.filter(is_deleted=False)
+        self.fields['catbudget'].queryset = CatBudget.admin_objects.filter(is_deleted=False)
         self.helper = FormHelper()
         self.helper.form_id = 'Cat1Form'
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
@@ -440,13 +455,14 @@ class Cat2Form(forms.ModelForm):
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
         self.helper.layout = Layout(
+            Field('cat1', type="hidden"),  # feels like allowing to modify this is a bad idea...
             Div(
                 Div('name', css_class='form-group col-md-6 mb-0'),
                 css_class='form-row'
             ),
             Div(
                 Div('cattype', css_class='form-group col-md-4 mb-0'),
-                Div('CatBudget', css_class='form-group col-md-4 mb-0'),
+                Div('catbudget', css_class='form-group col-md-4 mb-0'),
                 css_class='form-row'
             ),
             Div(
@@ -534,12 +550,23 @@ class TransactionFormFull(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
+        else:
+            self.fields['cat2'].queryset = Cat2.objects.none()
+
+        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
+        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
+        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.filter(is_deleted=False)
+
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Ammount"
@@ -663,6 +690,12 @@ class TransactionFormShort(forms.ModelForm):
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
+        else:
+            self.fields['cat2'].queryset = Cat2.objects.none()
+        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.filter(is_deleted=False)
 
         self.helper = FormHelper()
         self.helper.form_show_labels = False

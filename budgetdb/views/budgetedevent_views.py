@@ -1,5 +1,7 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import PermissionDenied
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.forms import BudgetedEventForm
 from datetime import datetime, date
@@ -19,8 +21,15 @@ class budgetedEventsListView(LoginRequiredMixin, ListView):
         return BudgetedEvent.view_objects.order_by('description')
 
 
-class BudgetedEventDetailView(LoginRequiredMixin, DetailView):
+class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = BudgetedEvent
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -37,13 +46,17 @@ class BudgetedEventDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class BudgetedEventUpdate(LoginRequiredMixin, UpdateView):
+class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'budgetdb/budgetedevent_form.html'
     model = BudgetedEvent
     form_class = BudgetedEventForm
 
-    def form_valid(self, form):
-        return super().form_valid(form)
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -85,7 +98,7 @@ class BudgetedEventCreate(LoginRequiredMixin, CreateView):
         return form
 
 
-class BudgetedEventCreateFromTransaction(LoginRequiredMixin, CreateView):
+class BudgetedEventCreateFromTransaction(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     # template_name = 'budgetdb/budgetedeventmod_form.html'
     model = BudgetedEvent
     fields = (
@@ -107,8 +120,12 @@ class BudgetedEventCreateFromTransaction(LoginRequiredMixin, CreateView):
             'repeat_interval_years',
         )
 
-    def form_valid(self, form):
-        return super().form_valid(form)
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)

@@ -8,4 +8,5 @@
   <h2>{{object}}</h2>
   {% load crispy_forms_tags %}
   {% crispy form %}
+  <div id='form-errors'>{{ form.errors }}</div>
 {% endblock %}

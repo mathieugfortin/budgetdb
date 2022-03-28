@@ -221,14 +221,14 @@ urlpatterns = [
 
     # Joined Transactions
     path('joinedtransactions/list/', views.JoinedTransactionListView.as_view(),
-         name='list_joinedtransaction'),   
+         name='list_joinedtransactions'),   
     path('joinedtransactions/add/', views.JoinedTransactionsUpdateView.as_view(),
-         name='create_joinedtransaction'),
+         name='create_joinedtransactions'),
     # path('joinedtransactions/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsUpdateView.as_view(),
     path('joinedtransactions/update/<int:pk>/<slug:date>/', views.JoinedTransactionsUpdateView.as_view(),
-         name='update_joinedtransaction'),
+         name='update_joinedtransactions'),
     path('joinedtransactions/<int:pk>/<slug:date>/', views.JoinedTransactionsDetailView.as_view(),
-         name='details_joinedtransaction'),
+         name='details_joinedtransactions'),
 
     # Vendor
     path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),

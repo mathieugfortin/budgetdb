@@ -5,7 +5,7 @@ from django.apps import apps
 from django.forms import ModelForm
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, FormView
 from django.views.generic.base import RedirectView
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
@@ -112,7 +112,7 @@ def next_color(color_list=COLORS):
 def PreferenceSetIntervalJSON(request):
     start_interval = request.POST.get("begin_interval", None)
     end_interval = request.POST.get("end_interval", None)
-    preference = Preference.objects.get(pk=request.user.id)
+    preference = Preference.objects.get(user=request.user.id)
     if start_interval:
         preference.start_interval = datetime.strptime(start_interval, "%Y-%m-%d")
     if end_interval:
@@ -140,15 +140,18 @@ def TransactionReceiptToggleJSON(request):
 
 
 def PreferenceGetJSON(request):
-    preference = Preference.objects.get(pk=request.user.id)
+    preference = Preference.objects.get(user=request.user.id)
     transactions = Transaction.objects.filter(is_deleted=False).order_by("date_actual")
 
-    start_slider = preference.min_interval_slider
-    stop_slider = preference.max_interval_slider
     if (preference.min_interval_slider is None):
         start_slider = transactions.first().date_actual
+    else:
+        start_slider = preference.min_interval_slider
+
     if (preference.max_interval_slider is None):
         stop_slider = transactions.last().date_actual
+    else:
+        stop_slider = preference.max_interval_slider
 
     data = {
         'start_interval': preference.start_interval,
@@ -441,7 +444,7 @@ def GetCat2TotalBarChartData(request):
 
 def load_cat2(request):
     cat1_id = request.GET.get('cat1')
-    cat2s = Cat2.objects.filter(cat1=cat1_id).order_by('name')
+    cat2s = Cat2.admin_objects.filter(cat1=cat1_id).order_by('name')
     return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
 
 
@@ -453,7 +456,7 @@ def timeline2JSON(request):
     else:
         accounts = Account.objects.filter(is_deleted=False, account_categories=accountcategoryID).order_by('name')
 
-    preference = Preference.objects.get(pk=request.user.id)
+    preference = Preference.objects.get(user=request.user.id)
     begin = preference.start_interval
     end = preference.end_interval
 
@@ -527,7 +530,7 @@ class CatTotalPieChart(TemplateView):
 
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
-        preference = Preference.objects.get(pk=self.request.user.id)
+        preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
             end = preference.end_interval
@@ -555,7 +558,7 @@ class CatTotalBarChart(TemplateView):
         cattype = CatType.objects.get(pk=cat_type_pk)
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
-        preference = Preference.objects.get(pk=self.request.user.id)
+        preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
             end = preference.end_interval
@@ -580,8 +583,6 @@ class timeline2(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # beginstr = self.request.GET.get('begin', None)
-        # endstr = self.request.GET.get('end', None)
         accountcategoryID = self.request.GET.get('ac', None)
 
         if accountcategoryID is not None and accountcategoryID != 'None':
@@ -590,34 +591,6 @@ class timeline2(TemplateView):
 
         accountcategories = AccountCategory.objects.filter(is_deleted=False)
         context['accountcategories'] = accountcategories
-
-        # preference = Preference.objects.get(pk=self.request.user.id)
-        # if endstr is None or endstr == 'None':
-        #     end = preference.end_interval
-        # else:
-        #     end = datetime.strptime(endstr, "%Y-%m-%d")
-
-        # if beginstr is None or beginstr == 'None':
-        #     begin = preference.start_interval
-        # else:
-        #     begin = datetime.strptime(beginstr, "%Y-%m-%d")
-
-        # context['begin'] = begin.strftime("%Y-%m-%d")
-        # context['end'] = end.strftime("%Y-%m-%d")
-        # mydate = date.today()
-        # context['now'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-1)
-        # context['monthago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-3)
-        # context['3monthsago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-12)
-        # context['yearago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=1)
-        # context['inamonth'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=3)
-        # context['in3months'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=12)
-        # context['inayear'] = mydate.strftime("%Y-%m-%d")
 
         context['ac'] = accountcategoryID
         return context
@@ -846,6 +819,14 @@ class Cat2CreateView(LoginRequiredMixin, MyCreateView):
     model = Cat2
     form_class = Cat2Form
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update(self.kwargs)
+        return kwargs
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
 
 ###################################################################################################################
 # CatType
@@ -972,7 +953,7 @@ class AccountListActivityView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         pk = self.kwargs['pk']
-        preference = Preference.objects.get(pk=self.request.user.id)
+        preference = Preference.objects.get(user=self.request.user.id)
         begin = preference.start_interval
         end = preference.end_interval
 
