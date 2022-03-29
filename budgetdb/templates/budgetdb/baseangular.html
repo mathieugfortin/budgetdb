@@ -34,7 +34,7 @@
                         <ul id="account_hosts">
                         </ul>
                     </li> 
-                    <li><a href="{% url 'budgetdb:list_cat' %}">Categories</a>
+                    <li><a href="{% url 'budgetdb:list_cat1' %}">Categories</a>
                         <ul id="categories">
                         </ul>
                     </li>
@@ -140,7 +140,7 @@
         }
 
         $(document).ready(function(){
-            $.getJSON('{% url "budgetdb:account_list_json" %}', function(result){
+            $.getJSON('{% url "budgetdb:account_list_view_json" %}', function(result){
               $.each(result, function(i, field){
                 AddLi('{% url "budgetdb:details_account" 12345 %}', field[0].pk, field[1].name, 'accounts')
                 AddLi('{% url "budgetdb:list_account_activity" 12345 %}', field[0].pk, field[1].name, 'account_list')
@@ -171,9 +171,9 @@
         $(document).ready(function(){
             $.getJSON('{% url "budgetdb:account_host_list_json" %}', function(result){
                 $.each(result, function(i, field){
-                AddLi('{% url "budgetdb:details_account_host" 12345 %}', field[0].pk, field[1].name, 'account_hosts')
+                AddLi('{% url "budgetdb:details_accounthost" 12345 %}', field[0].pk, field[1].name, 'account_hosts')
                 });
-                AddLi('{% url "budgetdb:create_account_host" %}', 0 , '* Create Host *', 'account_hosts')
+                AddLi('{% url "budgetdb:create_accounthost" %}', 0 , '* Create Host *', 'account_hosts')
             });
         });
 

@@ -1,5 +1,7 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import PermissionDenied
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.forms import BudgetedEventForm
 from datetime import datetime, date
@@ -16,52 +18,48 @@ class budgetedEventsListView(LoginRequiredMixin, ListView):
     context_object_name = 'budgetedevent_list'
 
     def get_queryset(self):
-        return BudgetedEvent.objects.order_by('description')
+        return BudgetedEvent.view_objects.order_by('description')
 
 
-class BudgetedEventDetailView(LoginRequiredMixin, DetailView):
+class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = BudgetedEvent
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
-        # Add in a QuerySet of all the books
-        all_be = BudgetedEvent.objects.filter(deleted=False).order_by('description')
-        grab_next = False
-        previous = all_be.last()
-        next_be = all_be.first()
-        for be in all_be:
-            if grab_next is True:
-                next_be = be
-                break
+        budgetedEvent = BudgetedEvent.objects.get(pk=self.kwargs['pk'])
+        editable = budgetedEvent.can_edit()
 
-            if be.pk == pk:
-                grab_next = True
-                previous_be = previous
-            previous = be
-
-        context['previous_be'] = previous_be
-        context['next_be'] = next_be
-        context['vendor_list'] = Vendor.objects.filter(deleted=False)
-        context['cat1_list'] = Cat1.objects.filter(deleted=False)
-        context['cat2_list'] = Cat2.objects.filter(deleted=False)
+        # context['vendor_list'] = Vendor.view_objects.filter(is_deleted==False)
+        # context['cat1_list'] = Cat1.view_objects.filter(is_deleted=False)
+        # context['cat2_list'] = Cat2.view_objects.filter(is_deleted=False)
+        context['editable'] = editable
         begin_interval = datetime.today().date() + relativedelta(months=-6)
-        context['next_transactions'] = BudgetedEvent.objects.get(id=pk).listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
+        context['next_transactions'] = budgetedEvent.listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context
 
 
-class BudgetedEventUpdate(LoginRequiredMixin, UpdateView):
+class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'budgetdb/budgetedevent_form.html'
     model = BudgetedEvent
     form_class = BudgetedEventForm
 
-    def form_valid(self, form):
-        return super().form_valid(form)
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.helper = FormHelper()
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
         return form
@@ -100,7 +98,7 @@ class BudgetedEventCreate(LoginRequiredMixin, CreateView):
         return form
 
 
-class BudgetedEventCreateFromTransaction(LoginRequiredMixin, CreateView):
+class BudgetedEventCreateFromTransaction(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     # template_name = 'budgetdb/budgetedeventmod_form.html'
     model = BudgetedEvent
     fields = (
@@ -122,8 +120,12 @@ class BudgetedEventCreateFromTransaction(LoginRequiredMixin, CreateView):
             'repeat_interval_years',
         )
 
-    def form_valid(self, form):
-        return super().form_valid(form)
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)

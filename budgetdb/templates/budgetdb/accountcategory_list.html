@@ -10,7 +10,7 @@
 {% if accountcat_list %}
     <ul>
     {% for account in accountcat_list %}
-        <li><a href="{% url 'budgetdb:update_accountcat' account.id %}">{{ account.name }}</a></li>
+        <li><a href="{% url 'budgetdb:accountcategory_max_redirect' account.id %}">{{ account.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
@@ -18,7 +18,7 @@
 {% endif %}
 
 <div class="clearfix">
-    <a class="btn btn-info top" href="{% url 'budgetdb:create_accountcat' %}">Create new account category</a>
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_accountcategory' %}">Create new account category</a>
 </div>
 
 {% endblock %}

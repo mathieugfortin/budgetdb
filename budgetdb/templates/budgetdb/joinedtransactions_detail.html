@@ -4,11 +4,60 @@
 
 {% block content %}
 
-<h1>{{ joinedtransactions.name }}</h1>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<div class="row">
+    <div class="col-md-1">
+    <a href="{% url 'budgetdb:details_joinedtransactions' joinedtransactions.id pdate %}" class="btn btn-info" role="button"> {{ pdate }} </a>
+    </div>
+    <div class="col-md-10">
+    <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactiondate }}</button>
+    </div>
+    <div class="col-md-1">
+    <a href="{% url 'budgetdb:details_joinedtransactions' joinedtransactions.id ndate %} " class="btn btn-info" role="button"> {{ ndate }} </a>
+    </div>
+</div>
 
-{% for transaction in transactions.all %}
-    <li>{{ transaction.description }} {{ transaction.date_planned }} {{ transaction.date_actual }} {{ transaction.amount_actual }} {{ transaction.account_source }} {{ transaction.account_destination }}</a></li>
-{% endfor %}
+{% if transactions %}
+    <table class="table">
+        <thread>
+            <tr>
+                <th scole="col">Description</th>
+                <th scole="col">Planned Date</th>
+                <th scole="col">Real Date</th>                
+                <th scole="col">Category</th>
+                <th scole="col">Subcategory</th>
+                <th scole="col">Source</th>
+                <th scole="col">Destination</th>
+                <th scole="col">Amount</th>
+                <th scole="col">Deleted</th>
+            </tr>
+        </thread>
+        <tbody>
+        {% for transaction in transactions.all %}
+            <tr>
+                <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
+                <td>{{ transaction.date_planned }}</td>
+                <td>{{ transaction.date_actual }}</td>
+                <td>{{ transaction.cat1 }}</td>
+                <td>{{ transaction.cat2 }}</td>
+                <td>{{ transaction.account_source }}</td>
+                <td>{{ transaction.account_destination }}</td>
+                <td>${{ transaction.amount_actual }}</td>
+                <td>${{ transaction.deleted }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>No Transaction.</p>
+{% endif %}
+
+<div class="clearfix">
+    {% if joinedtransactions.editable %}
+        <a class="btn btn-info top" href="{% url 'budgetdb:update_joinedtransactions' joinedtransactions.id transactiondate%}">Modify</a>
+    {% endif %}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
+
 
 {% endblock %}

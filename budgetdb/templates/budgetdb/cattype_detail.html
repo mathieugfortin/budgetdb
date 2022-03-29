@@ -8,7 +8,14 @@
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <div class="clearfix">
-    <a class="btn btn-info top" href="{% url 'budgetdb:update_cattype' cattype.id %}">Modify</a>
+    
+</div>
+
+<div class="clearfix">
+    {% if cattype.editable %}
+        <a class="btn btn-info top" href="{% url 'budgetdb:update_cattype' cattype.id %}">Modify</a>
+    {% endif %}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
 </div>
 
 {% endblock %}

@@ -30,15 +30,16 @@
                         Config
                       </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_accounthost' %}">Account Hosts</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_account_simple' %}">Accounts</a>
-                        <a class="dropdown-item" href="{% url 'budgetdb:list_statement' %}">Statements</a>
-                        <a class="dropdown-item" href="{% url 'budgetdb:list_account_host' %}">Account Hosts</a>
-                        <a class="dropdown-item" href="{% url 'budgetdb:list_accountcat' %}">Account Categories</a>
-                        <a class="dropdown-item" href="{% url 'budgetdb:list_cat' %}">Categories</a>                        
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_accountcategory' %}">Account Categories</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_cat1' %}">Categories</a>                        
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_cat2' %}">Subcategories</a>                        
                         <a class="dropdown-item" href="{% url 'budgetdb:list_cattype' %}">Category Type</a>                        
                         <a class="dropdown-item" href="{% url 'budgetdb:list_vendor' %}">Vendors</a>
-                        <a class="dropdown-item" href="{% url 'budgetdb:list_account_host' %}">Account Hosts</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_be' %}">Recurring Events</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_joinedtransactions' %}">Joined Transactions</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_statement' %}">Statements</a>
                     </div>
                 </li>
                 <li class="nav-item dropdown">
@@ -47,8 +48,8 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="transaction_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a>
-                        <a class="dropdown-item" href="{% url 'budgetdb:list_transaction' %}">All transaction</a>
-                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>
+<!--                        <a class="dropdown-item" href="{% url 'budgetdb:list_transaction' %}">All transaction</a>     
+                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>           removed, need to think about permissions       -->
                     </div>
                 </li>
                 <li class="nav-item dropdown">
@@ -112,7 +113,7 @@
                         {{ user.get_username }}
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" >
-                        <a class="dropdown-item" href="#">Preferences</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preferences</a>
                         <a class="dropdown-item" href="{% url 'admin:logout' %}">Logout</a>
                     </div>
                 </li>
@@ -190,7 +191,7 @@
     });
 
     $(document).ready(function(){
-        $.getJSON('{% url "budgetdb:account_list_json" %}', function(result){
+        $.getJSON('{% url "budgetdb:account_list_view_json" %}', function(result){
             $.each(result, function(i, field){
                 addA('{% url "budgetdb:list_account_activity" 12345 %}', field[0].pk, field[1].name, 'account_menu');
             });
@@ -198,7 +199,7 @@
     });
 
     $(document).ready(function(){
-        $.getJSON('{% url "budgetdb:accountcat_list_json" %}', function(result){
+        $.getJSON('{% url "budgetdb:accountcat_view_list_json" %}', function(result){
             $.each(result, function(i, field){
                 addA('{% url "budgetdb:timeline_chart" %}?ac=12345', field[0].pk, field[1].name, 'timeline_menu');
             });

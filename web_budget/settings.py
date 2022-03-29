@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'dal_select2',
     # 'django_addanother',
     'budgetdb.apps.BudgetdbConfig',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -55,6 +56,8 @@ INSTALLED_APPS = [
     'chartjs',
 ]
 
+AUTH_USER_MODEL = 'budgetdb.User'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
@@ -68,6 +71,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'crum.CurrentRequestUserMiddleware',
 ]
 
 ROOT_URLCONF = 'web_budget.urls'
@@ -90,15 +94,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'web_budget.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'budgetdb',
-        'USER': 'budgetdb',
+        'NAME': get_secret('DB_NAME'),
+        'USER': get_secret('DB_USER'),
         'PASSWORD': get_secret('DB_PASSWORD'),
         'HOST': get_secret('DB_HOST'),
         'PORT': get_secret('DB_PORT'),

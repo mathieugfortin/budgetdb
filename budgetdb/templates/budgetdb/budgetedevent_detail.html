@@ -3,10 +3,6 @@
 {% block title %}Recurring Transaction - {{ object.description }}{% endblock %}
 
 {% block content %}
-<div class="clearfix">
-    <a class="btn btn-info left" href="{% url 'budgetdb:details_be' previous_be.id %}"> Previous: {{ previous_be.description }} </a>
-    <a class="btn btn-info left" href="{% url 'budgetdb:details_be' next_be.id %} "> Next: {{ next_be.description }} </a>
-</div>
 
     <style>
         li.UNVERIFIED {
@@ -34,9 +30,11 @@
             <li>Vendor:  {% if object.vendor != None %}  {{ object.vendor }} {% endif %}</li>    
         </ul>
     </div>
+    {% if editable  %} 
     <div class="clearfix">
         <a class="btn btn-info left" href="{% url 'budgetdb:update_be' object.id %}"> Modify </a>
     </div>
+    {% endif %}
     <div id="transactionlist">
         <h2>List of transactions</h2>
         <ol>

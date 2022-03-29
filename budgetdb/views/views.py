@@ -1,23 +1,30 @@
 # from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
+from django.core.exceptions import PermissionDenied
+from django import forms
+from django.apps import apps
 from django.forms import ModelForm
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import render
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
-from django.urls import reverse, reverse_lazy
-from django.utils.safestring import mark_safe
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, FormView
+from django.views.generic.base import RedirectView
+from django.urls import reverse_lazy
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth import login
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, MyCalendar
-from budgetdb.models import JoinedTransactions, CatSums, CatType, AccountHost, Preference, AccountPresentation
+from budgetdb.models import Preference, User
+from budgetdb.models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatType, Statement, Vendor
+from budgetdb.models import MyCalendar, AccountPresentation, CatSums
+from budgetdb.models import BudgetedEvent, Transaction, JoinedTransactions
 from budgetdb.utils import Calendar
-import pytz
+from budgetdb.forms import UserSignUpForm, PreferenceForm
+from budgetdb.forms import AccountForm, AccountCategoryForm, AccountHostForm, Cat1Form, Cat2Form, CatTypeForm, StatementForm, VendorForm
 from decimal import *
-# from chartjs.views.lines import BaseLineChartView
-# from chartjs.views.pie import HighChartDonutView, HighChartPieView
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Field
+from crispy_forms.layout import Layout, Submit, Button
+from crum import get_current_user
 
 # colors stolen from django chart js library
 COLORS = [
@@ -34,6 +41,78 @@ COLORS = [
 ]
 
 
+class AjaxTemplateMixin(object):
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(self, 'ajax_template_name'):
+            split = self.template_name.split('.html')
+            split[-1] = '_inner'
+            split.append('.html')
+            self.ajax_template_name = ''.join(split)
+        if request.is_ajax():
+            self.template_name = self.ajax_template_name
+        return super(AjaxTemplateMixin, self).dispatch(request, *args, **kwargs)
+
+
+class MyUpdateView(UserPassesTestMixin, UpdateView):
+    template_name = 'budgetdb/generic_form.html'
+    task = 'Update'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = self.model._meta.verbose_name
+        context["task"] = self.task
+        return context
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
+        return form
+
+
+class MyCreateView(CreateView):
+    template_name = 'budgetdb/generic_form.html'
+    task = 'Create'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = self.model._meta.verbose_name
+        context["task"] = self.task
+        return context
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        return form
+
+
+class MyDetailView(UserPassesTestMixin, DetailView):
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_object(self, queryset=None):
+        my_object = super().get_object(queryset=queryset)
+        my_object.editable = my_object.can_edit()
+        return my_object
+
+
 def next_color(color_list=COLORS):
     step = 0
     while True:
@@ -45,7 +124,7 @@ def next_color(color_list=COLORS):
 def PreferenceSetIntervalJSON(request):
     start_interval = request.POST.get("begin_interval", None)
     end_interval = request.POST.get("end_interval", None)
-    preference = Preference.objects.get(pk=request.user.id)
+    preference = Preference.objects.get(user=request.user.id)
     if start_interval:
         preference.start_interval = datetime.strptime(start_interval, "%Y-%m-%d")
     if end_interval:
@@ -73,15 +152,18 @@ def TransactionReceiptToggleJSON(request):
 
 
 def PreferenceGetJSON(request):
-    preference = Preference.objects.get(pk=request.user.id)
-    transactions = Transaction.objects.filter(deleted=False).order_by("date_actual")
+    preference = Preference.objects.get(user=request.user.id)
+    transactions = Transaction.objects.filter(is_deleted=False).order_by("date_actual")
 
-    start_slider = preference.min_interval_slider
-    stop_slider = preference.max_interval_slider
     if (preference.min_interval_slider is None):
         start_slider = transactions.first().date_actual
+    else:
+        start_slider = preference.min_interval_slider
+
     if (preference.max_interval_slider is None):
         stop_slider = transactions.last().date_actual
+    else:
+        stop_slider = preference.max_interval_slider
 
     data = {
         'start_interval': preference.start_interval,
@@ -95,8 +177,8 @@ def PreferenceGetJSON(request):
     return JsonResponse(data, safe=False)
 
 
-def GetAccountListJSON(request):
-    queryset = Account.objects.filter(deleted=False)
+def GetAccountViewListJSON(request):
+    queryset = Account.view_objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -107,8 +189,8 @@ def GetAccountListJSON(request):
     return JsonResponse(array, safe=False)
 
 
-def GetAccountCatListJSON(request):
-    queryset = AccountCategory.objects.filter(deleted=False)
+def GetAccountCatViewListJSON(request):
+    queryset = AccountCategory.view_objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -119,8 +201,8 @@ def GetAccountCatListJSON(request):
     return JsonResponse(array, safe=False)
 
 
-def GetAccountHostListJSON(request):
-    queryset = AccountHost.objects.filter(deleted=False)
+def GetAccountHostViewListJSON(request):
+    queryset = AccountHost.view_objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -132,7 +214,7 @@ def GetAccountHostListJSON(request):
 
 
 def GetVendorListJSON(request):
-    queryset = Vendor.objects.filter(deleted=False)
+    queryset = Vendor.objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -144,7 +226,7 @@ def GetVendorListJSON(request):
 
 
 def GetCat1ListJSON(request):
-    queryset = Cat1.objects.filter(deleted=False)
+    queryset = Cat1.objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -156,7 +238,7 @@ def GetCat1ListJSON(request):
 
 
 def GetCatTypeListJSON(request):
-    queryset = CatType.objects.filter(deleted=False)
+    queryset = CatType.objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
     array = []
@@ -180,7 +262,6 @@ def GetCat1TotalPieChartData(request):
     indexes = []  # cat1_ids
 
     cat1sums = CatSums()
-    # dailybalances = AccountBalances.objects.raw(sqlst)
     cat_totals = cat1sums.build_cat1_totals_array(begin, end)
 
     for cat in cat_totals:
@@ -221,7 +302,6 @@ def GetCat2TotalPieChartData(request):
     labels = []  # categories
     data = []  # totals
 
-    # dailybalances = AccountBalances.objects.raw(sqlst)
     cat2sums = CatSums()
     cat_totals = cat2sums.build_cat2_totals_array(begin, end)
 
@@ -253,7 +333,7 @@ def GetCat1TotalBarChartData(request):
     endstr = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
     cattype = CatType.objects.get(pk=cat_type_pk)
-    cats = Cat1.objects.filter(deleted=False)
+    cats = Cat1.objects.filter(is_deleted=False)
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
@@ -313,7 +393,7 @@ def GetCat2TotalBarChartData(request):
     cat1_pk = request.GET.get('cat1', None)
     cat1 = Cat1.objects.get(pk=cat1_pk)
 
-    cats = Cat2.objects.filter(cat1=cat1, deleted=False)
+    cats = Cat2.objects.filter(cat1=cat1, is_deleted=False)
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
@@ -374,15 +454,21 @@ def GetCat2TotalBarChartData(request):
     return JsonResponse(bardata, safe=False)
 
 
+def load_cat2(request):
+    cat1_id = request.GET.get('cat1')
+    cat2s = Cat2.admin_objects.filter(cat1=cat1_id).order_by('name')
+    return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
+
+
 def timeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
 
     if accountcategoryID is None or accountcategoryID == 'None':
-        accounts = Account.objects.filter(deleted=False).order_by('name')
+        accounts = Account.objects.filter(is_deleted=False).order_by('name')
     else:
-        accounts = Account.objects.filter(deleted=False, account_categories=accountcategoryID).order_by('name')
+        accounts = Account.objects.filter(is_deleted=False, account_categories=accountcategoryID).order_by('name')
 
-    preference = Preference.objects.get(pk=request.user.id)
+    preference = Preference.objects.get(user=request.user.id)
     begin = preference.start_interval
     end = preference.end_interval
 
@@ -456,7 +542,7 @@ class CatTotalPieChart(TemplateView):
 
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
-        preference = Preference.objects.get(pk=self.request.user.id)
+        preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
             end = preference.end_interval
@@ -484,7 +570,7 @@ class CatTotalBarChart(TemplateView):
         cattype = CatType.objects.get(pk=cat_type_pk)
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
-        preference = Preference.objects.get(pk=self.request.user.id)
+        preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
             end = preference.end_interval
@@ -509,56 +595,28 @@ class timeline2(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # beginstr = self.request.GET.get('begin', None)
-        # endstr = self.request.GET.get('end', None)
         accountcategoryID = self.request.GET.get('ac', None)
 
         if accountcategoryID is not None and accountcategoryID != 'None':
             accountcategory = AccountCategory.objects.get(id=accountcategoryID)
             context['accountcategory'] = accountcategory
 
-        accountcategories = AccountCategory.objects.filter(deleted=False)
+        accountcategories = AccountCategory.objects.filter(is_deleted=False)
         context['accountcategories'] = accountcategories
-
-        # preference = Preference.objects.get(pk=self.request.user.id)
-        # if endstr is None or endstr == 'None':
-        #     end = preference.end_interval
-        # else:
-        #     end = datetime.strptime(endstr, "%Y-%m-%d")
-
-        # if beginstr is None or beginstr == 'None':
-        #     begin = preference.start_interval
-        # else:
-        #     begin = datetime.strptime(beginstr, "%Y-%m-%d")
-
-        # context['begin'] = begin.strftime("%Y-%m-%d")
-        # context['end'] = end.strftime("%Y-%m-%d")
-        # mydate = date.today()
-        # context['now'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-1)
-        # context['monthago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-3)
-        # context['3monthsago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=-12)
-        # context['yearago'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=1)
-        # context['inamonth'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=3)
-        # context['in3months'] = mydate.strftime("%Y-%m-%d")
-        # mydate = date.today() + relativedelta(months=12)
-        # context['inayear'] = mydate.strftime("%Y-%m-%d")
 
         context['ac'] = accountcategoryID
         return context
 
+###################################################################################################################
+# Autocomplete
+
 
 class AutocompleteAccount(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        # Don't forget to filter out results depending on the visitor !
         if not self.request.user.is_authenticated:
             return Account.objects.none()
 
-        qs = Account.objects.filter(deleted=False)
+        qs = Account.view_objects.filter(is_deleted=False)
 
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
@@ -568,11 +626,10 @@ class AutocompleteAccount(autocomplete.Select2QuerySetView):
 
 class AutocompleteCat1(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        # Don't forget to filter out results depending on the visitor !
         if not self.request.user.is_authenticated:
             return Cat1.objects.none()
 
-        qs = Cat1.objects.filter(deleted=False)
+        qs = Cat1.view_objects.filter(is_deleted=False)
 
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
@@ -582,11 +639,10 @@ class AutocompleteCat1(autocomplete.Select2QuerySetView):
 
 class AutocompleteCat2(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        # Don't forget to filter out results depending on the visitor !
         if not self.request.user.is_authenticated:
             return Cat2.objects.none()
 
-        qs = Cat2.objects.filter(deleted=False)
+        qs = Cat2.view_objects.filter(is_deleted=False)
         category = self.forwarded.get('cat1', None)
 
         if category:
@@ -598,19 +654,12 @@ class AutocompleteCat2(autocomplete.Select2QuerySetView):
         return qs
 
 
-def load_cat2(request):
-    cat1_id = request.GET.get('cat1')
-    cat2s = Cat2.objects.filter(cat1=cat1_id).order_by('name')
-    return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
-
-
 class AutocompleteVendor(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        # Don't forget to filter out results depending on the visitor !
         if not self.request.user.is_authenticated:
             return Vendor.objects.none()
 
-        qs = Vendor.objects.filter(deleted=False)
+        qs = Vendor.view_objects.filter(is_deleted=False)
 
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
@@ -618,167 +667,119 @@ class AutocompleteVendor(autocomplete.Select2QuerySetView):
         return qs
 
 
-class Cat1DetailView(LoginRequiredMixin, DetailView):
-    model = Cat1
-    template_name = 'budgetdb/cat1_detail.html'
+class ObjectMaxRedirect(RedirectView):
+    permanent = False
+    model = ''
+
+    def get_redirect_url(*args, **kwargs):
+        pk = kwargs['pk']
+        model_name = args[0].model
+        model = apps.get_model('budgetdb', model_name)
+        redirect_object = get_object_or_404(model, pk=pk)
+        viewname = 'budgetdb:'
+        if redirect_object.can_edit():
+            viewname = viewname + 'update_' + model_name.lower()
+            return reverse_lazy(viewname, kwargs={'pk': pk})
+        if redirect_object.can_view():
+            viewname = viewname + 'details_' + model_name.lower()
+            return reverse_lazy(viewname, kwargs={'pk': pk})
+        raise PermissionDenied
 
 
-class Cat1UpdateView(LoginRequiredMixin, UpdateView):
-    model = Cat1
-    fields = (
-        'name',
-        'cattype',
-    )
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
+###################################################################################################################
+###################################################################################################################
+# Account
 
 
-class Cat2UpdateView(LoginRequiredMixin, UpdateView):
-    model = Cat2
-    fields = (
-        'name',
-        'cattype',
-        )
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
-
-
-class CatTypeUpdateView(LoginRequiredMixin, UpdateView):
-    model = CatType
-    fields = (
-        'name',
-        )
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
-
-
-class VendorUpdateView(LoginRequiredMixin, UpdateView):
-    model = Vendor
-    fields = ('name',)
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
-
-
-class AccountUpdateView(LoginRequiredMixin, UpdateView):
+class AccountListViewSimple(LoginRequiredMixin, ListView):
     model = Account
-    fields = (
-        'name',
-        'account_host',
-        'account_parent',
-        'account_number',
-        'comment',
-        )
-    template_name = 'budgetdb/account_form.html'
+    context_object_name = 'account_list'
+    template_name = 'budgetdb/account_list_simple.html'
 
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
+    def get_queryset(self):
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('name')
+        for account in accounts:
+            account.my_categories = AccountCategory.view_objects.filter(accounts=account)
+        return accounts
 
 
-class AccountCatUpdateView(LoginRequiredMixin, UpdateView):
-    model = AccountCategory
-    fields = (
-        'name',
-        'accounts',
-        )
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
-
-
-class AccountHostUpdateView(LoginRequiredMixin, UpdateView):
-    model = AccountHost
-    fields = (
-        'name',
-        )
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
-
-
-class Cat2DetailView(LoginRequiredMixin, DetailView):
-    model = Cat2
-    template_name = 'budgetdb/cat2_detail.html'
-
-
-class CatTypeDetailView(LoginRequiredMixin, DetailView):
-    model = CatType
-    template_name = 'budgetdb/cattype_detail.html'
-
-
-class VendorDetailView(LoginRequiredMixin, DetailView):
-    model = Vendor
-    template_name = 'budgetdb/vendor_detail.html'
-
-
-class AccountDetailView(LoginRequiredMixin, DetailView):
+class AccountDetailView(LoginRequiredMixin, MyDetailView):
     model = Account
     template_name = 'budgetdb/account_detail.html'
 
 
-class AccountHostDetailView(LoginRequiredMixin, DetailView):
+class AccountUpdateView(LoginRequiredMixin, MyUpdateView):
+    model = Account
+    form_class = AccountForm
+
+
+class AccountCreateView(LoginRequiredMixin, MyCreateView):
+    model = Account
+    form_class = AccountForm
+
+
+###################################################################################################################
+# AccountCategories
+
+
+class AccountCatListView(LoginRequiredMixin, ListView):
+    model = AccountCategory
+    context_object_name = 'accountcat_list'
+
+    def get_queryset(self):
+        return AccountCategory.view_objects.filter(is_deleted=False).order_by('name')
+
+
+class AccountCatDetailView(LoginRequiredMixin, MyDetailView):
+    model = AccountCategory
+
+    def get_object(self, queryset=None):
+        category = super().get_object(queryset=queryset)
+        category.editable = category.can_edit()
+        category.my_accounts = category.accounts.filter(is_deleted=False)
+        return category
+
+
+class AccountCatUpdateView(LoginRequiredMixin, MyUpdateView):
+    model = AccountCategory
+    form_class = AccountCategoryForm
+
+
+class AccountCatCreateView(LoginRequiredMixin, MyCreateView):
+    model = AccountCategory
+    form_class = AccountCategoryForm
+
+
+###################################################################################################################
+# AccountHost
+
+
+class AccountHostListView(LoginRequiredMixin, ListView):
     model = AccountHost
+    context_object_name = 'account_host_list'
+
+    def get_queryset(self):
+        qs = AccountHost.view_objects.filter(is_deleted=False).order_by('name')
+        return qs
+
+
+class AccountHostDetailView(LoginRequiredMixin, MyDetailView):
+    model = AccountHost
+    context_object_name = 'accounthost'
     template_name = 'budgetdb/accounthost_detail.html'
 
 
-class IndexView(ListView):
-    template_name = 'budgetdb/index.html'
-    context_object_name = 'categories_list'
+class AccountHostUpdateView(LoginRequiredMixin, MyUpdateView):
+    model = AccountHost
+    form_class = AccountHostForm
 
-    def get_queryset(self):
-        return Cat1.objects.order_by('name')
+
+class AccountHostCreateView(LoginRequiredMixin, MyCreateView):
+    model = AccountHost
+    form_class = AccountHostForm
+
+###################################################################################################################
+# Cat1
 
 
 class Cat1ListView(LoginRequiredMixin, ListView):
@@ -786,15 +787,153 @@ class Cat1ListView(LoginRequiredMixin, ListView):
     context_object_name = 'categories_list'
 
     def get_queryset(self):
-        return Cat1.objects.order_by('name')
+        return Cat1.view_objects.filter(is_deleted=False).order_by('name')
+
+
+class Cat1DetailView(LoginRequiredMixin, MyDetailView):
+    model = Cat1
+    template_name = 'budgetdb/cat1_detail.html'
+
+
+class Cat1UpdateView(LoginRequiredMixin, MyUpdateView):
+    model = Cat1
+    form_class = Cat1Form
+
+
+class Cat1CreateView(LoginRequiredMixin, MyCreateView):
+    model = Cat1
+    form_class = Cat1Form
+
+###################################################################################################################
+# Cat2
 
 
 class Cat2ListView(LoginRequiredMixin, ListView):
     model = Cat2
+    context_object_name = 'subcategories_list'
+
+    def get_queryset(self):
+        cat2s = Cat2.view_objects.filter(is_deleted=False).order_by('name')
+        return cat2s
+
+
+class Cat2DetailView(LoginRequiredMixin, MyDetailView):
+    model = Cat2
+    template_name = 'budgetdb/cat2_detail.html'
+
+
+class Cat2UpdateView(LoginRequiredMixin, MyUpdateView):
+    model = Cat2
+    form_class = Cat2Form
+
+
+class Cat2CreateView(LoginRequiredMixin, MyCreateView):
+    model = Cat2
+    form_class = Cat2Form
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update(self.kwargs)
+        return kwargs
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+
+###################################################################################################################
+# CatType
+
+
+class CatTypeListView(LoginRequiredMixin, ListView):
+    model = CatType
+    context_object_name = 'cattype_list'
+
+    def get_queryset(self):
+        return CatType.view_objects.filter(is_deleted=False).order_by('name')
+
+
+class CatTypeDetailView(LoginRequiredMixin, MyDetailView):
+    model = CatType
+    template_name = 'budgetdb/cattype_detail.html'
+
+
+class CatTypeUpdateView(LoginRequiredMixin, MyUpdateView):
+    model = CatType
+    form_class = CatTypeForm
+
+
+class CatTypeCreateView(LoginRequiredMixin, MyCreateView):
+    model = CatType
+    form_class = CatTypeForm
+
+###################################################################################################################
+# Vendor
+
+
+class VendorListView(LoginRequiredMixin, ListView):
+    model = Vendor
+    context_object_name = 'vendor_list'
+
+    def get_queryset(self):
+        return Vendor.view_objects.filter(is_deleted=False).order_by('name')
+
+
+class VendorDetailView(LoginRequiredMixin, MyUpdateView):
+    model = Vendor
+    template_name = 'budgetdb/vendor_detail.html'
+
+
+class VendorUpdateView(LoginRequiredMixin, MyUpdateView):
+    model = Vendor
+    form_class = VendorForm
+
+
+class VendorCreateView(LoginRequiredMixin, MyCreateView):
+    model = Vendor
+    form_class = VendorForm
+
+###################################################################################################################
+# Statement
+
+
+class StatementListView(LoginRequiredMixin, ListView):
+    model = Statement
+    context_object_name = 'statement_list'
+
+    def get_queryset(self):
+        return Statement.view_objects.filter(is_deleted=False).order_by('account', 'statement_date')
+
+
+class StatementDetailView(LoginRequiredMixin, MyDetailView):
+    model = Statement
+    template_name = 'budgetdb/statement_detail.html'
+
+    def get_object(self, queryset=None):
+        statement = super().get_object(queryset=queryset)
+        statement.editable = statement.can_edit()
+        statement.included_transactions = Transaction.objects.filter(is_deleted=False, statement=statement).order_by('date_actual')
+        return statement
+
+
+class StatementUpdateView(LoginRequiredMixin, MyUpdateView):
+    model = Statement
+    form_class = VendorForm
+
+
+class StatementCreateView(LoginRequiredMixin, MyCreateView):
+    model = Statement
+    form_class = VendorForm
+
+###################################################################################################################
+###################################################################################################################
+
+
+class IndexView(LoginRequiredMixin, ListView):
+    template_name = 'budgetdb/index.html'
     context_object_name = 'categories_list'
 
     def get_queryset(self):
-        return Cat2.objects.order_by('name')
+        return Cat1.objects.order_by('name')
 
 
 class AccountSummaryView(LoginRequiredMixin, ListView):
@@ -803,12 +942,12 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/account_list_detailed.html'
 
     def get_queryset(self):
-        accountps = AccountPresentation.objects.filter(deleted=False)
+        accountps = AccountPresentation.objects.filter(is_deleted=False)
 
         for accountp in accountps:
             account = Account.objects.get(id=accountp.id)
             balance = account.balance_by_EOD(datetime.today())
-            categories = account.account_categories.filter(deleted=False)
+            categories = account.account_categories.filter(is_deleted=False)
             accountp.account_cat = ''
             i = 0
             for category in categories:
@@ -820,64 +959,13 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
         return accountps
 
 
-class AccountListViewSimple(LoginRequiredMixin, ListView):
-    model = Account
-    context_object_name = 'account_list'
-    template_name = 'budgetdb/account_list_simple.html'
-
-    def get_queryset(self):
-        accounts = Account.objects.filter(deleted=False).order_by('name')
-        for account in accounts:
-            categories = account.account_categories.filter(deleted=False)
-            account.account_cat = ''
-            i = 0
-            for category in categories:
-                if i:
-                    account.account_cat += f', '
-                account.account_cat += category.name
-                i += 1
-        return accounts
-
-
-class AccountHostListView(LoginRequiredMixin, ListView):
-    model = AccountHost
-    context_object_name = 'account_host_list'
-
-    def get_queryset(self):
-        return AccountHost.objects.filter(deleted=False).order_by('name')
-
-
-class VendorListView(LoginRequiredMixin, ListView):
-    model = Vendor
-    context_object_name = 'vendor_list'
-
-    def get_queryset(self):
-        return Vendor.objects.order_by('name')
-
-
-class CatTypeListView(LoginRequiredMixin, ListView):
-    model = CatType
-    context_object_name = 'cattype_list'
-
-    def get_queryset(self):
-        return CatType.objects.order_by('name')
-
-
-class AccountCatListView(LoginRequiredMixin, ListView):
-    model = AccountCategory
-    context_object_name = 'accountcat_list'
-
-    def get_queryset(self):
-        return AccountCategory.objects.order_by('name')
-
-
 class AccountListActivityView(LoginRequiredMixin, ListView):
     model = Account
     template_name = 'budgetdb/AccountListActivityView.html'
 
     def get_queryset(self):
         pk = self.kwargs['pk']
-        preference = Preference.objects.get(pk=self.request.user.id)
+        preference = Preference.objects.get(user=self.request.user.id)
         begin = preference.start_interval
         end = preference.end_interval
 
@@ -897,157 +985,88 @@ class AccountListActivityView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
-        # beginstr = self.request.GET.get('begin', None)
-        # endstr = self.request.GET.get('end', None)
-        # preference = Preference.objects.get(pk=self.request.user.id)
-        # if endstr is not None and endstr != 'None':
-        #    end = datetime.strptime(endstr, "%Y-%m-%d")
-        # else:
-        #    end = preference.end_interval
-
-        # if beginstr is not None and beginstr != 'None':
-        #    begin = datetime.strptime(beginstr, "%Y-%m-%d")
-        # else:
-        #    begin = preference.start_interval
-
-        context['account_list'] = Account.objects.filter(deleted=False).order_by('name')
-        # context['begin'] = begin.strftime("%Y-%m-%d")
-        # context['end'] = end.strftime("%Y-%m-%d")
+        context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
         context['pk'] = pk
-        # context['now'] = date.today().strftime("%Y-%m-%d")
-        # context['month'] = (date.today() + relativedelta(months=-1)).strftime("%Y-%m-%d")
-        # context['3month'] = (date.today() + relativedelta(months=-3)).strftime("%Y-%m-%d")
         context['account_name'] = Account.objects.get(id=pk).name
         return context
 
 
-class Cat1CreateView(LoginRequiredMixin, CreateView):
-    model = Cat1
-    fields = [
-        'name',
-        'cattype',
-        ]
+###################################################################################################################
+# User Management
+
+class UserSignupView(CreateView):
+    model = User
+    form_class = UserSignUpForm
+    template_name = 'budgetdb/user_form.html'
 
     def form_valid(self, form):
-        return super().form_valid(form)
+        user = form.save()
+        preference = Preference.objects.create(
+            user=user,
+            start_interval=datetime.today().date()-relativedelta(months=6),
+            end_interval=datetime.today().date()+relativedelta(months=6),
+            min_interval_slider=datetime.today().date()-relativedelta(months=6),
+            max_interval_slider=datetime.today().date()+relativedelta(months=6)
+            )
+        preference.save()
+        login(self.request, user)
+        return redirect('budgetdb:home')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper = FormHelper()
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        form.helper.add_input(Submit('submit', 'Sign Up!', css_class='btn-primary'))
         return form
 
 
-class AccountCreateView(LoginRequiredMixin, CreateView):
-    model = Account
-    fields = [
-        'name',
-        'account_host',
-        'account_parent',
-        'account_number',
-        'comment',
-        ]
+class UserLoginView(LoginView):
+    model = User
+    template_name = 'budgetdb/login.html'
 
     def form_valid(self, form):
-        return super().form_valid(form)
+        login(self.request, form.get_user())
+        return redirect('budgetdb:home')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
+        # julie = User.objects.get(username='Julie')
+        # julie.set_password('letmein')
+        # julie.save()
         form.helper = FormHelper()
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
         return form
 
 
-class AccountCatCreateView(LoginRequiredMixin, CreateView):
-    model = AccountCategory
-    fields = (
-        'name',
-        'accounts',
-        )
+class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
+    model = Preference
+    form_class = PreferenceForm
+
+    def get_object(self):
+        user = get_current_user()
+        try:
+            preference = Preference.objects.get(user=user)
+        except Preference.DoesNotExist:
+            transactions = Transaction.objects.filter(is_deleted=False).order_by("date_actual")
+            start = transactions.first().date_actual
+            stop = transactions.last().date_actual
+            preference = Preference.objects.create(
+                user=user,
+                start_interval=start,
+                end_interval=stop,
+                begin_data=start,
+                end_data=stop
+                )
+            preference.save()
+        return preference
 
     def form_valid(self, form):
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.helper = FormHelper()
+        # form.helper = FormHelper()
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
-        return form
-
-
-class AccountHostCreateView(LoginRequiredMixin, CreateView):
-    model = AccountHost
-    fields = ['name']
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
-        return form
-
-
-class CatTypeCreate(LoginRequiredMixin, CreateView):
-    model = CatType
-    fields = [
-        'name',
-        ]
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
-        return form
-
-
-class Cat2Create(LoginRequiredMixin, CreateView):
-    model = Cat2
-    fields = [
-        'name',
-        'cat1',
-        'cattype',
-        ]
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.layout = Layout(
-           Field('cat1', type="hidden"),
-           Field('name', type=""),
-           Field('cattype', type="")
-           )
-        cat1_id = self.kwargs['cat1_id']
-        cat1 = Cat1.objects.get(id=cat1_id)
-        form.initial['cat1'] = cat1
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
-        return form
-
-
-# class VendorCreate(CreatePopupMixin, CreateView):
-class VendorCreate(LoginRequiredMixin, CreateView):
-    model = Vendor
-    fields = ['name']
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
         return form

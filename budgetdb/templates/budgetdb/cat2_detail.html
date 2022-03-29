@@ -5,12 +5,15 @@
 {% block content %}
 
 <h1>{{ cat2.name }}</h1>
-<h6>{{ cat2.cattype.name }}</h6>
+<h6>Category type: {{ cat2.cattype.name }}</h6>
 <h5>part of category <a href="{% url 'budgetdb:details_cat1' cat2.cat1.id %}"> {{ cat2.cat1.name }}</a>  </h5>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <div class="clearfix">
+    {% if cat2.editable %}
     <a class="btn btn-info top" href="{% url 'budgetdb:update_cat2' cat2.id %}">Modify</a>
+    {% endif%}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
 </div>
 
 {% endblock %}

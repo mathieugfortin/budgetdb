@@ -11,7 +11,7 @@
 {% if categories_list %}
     <ul>
     {% for category in categories_list %}
-        <li><a href="{% url 'budgetdb:details_cat1' category.id %}">{{ category.name }}</a></li>
+        <li><a href="{% url 'budgetdb:cat1_max_redirect' category.id %}">{{ category.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
@@ -19,5 +19,7 @@
 {% endif %}
 <div class="clearfix">
     <a class="btn btn-info top" href="{% url 'budgetdb:create_cat1' %}">Create new Category</a>
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+    
 </div>
 {% endblock %}

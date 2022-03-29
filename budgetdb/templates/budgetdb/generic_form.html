@@ -2,10 +2,11 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
-{% block title %}Account Category Form{% endblock %}
+{% block title %}{{task}} {{object}}{% endblock %}
 
 {% block content %}
-  <h2>Account Category</h2>
+  <h2>{{object}}</h2>
   {% load crispy_forms_tags %}
   {% crispy form %}
+  <div id='form-errors'>{{ form.errors }}</div>
 {% endblock %}

@@ -2,12 +2,12 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
-{% block title %}Category Type form{% endblock %}
+{% block title %}Preference form{% endblock %}
 
 {% csrf_token %}
 
 {% block content %}
-  <h2>Category Type</h2>
+  <h2>Preferences</h2>
   {% load crispy_forms_tags %}
   {% crispy form %}
 {% endblock %}

@@ -1,11 +1,12 @@
-{% extends 'budgetdb/base.html' %}
+{% extends 'budgetdb/basecrispy.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
 
-{% block title %}Account Host Form{% endblock %}
+{% block title %}Signup Form{% endblock %}
+
+{% csrf_token %}
 
 {% block content %}
-  <h2>Account Host</h2>
   {% load crispy_forms_tags %}
   {% crispy form %}
 {% endblock %}

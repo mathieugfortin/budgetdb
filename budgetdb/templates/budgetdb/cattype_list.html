@@ -3,14 +3,14 @@
 
 <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
 
-{% block title %}Category Types List{% endblock %}
+{% block title %}Category Types{% endblock %}
 
 {% block content %}
 
 {% if cattype_list %}
     <ul>
     {% for cattype in cattype_list %}
-        <li><a href="{% url 'budgetdb:details_cattype' cattype.id %}">{{ cattype.name }}</a></li>
+        <li><a href="{% url 'budgetdb:cattype_max_redirect' cattype.id %}">{{ cattype.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
@@ -19,6 +19,7 @@
 
 <div class="clearfix">
     <a class="btn btn-info top" href="{% url 'budgetdb:create_cattype' %}">Create new category type</a>
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
 </div>
 
 {% endblock %}

@@ -1,10 +1,22 @@
 from django.contrib import admin
-
+from django.contrib.auth.admin import UserAdmin
 from .models import Cat1, Cat2, CatBudget, AccountHost, Account
-from .models import Vendor, Transaction, BudgetedEvent
+from .models import Vendor, Transaction, BudgetedEvent, User
+
+from .forms import UserCreationForm, UserChangeForm
+from .models import User
+
+
+class UserAdmin(UserAdmin):
+    add_form = UserCreationForm
+    form = UserChangeForm
+    model = User
+    list_display = ['email', 'username',]
+
 
 admin.site.site_header = "My Family Budget admin"
 
+admin.site.register(User, UserAdmin)
 
 # class Cat2Inline(admin.StackedInline):
 class Cat2Inline(admin.TabularInline):
@@ -16,7 +28,7 @@ class Cat2Inline(admin.TabularInline):
 class Cat1Admin(admin.ModelAdmin):
     fieldsets = [
         (None,               {'fields': ['name',
-                                         'CatBudget'
+                                         'catbudget'
                                          ]
                               }
          ),
@@ -30,7 +42,7 @@ admin.site.register(Cat1, Cat1Admin)
 class Cat2Admin(admin.ModelAdmin):
     fields = ['name',
               'cat1',
-              'CatBudget'
+              'catbudget'
               ]
     list_filter = ('name', )
 

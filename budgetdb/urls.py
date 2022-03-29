@@ -1,4 +1,4 @@
-from django.urls import path, register_converter
+from django.urls import path, register_converter, include
 
 from . import views
 
@@ -42,11 +42,41 @@ app_name = 'budgetdb'
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
 
-    path('preference/getJSON', views.PreferenceGetJSON, name='preferences_json'),
-    path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON, name='setinterval_json'),
+    path('preference/getJSON', views.PreferenceGetJSON,
+         name='preferences_json'),
+    path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
+         name='setinterval_json'),
+
+    # User
+    path('user/signup/', views.UserSignupView.as_view(),
+         name='signup'),
+    path('user/login/', views.UserLoginView.as_view(),
+         name='login'),
+
+    ##########################################################################################################
+    # redirects
+    path('account/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Account'),
+         name='account_max_redirect'),
+    path('accountHost/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='AccountHost'),
+         name='accounthost_max_redirect'),
+    path('accountcat/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='AccountCategory'),
+         name='accountcategory_max_redirect'),
+    path('cat1/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Cat1'),
+         name='cat1_max_redirect'),
+    path('cat2/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Cat2'),
+         name='cat2_max_redirect'),
+    path('cattype/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='CatType'),
+         name='cattype_max_redirect'),
+    path('catbudget/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='CatBudget'),
+         name='catbudget_max_redirect'),
+    path('vendor/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Vendor'),
+         name='vendor_max_redirect'),
+    path('transaction/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Transaction'),
+         name='transaction_max_redirect'),
 
     # Account
-    path('account/ListJSON', views.GetAccountListJSON, name='account_list_json'),
+    path('account/ListJSON', views.GetAccountViewListJSON,
+         name='account_list_view_json'),
     path('account/', views.AccountListViewSimple.as_view(),
          name='list_account_simple'),
     path('account/details', views.AccountSummaryView.as_view(),
@@ -63,24 +93,26 @@ urlpatterns = [
          name='list_account_activity'),
 
     # AccountCategory
-    path('accountcat/ListJSON', views.GetAccountCatListJSON, name='accountcat_list_json'),
+    path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
+    path('accountcat/<int:pk>/', views.AccountCatDetailView.as_view(),
+         name='details_accountcategory'),
     path('accountcat/update/<int:pk>/', views.AccountCatUpdateView.as_view(),
-         name='update_accountcat'),
+         name='update_accountcategory'),
     path('accountcat/', views.AccountCatListView.as_view(),
-         name='list_accountcat'),
+         name='list_accountcategory'),
     path('accountcat/add/', views.AccountCatCreateView.as_view(),
-         name='create_accountcat'),
+         name='create_accountcategory'),
 
     # Account_Host
-    path('accountHost/ListJSON', views.GetAccountHostListJSON, name='account_host_list_json'),
+    path('accountHost/ListJSON', views.GetAccountHostViewListJSON, name='account_host_list_json'),
     path('accountHost/<int:pk>/', views.AccountHostDetailView.as_view(),
-         name='details_account_host'),
+         name='details_accounthost'),
     path('accountHost/add/', views.AccountHostCreateView.as_view(),
-         name='create_account_host'),
+         name='create_accounthost'),
     path('accountHost/update/<int:pk>/', views.AccountHostUpdateView.as_view(),
-         name='update_account_host'),
+         name='update_accounthost'),
     path('accountHost/', views.AccountHostListView.as_view(),
-         name='list_account_host'),
+         name='list_accounthost'),
 
     # chart JS
     path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
@@ -91,7 +123,7 @@ urlpatterns = [
     path('cat1/BarChartJSON', views.GetCat1TotalBarChartData, name='cat1_barchart_json'),
     path('cat1/ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
     path('cat1/', views.Cat1ListView.as_view(),
-         name='list_cat'),
+         name='list_cat1'),
     path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
          name='details_cat1'),
     path('cat1/add/', views.Cat1CreateView.as_view(),
@@ -104,9 +136,11 @@ urlpatterns = [
     # Cat2
     path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
     path('cat2/BarChartJSON', views.GetCat2TotalBarChartData, name='cat2_barchart_json'),
+    path('cat2/', views.Cat2ListView.as_view(),
+         name='list_cat2'),
     path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
          name='details_cat2'),
-    path('cat2/add/<int:cat1_id>', views.Cat2Create.as_view(),
+    path('cat2/add/<int:cat1_id>', views.Cat2CreateView.as_view(),
          name='create_cat2'),
     path('cat2/update/<int:pk>/', views.Cat2UpdateView.as_view(),
          name='update_cat2'),
@@ -124,7 +158,7 @@ urlpatterns = [
          name='list_cattype'),
     path('cattype/<int:pk>/', views.CatTypeDetailView.as_view(),
          name='details_cattype'),
-    path('cattype/add/', views.CatTypeCreate.as_view(),
+    path('cattype/add/', views.CatTypeCreateView.as_view(),
          name='create_cattype'),
     path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),
          name='update_cattype'),
@@ -143,14 +177,18 @@ urlpatterns = [
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
          name='update_be'),
 
+    # Preferences
+    path('preferences/update/', views.PreferencesUpdateView.as_view(),
+         name='update_preferences'),
+
     # Statement
     path('statement/', views.StatementListView.as_view(),
          name='list_statement'),
     path('statement/<int:pk>/', views.StatementDetailView.as_view(),
          name='details_statement'),
-    path('statement/create/', views.StatementCreate.as_view(),
+    path('statement/create/', views.StatementCreateView.as_view(),
          name='create_statement'),
-    path('statement/update/<int:pk>/', views.StatementUpdate.as_view(),
+    path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
 
     # Transaction
@@ -182,21 +220,23 @@ urlpatterns = [
          name='list_manual_transaction'),
 
     # Joined Transactions
+    path('joinedtransactions/list/', views.JoinedTransactionListView.as_view(),
+         name='list_joinedtransactions'),   
     path('joinedtransactions/add/', views.JoinedTransactionsUpdateView.as_view(),
-         name='create_joined_transaction'),
+         name='create_joinedtransactions'),
     # path('joinedtransactions/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsUpdateView.as_view(),
     path('joinedtransactions/update/<int:pk>/<slug:date>/', views.JoinedTransactionsUpdateView.as_view(),
-         name='update_joined_transaction'),
+         name='update_joinedtransactions'),
     path('joinedtransactions/<int:pk>/<slug:date>/', views.JoinedTransactionsDetailView.as_view(),
-         name='details_joined_transaction'),
+         name='details_joinedtransactions'),
 
     # Vendor
     path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),
     path('vendor/', views.VendorListView.as_view(),
          name='list_vendor'),
-    path('vendor/<int:pk>', views.VendorDetailView.as_view(),
+    path('vendor/<int:pk>/', views.VendorDetailView.as_view(),
          name='details_vendor'),
-    path('vendor/add/', views.VendorCreate.as_view(),
+    path('vendor/add/', views.VendorCreateView.as_view(),
          name='create_vendor'),
     path('vendor/update/<int:pk>/', views.VendorUpdateView.as_view(),
          name='update_vendor'),

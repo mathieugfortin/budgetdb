@@ -10,7 +10,7 @@
 {% if vendor_list %}
     <ul>
     {% for vendor in vendor_list %}
-        <li><a href="{% url 'budgetdb:details_vendor' vendor.id %}">{{ vendor.name }}</a></li>
+        <li><a href="{% url 'budgetdb:vendor_max_redirect' vendor.id %}">{{ vendor.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
@@ -19,6 +19,7 @@
 
 <div class="clearfix">
     <a class="btn btn-info top" href="{% url 'budgetdb:create_vendor' %}">Create new vendor</a>
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
 </div>
 
 {% endblock %}

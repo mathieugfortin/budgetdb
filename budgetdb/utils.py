@@ -32,7 +32,7 @@ class Calendar(HTMLCalendar):
     # formats a month as a table
     # filter events by year and month
     def formatmonth(self, withyear=True):
-        events = Transaction.objects.filter(date_actual__year=self.year, date_actual__month=self.month, deleted=False).order_by("description")
+        events = Transaction.objects.filter(date_actual__year=self.year, date_actual__month=self.month, is_deleted=False).order_by("description")
 
         cal = f'<table border="0" cellpadding="0" cellspacing="0" class="calendar">\n'
         cal += f'{self.formatmonthname(self.year, self.month, withyear=withyear)}\n'
@@ -75,7 +75,7 @@ class Calendar(HTMLCalendar):
     # formats a month as a list
     # filter events by year and month
     def formatmonthlist(self, withyear=True):
-        events_per_month = Transaction.objects.filter(deleted=False, date_actual__year=self.year, date_actual__month=self.month).order_by("date_actual")
+        events_per_month = Transaction.objects.filter(is_deleted=False, date_actual__year=self.year, date_actual__month=self.month).order_by("date_actual")
         cal = f'<table border="0" cellpadding="0" cellspacing="0" class="calendar" id="calendarlist">\n'
         cal += f'{self.formatmonthname(self.year, self.month, withyear=withyear)}\n'
         cal += f'<tr>\n'
