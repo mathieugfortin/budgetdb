@@ -334,7 +334,16 @@ class BudgetedEventForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_id = 'BudgetedEventForm'
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        self.fields['cat2'].queryset = Cat1.objects.none()
+        if 'cat1' in self.initial:
+            try:
+                cat1 = int(self.initial.get('cat1'))
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+            except (ValueError, TypeError):
+                self.fields['cat2'].queryset = Cat2.objects.none()
+        else:
+            self.fields['cat2'].queryset = Cat2.objects.none()
+
+        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
         self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
         self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
         self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
