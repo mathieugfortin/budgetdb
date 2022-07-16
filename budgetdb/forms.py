@@ -566,7 +566,7 @@ class TransactionFormFull(forms.ModelForm):
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
-        else:
+        elif 'cat1' not in self.data:
             self.fields['cat2'].queryset = Cat2.objects.none()
 
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)

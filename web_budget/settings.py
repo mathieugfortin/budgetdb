@@ -1,38 +1,33 @@
 from django.utils.translation import gettext_lazy as _
 from pathlib import Path
-import json
-import os
+import environ
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
+root = environ.Path(__file__) - 3  # get root of the project
+public_root = root.path('public/')
+env = environ.Env()
+environ.Env.read_env()  # reading .env file
+
+
+DEBUG = env.bool('DEBUG', default=False)
+TEMPLATE_DEBUG = DEBUG
+
+SITE_ROOT = root()
 BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_ROOT = public_root('static')
+STATIC_URL = env.str('STATIC_URL', default='/static/')
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 LOGIN_URL = reverse_lazy('admin:login')
 LOGOUT_REDIRECT_URL = reverse_lazy('budgetdb:home')
 
-filename = os.path.join(BASE_DIR, 'secrets.json')
-with open(filename, 'r') as f:
-    secrets = json.loads(f.read())
 
-
-def get_secret(setting, secrets=secrets):
-    try:
-        return secrets[setting]
-    except KeyError:
-        raise ImproperlyConfigured("Set the {} setting".format(setting))
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = get_secret('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = env.str('SECRET_KEY')
 
 ALLOWED_HOSTS = [
-    get_secret('APP_HOST')
+    env.str('APP_HOST')
 ]
 
 # Application definition
@@ -100,11 +95,11 @@ WSGI_APPLICATION = 'web_budget.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': get_secret('DB_NAME'),
-        'USER': get_secret('DB_USER'),
-        'PASSWORD': get_secret('DB_PASSWORD'),
-        'HOST': get_secret('DB_HOST'),
-        'PORT': get_secret('DB_PORT'),
+        'NAME': env.str('DB_NAME'),
+        'USER': env.str('DB_USER'),
+        'PASSWORD': env.str('DB_PASSWORD'),
+        'HOST': env.str('DB_HOST'),
+        'PORT': env.str('DB_PORT'),
     }
 }
 
@@ -149,10 +144,3 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.1/howto/static-files/
-
-STATIC_URL = '/static/'
-

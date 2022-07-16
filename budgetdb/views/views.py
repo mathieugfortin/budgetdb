@@ -464,11 +464,11 @@ def timeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
 
     if accountcategoryID is None or accountcategoryID == 'None':
-        accounts = Account.objects.filter(is_deleted=False).order_by('name')
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('name')
     else:
-        accounts = Account.objects.filter(is_deleted=False, account_categories=accountcategoryID).order_by('name')
+        accounts = Account.view_objects.filter(is_deleted=False, account_categories=accountcategoryID).order_by('name')
 
-    preference = Preference.objects.get(user=request.user.id)
+    preference = get_object_or_404(Preference, user=request.user.id)
     begin = preference.start_interval
     end = preference.end_interval
 
@@ -489,26 +489,27 @@ def timeline2JSON(request):
     nb_days = len(labels)
     linetotaldata = [Decimal(0.00)] * nb_days
     for account in accounts:
-        color = next(colors)
-        balances = account.build_balance_array(begin, end)
-        linedata = []
-        i = 0
-        for day in balances:
-            linetotaldata[i] += day.balance
-            linedata.append(day.balance)
-            i += 1
-        linedict = {
-            "backgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
-            "borderColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-            "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-            "pointBorderColor": "#fff",
-            'data': linedata,
-            'label': account.name,
-            'name': account.name,
-            'index': account.id,
-            'cubicInterpolationMode': 'monotone',
-        }
-        datasets.append(linedict)
+        if account.can_view():
+            color = next(colors)
+            balances = account.build_balance_array(begin, end)
+            linedata = []
+            i = 0
+            for day in balances:
+                linetotaldata[i] += day.balance
+                linedata.append(day.balance)
+                i += 1
+            linedict = {
+                "backgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
+                "borderColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+                "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+                "pointBorderColor": "#fff",
+                'data': linedata,
+                'label': account.name,
+                'name': account.name,
+                'index': account.id,
+                'cubicInterpolationMode': 'monotone',
+            }
+            datasets.append(linedict)
 
     linedict = {
         "backgroundColor": f"rgba(0,0,0, 0.5)",
@@ -597,11 +598,13 @@ class timeline2(TemplateView):
 
         accountcategoryID = self.request.GET.get('ac', None)
 
-        if accountcategoryID is not None and accountcategoryID != 'None':
-            accountcategory = AccountCategory.objects.get(id=accountcategoryID)
-            context['accountcategory'] = accountcategory
+        accountcategory = get_object_or_404(AccountCategory, pk=accountcategoryID)
+        if not accountcategory.can_view():
+            raise PermissionDenied
 
-        accountcategories = AccountCategory.objects.filter(is_deleted=False)
+        context['accountcategory'] = accountcategory
+
+        accountcategories = AccountCategory.view_objects.filter(is_deleted=False)
         context['accountcategories'] = accountcategories
 
         context['ac'] = accountcategoryID
@@ -959,9 +962,16 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
         return accountps
 
 
-class AccountListActivityView(LoginRequiredMixin, ListView):
+class AccountListActivityView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Account
     template_name = 'budgetdb/AccountListActivityView.html'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_queryset(self):
         pk = self.kwargs['pk']
@@ -985,7 +995,7 @@ class AccountListActivityView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
-        context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
+        # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
         context['pk'] = pk
         context['account_name'] = Account.objects.get(id=pk).name
         return context

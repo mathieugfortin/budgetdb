@@ -7,36 +7,36 @@
 {% block content %}
 
 {% if account_list %}
-<table class="table table-hover ">
+<table class="table table table-hover ">
+    <thead class="thead-dark"></thead>
     <tr>
         <th>Name</th>
         <th>Balance</th>
         <th>Host</th>
     </tr>
     {% for account in account_list %}
-    <tr data-bs-toggle="collapse" data-bs-target="{{ account.childrens }}" class="clickable">
+    <tr data-bs-toggle="collapse" data-bs-target=".C{{ account.id }}" aria-controls="{{ account.childrens }}" class="clickable">
         {% if account.account_parent_id == None %}
-        <td>
-            {% if account.childrens != None %}
-            <i class="fas fa-plus"></i>
-            {% endif %}
-            <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a>
-        </td>
-        <td>{{ account.balance|floatformat:2 }}$</td>
-        <td><a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a></td>   
+            <td>
+                {% if account.childrens != None %}
+                    <i class="fas fa-plus"></i>
+                {% endif %}
+                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a>
+            </td>
+            <td>{{ account.balance|floatformat:2 }}$</td>
+            <td><a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a></td>   
         {% else %}
-        <td><div id="c{{ account.id }}" class="collapse">
-            <div class='p-3'>
-            <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a>
-        </div>
-        </div></td>
-        <td><div id="c{{ account.id }}" class="collapse">
-            {{ account.balance|floatformat:2 }}$
-        </div></td>
-        <td><div id="c{{ account.id }}" class="collapse">
-            <a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a>
-        </div></td>
- 
+            <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
+                <div class='p-3'>
+                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a>
+            </div>
+            </div></td>
+            <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
+                {{ account.balance|floatformat:2 }}$
+            </div></td>
+            <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
+                <a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a>
+            </div></td>
         {% endif %}
     </tr>
     {% endfor %}
