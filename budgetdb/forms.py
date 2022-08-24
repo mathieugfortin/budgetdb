@@ -516,7 +516,7 @@ class JoinedTransactionsForm(forms.ModelForm):
                 css_class='form-row'
             ),
             Div(
-                Fieldset('', Formset('formset')),
+                Fieldset('', Formset('formset', helper_context_name='helper')),
             )
         )
 

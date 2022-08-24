@@ -61,7 +61,7 @@
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Account
+                        Accounts
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="account_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:list_account_summary' %}">summary</a>
@@ -191,7 +191,7 @@
     });
 
     $(document).ready(function(){
-        $.getJSON('{% url "budgetdb:account_list_view_json" %}', function(result){
+        $.getJSON('{% url "budgetdb:account_list_detailed_view_json" %}', function(result){
             $.each(result, function(i, field){
                 addA('{% url "budgetdb:list_account_activity" 12345 %}', field[0].pk, field[1].name, 'account_menu');
             });

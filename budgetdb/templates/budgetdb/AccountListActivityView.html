@@ -121,7 +121,7 @@ tr.VERIFIED button.verify::before {
 
 <table class="table table-hover table-sm ">
     <tr>
-        <th id=c1><a href="{% url 'budgetdb:create_transaction' %}">
+        <th id=c1><a href="{% url 'budgetdb:create_transaction_from_date_account' pk %}" target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' pk %}','popup','width=1000,height=700'); return false;" >
             <i class="fas fa-plus"></i>
         </a></th>
         <th id=c2>Date</th>
@@ -171,6 +171,7 @@ tr.VERIFIED button.verify::before {
         </td>
         <td>{% if event.budgetedevent_id != None %} 
             <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>
+            <a href="{% url 'budgetdb:details_be' event.budgetedevent_id %}"> <i class="fas fa-list"></i></a>
             {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat1 }} {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>

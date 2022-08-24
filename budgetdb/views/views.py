@@ -189,6 +189,22 @@ def GetAccountViewListJSON(request):
     return JsonResponse(array, safe=False)
 
 
+def GetAccountDetailedViewListJSON(request):
+    queryset = Account.view_objects.filter(is_deleted=False)
+    queryset = queryset.order_by("account_host","name")
+
+    array = []
+
+    for entry in queryset:
+        namestring = entry.account_host.name
+        if entry.owner != get_current_user():
+            namestring = namestring + " - " + entry.owner.username
+        namestring = namestring + " - " + entry.name
+        array.append([{"pk": entry.pk}, {"name": namestring}])
+
+    return JsonResponse(array, safe=False)
+
+
 def GetAccountCatViewListJSON(request):
     queryset = AccountCategory.view_objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
