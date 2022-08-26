@@ -21,3 +21,4 @@ sqlparse==0.4.2
 toml==0.10.2
 typing-extensions==4.0.1
 wrapt==1.13.3
+gunicorn

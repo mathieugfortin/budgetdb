@@ -9,6 +9,7 @@ from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
+from crispy_forms.layout import Layout, Div
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
@@ -95,12 +96,14 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        date = self.kwargs['date']
-        account_id = self.kwargs['account_pk']
+        form_date = self.kwargs.get('date')
+        if form_date is None:
+            form_date = datetime.now().strftime("%Y-%m-%d")
+        account_id = self.kwargs.get('account_pk')
         account = get_object_or_404(Account, id=account_id)
         if account.can_edit() is False:
             raise PermissionDenied
-        form.initial['date_actual'] = date
+        form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
@@ -204,10 +207,19 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
             context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions)
         else:
             context['formset'] = TransactionFormSet(queryset=transactions)
+        transactionsHelper = FormHelper()
+        transactionsHelper.layout = Layout(
+            Div(
+                Div('description', css_class='form-group col-md-4 mb-0'),
+                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+        )
         context['joinedtransactions'] = joinedtransactions
         context['pdate'] = previousrecurrence
         context['ndate'] = nextrecurrence
         context['transactiondate'] = date
+        
         return context
 
 

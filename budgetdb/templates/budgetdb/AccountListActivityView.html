@@ -121,7 +121,7 @@ tr.VERIFIED button.verify::before {
 
 <table class="table table-hover table-sm ">
     <tr>
-        <th id=c1><a href="{% url 'budgetdb:create_transaction' %}">
+        <th id=c1><a href="{% url 'budgetdb:create_transaction_from_date_account' pk %}" target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' pk %}','popup','width=1000,height=700'); return false;" >
             <i class="fas fa-plus"></i>
         </a></th>
         <th id=c2>Date</th>
@@ -160,17 +160,18 @@ tr.VERIFIED button.verify::before {
                onclick="window.open('{% url 'budgetdb:update_transaction_popup' event.id %}','popup','width=1000,height=700'); return false;" 
                >
                 {{ event.description }}
+            </a>
                 {% if event.cat2.id == 8 %}
                 {% if event.account_destination and event.account_destination.name != account_name%}
-                <button type="button" class="btn btn-outline-info btn-sm"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </button>
+                <a href="{% url 'budgetdb:list_account_activity' event.account_destination.id %}" class="btn btn-outline-info btn-sm" role="button"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </a>
                 {% elif event.account_source and event.account_source.name != account_name %}
-                <button type="button" class="btn btn-outline-info btn-sm">     <i class="fas fa-arrow-left"></i> {{event.account_source}}</button>
+                <a href="{% url 'budgetdb:list_account_activity' event.account_source.id %}"  class="btn btn-outline-info btn-sm" role="button">     <i class="fas fa-arrow-left"></i> {{event.account_source}}</a>
                 {% endif %}
                 {% endif %}
-            </a>
         </td>
         <td>{% if event.budgetedevent_id != None %} 
             <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>
+            <a href="{% url 'budgetdb:details_be' event.budgetedevent_id %}"> <i class="fas fa-list"></i></a>
             {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat1 }} {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>

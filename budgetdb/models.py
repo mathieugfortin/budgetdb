@@ -170,11 +170,10 @@ class AccountHost(BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_accounthost')
 
 
-class AccountPresentation(models.Model):
+class AccountPresentation(BaseSoftDelete):
     class Meta:
         managed = False
         db_table = 'budgetdb_account_presentation'
-        ordering = ['name']
 
     id = models.BigIntegerField(primary_key=True)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -184,6 +183,7 @@ class AccountPresentation(models.Model):
     name = models.CharField(max_length=200)
     account_number = models.CharField(max_length=200, blank=True)
     childrens = models.CharField(max_length=200, blank=True, null=True)
+    parent = models.CharField(max_length=200, blank=True, null=True)
 
 
 class Account(BaseSoftDelete, UserPermissions):
@@ -285,7 +285,7 @@ class Account(BaseSoftDelete, UserPermissions):
         childcount = childaccounts.count()
         # is this all done with DB queries?  Can I do it all in memory?
         if (childcount > 0):  # If children, account is virtual, only check childrens
-            dailybalances = MyCalendar.view_objects.filter(db_date__gt=start_date, db_date__lte=end_date)
+            dailybalances = MyCalendar.objects.filter(db_date__gt=start_date, db_date__lte=end_date)
             childbalances = []
             # get the balances for the subaccounts
             for childaccount in childaccounts:
