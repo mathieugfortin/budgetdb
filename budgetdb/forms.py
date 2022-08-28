@@ -512,7 +512,7 @@ class JoinedTransactionsForm(forms.ModelForm):
                 HTML("<div class='col-md-1 text-center' >Verified</div>"),
                 HTML("<div class='col-md-1 text-center' >Receipt</div>"),
                 HTML("<div class='col-md-1 text-center' >Deleted</div>"),
-                HTML("<div class='col-md-1' >amount</div>"),
+                HTML("<div class='col-md-1' >Amount</div>"),
                 css_class='form-row'
             ),
             Div(
@@ -578,7 +578,7 @@ class TransactionFormFull(forms.ModelForm):
 
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
-        self.fields['amount_actual'].label = "amount"
+        self.fields['amount_actual'].label = "Amount"
         self.helper.layout = Layout(
             Field('description'),
             Div(
