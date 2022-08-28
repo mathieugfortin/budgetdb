@@ -22,7 +22,7 @@
     {% for subcategory in subcategories_list %}
     <tr>
         <td><a href="{% url 'budgetdb:cat2_max_redirect' subcategory.id %}">{{ subcategory.name }}</a></td>
-        <td><a href="{% url 'budgetdb:cat1_max_redirect' subcategory.cat1.id %}">{{ subcategory.cat1 }}</a></td>
+        <td><a href="{% url 'budgetdb:details_cat1' subcategory.cat1.id %}">{{ subcategory.cat1 }}</a></td>
         <td><a href="{% url 'budgetdb:cattype_max_redirect' subcategory.cattype.id %}">{{ subcategory.cattype }}</a></td>
         <td>
         {% if subcategory.catbudget %}

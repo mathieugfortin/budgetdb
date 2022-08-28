@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
-from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet
+from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -88,9 +88,37 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
         return form
 
 
+class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
+    form_class = TransactionAuditFormFull
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form_date = self.kwargs.get('date')
+        form_amount = self.kwargs.get('amount')
+        if form_date is None:
+            form_date = datetime.now().strftime("%Y-%m-%d")
+            form.initial['description'] = f'Ajustement du marché'
+        else:
+            form.initial['description'] = f'Confirmation de solde'
+            length = len(form_amount)
+            clean_amount = form_amount[:length-2] + '.' + form_amount[-2:]
+            form.initial['amount_actual'] = clean_amount
+        account_id = self.kwargs.get('account_pk')
+        account = get_object_or_404(Account, id=account_id)
+        if account.can_edit() is False:
+            raise PermissionDenied
+        form.initial['date_actual'] = form_date
+        form.initial['account_source'] = account
+        form.initial['audit'] = True
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
 class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
     model = Transaction
-    # template_name = 'budgetdb/crispytest.html'
     template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionFormFull
 

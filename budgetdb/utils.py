@@ -79,7 +79,7 @@ class Calendar(HTMLCalendar):
         cal = f'<table border="0" cellpadding="0" cellspacing="0" class="calendar" id="calendarlist">\n'
         cal += f'{self.formatmonthname(self.year, self.month, withyear=withyear)}\n'
         cal += f'<tr>\n'
-        cal += f'<th>Date</th><th>Description</th><th>Ammount</th>'
+        cal += f'<th>Date</th><th>Description</th><th>amount</th>'
         cal += f'<th>Source</th><th>Destination</th>'
         cal += f'<th>Category</th><th>Subcategory</th>'
         cal += f'<th>Recurence</th>\n'

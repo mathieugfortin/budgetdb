@@ -190,7 +190,7 @@ class Account(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Account'
         verbose_name_plural = 'Accounts'
-        ordering = ['name']
+        ordering = ['account_host__name', 'name']
 
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -203,7 +203,7 @@ class Account(BaseSoftDelete, UserPermissions):
     RRSP = models.BooleanField('Account is a RRSP for canadian fiscal considerations', default=False)
 
     def __str__(self):
-        return self.name
+        return self.account_host.name + " - " + self.name
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_account_simple')

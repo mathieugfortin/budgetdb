@@ -716,7 +716,7 @@ class AccountListViewSimple(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/account_list_simple.html'
 
     def get_queryset(self):
-        accounts = Account.view_objects.filter(is_deleted=False).order_by('name')
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('name').order_by('account_host__name', 'name')
         for account in accounts:
             account.my_categories = AccountCategory.view_objects.filter(accounts=account)
         return accounts
@@ -832,7 +832,7 @@ class Cat2ListView(LoginRequiredMixin, ListView):
     context_object_name = 'subcategories_list'
 
     def get_queryset(self):
-        cat2s = Cat2.view_objects.filter(is_deleted=False).order_by('name')
+        cat2s = Cat2.view_objects.filter(is_deleted=False).order_by('cat1', 'name')
         return cat2s
 
 

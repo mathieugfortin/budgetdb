@@ -11,7 +11,7 @@
 {% if categories_list %}
     <ul>
     {% for category in categories_list %}
-        <li><a href="{% url 'budgetdb:cat1_max_redirect' category.id %}">{{ category.name }}</a></li>
+        <li><a href="{% url 'budgetdb:details_cat1' category.id %}">{{ category.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}

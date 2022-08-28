@@ -512,7 +512,7 @@ class JoinedTransactionsForm(forms.ModelForm):
                 HTML("<div class='col-md-1 text-center' >Verified</div>"),
                 HTML("<div class='col-md-1 text-center' >Receipt</div>"),
                 HTML("<div class='col-md-1 text-center' >Deleted</div>"),
-                HTML("<div class='col-md-1' >Ammount</div>"),
+                HTML("<div class='col-md-1' >amount</div>"),
                 css_class='form-row'
             ),
             Div(
@@ -578,7 +578,7 @@ class TransactionFormFull(forms.ModelForm):
 
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
-        self.fields['amount_actual'].label = "Ammount"
+        self.fields['amount_actual'].label = "amount"
         self.helper.layout = Layout(
             Field('description'),
             Div(
@@ -620,6 +620,75 @@ class TransactionFormFull(forms.ModelForm):
                 Div('statement', css_class='form-group col-md-4 mb-0 '),
                 css_class='form-row'
             ),
+        )
+
+
+class TransactionAuditFormFull(forms.ModelForm):
+    class Meta:
+        model = Transaction
+        fields = [
+            'description',
+            'vendor',
+            'amount_actual',
+            'date_planned',
+            'cat1',
+            'cat2',
+            'account_source',
+            'account_destination',
+            'statement',
+            'verified',
+            'receipt',
+            'Fuel_L',
+            'Fuel_price',
+            'date_actual',
+            'budgetedevent',
+            'audit',
+            'ismanual',
+            'is_deleted',
+            'comment',
+        ]
+        widgets = {
+            'date_actual': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+            'date_planned': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+
+        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
+        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
+
+        self.fields['amount_actual'].label = f"Audited Value"
+        self.fields['date_actual'].label = f"Audited Date"
+        self.fields['account_source'].label = f"Audited Account"
+        self.helper.layout = Layout(
+            Field('description'),
+            Div(
+                Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
+                Div('date_actual', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('account_source', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-4 mb-0 '),
+                css_class='form-row'
+            ),
+            Div(
+                Field('audit', type="hidden"),
+                css_class='form-row'
+            ),
+            Field('comment'),
         )
 
 
