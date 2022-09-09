@@ -476,6 +476,12 @@ def load_cat2(request):
     return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
 
 
+def load_payment_transaction(request):
+    account_id = request.GET.get('account')
+    transactions = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
+    return render(request, 'budgetdb/payment_transaction_dropdown_list.html', {'transactions': transactions})
+
+
 def timeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
 
@@ -931,17 +937,48 @@ class StatementDetailView(LoginRequiredMixin, MyDetailView):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
         statement.included_transactions = Transaction.objects.filter(is_deleted=False, statement=statement).order_by('date_actual')
+        transactions_sum = 0
+        for transaction in statement.included_transactions:
+            transactions_sum += transaction.amount_actual
+        statement.transactions_sum = transactions_sum
+        statement.error = transactions_sum - statement.balance
         return statement
 
 
-class StatementUpdateView(LoginRequiredMixin, MyUpdateView):
+class StatementUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Statement
-    form_class = VendorForm
+    form_class = StatementForm
+    task = 'Update'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
+        return form
 
 
-class StatementCreateView(LoginRequiredMixin, MyCreateView):
+class StatementCreateView(LoginRequiredMixin, CreateView):
     model = Statement
-    form_class = VendorForm
+    form_class = StatementForm
+    task = 'Create'
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        return form
 
 ###################################################################################################################
 ###################################################################################################################

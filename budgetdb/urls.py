@@ -226,6 +226,8 @@ urlpatterns = [
          name='list_unverified_transaction'),
     path('transaction/manual_list/', views.TransactionManualListView.as_view(),
          name='list_manual_transaction'),
+    path('ajax/load-payment-transaction/', views.load_payment_transaction,
+         name='ajax_load_payment_transaction'),
 
     # Joined Transactions
     path('joinedtransactions/list/', views.JoinedTransactionListView.as_view(),

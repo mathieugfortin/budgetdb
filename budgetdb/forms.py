@@ -202,6 +202,7 @@ class StatementForm(forms.ModelForm):
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields['payment_transaction'].queryset = Transaction.view_objects.none()
         self.helper.layout = Layout(
             Div(
                 Div('account', css_class='form-group col-md-6 mb-0'),
@@ -442,7 +443,7 @@ class Cat2Form(forms.ModelForm):
             'name',
             'catbudget',
             'cattype',
-            'cat1',  
+            'cat1',
             'users_admin',
             'users_view',
         )

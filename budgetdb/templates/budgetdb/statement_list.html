@@ -11,7 +11,7 @@
 {% if statement_list %}
     <ul>
     {% for statement in statement_list %}
-        <li><a href="{% url 'budgetdb:details_statement' statement.id %}">{{ statement.account }} {{ statement.statement_date }}</a></li>
+        <li><a href="{% url 'budgetdb:details_statement' statement.id %}">{{ statement.account }} - {{ statement.statement_date }}</a></li>
     {% endfor %}
     </ul>
 {% else %}

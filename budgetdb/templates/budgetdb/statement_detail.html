@@ -21,6 +21,15 @@
         <td>{{ statement.minimum_payment }}</td>
         <td>{{ statement.statement_due_date }}</td>
     </tr>
+    {% if statement.error != 0 %}
+    <tr>
+        <td></td>
+        <td>Verification: {{ statement.transactions_sum }}</td>
+        <td>error: {{ statement.error }} </td>
+        <td></td>
+    </tr>
+    {% endif %}
+
 </table>
 
 
@@ -40,8 +49,6 @@
         <th>date</th>
         <th>Description</th>
         <th>Amount</th>
-        <th>Source Account</th>
-        <th>Destination Account</th>
     </tr>
     </thead>
     {% for transaction in statement.included_transactions %}
@@ -49,16 +56,6 @@
         <td>{{ transaction.date_actual }}</td>
         <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
         <td>{{ transaction.amount_actual }}</td>
-        <td>
-            {% if transaction.account_source %}
-            {{ transaction.account_source }}
-            {% endif %}
-        </td>
-        <td>
-            {% if transaction.account_destination %}
-            {{ transaction.account_destination }}
-            {% endif %}
-        </td>
     </tr>
     {% endfor %}
 </table>
