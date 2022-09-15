@@ -1,4 +1,4 @@
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
-from django.shortcuts import get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from decimal import *
@@ -19,6 +19,10 @@ from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView
 from django.utils.safestring import mark_safe
 from django.forms import formset_factory
 from django import forms
+
+
+###################################################################################################################
+# Transactions
 
 
 class TransactionDetailView(LoginRequiredMixin, MyDetailView):
@@ -67,9 +71,24 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
         form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="javascript:window.close();"))
-        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
+                                     onclick="javascript:window.close();"
+                                     )
+                              )
+        form.helper.add_input(Button('delete', 'Delete', css_class='btn-danger',
+                                     onclick=f'window.location.href="{reverse("budgetdb:delete_transaction", args=[self.kwargs["pk"]])}"'
+                                     )
+                              )
         return form
+
+
+def TransactionDelete(request, pk):
+    object = get_object_or_404(Transaction, pk=pk)
+    if object.can_edit():
+        if request.method == 'POST':
+            object.soft_delete()
+    else:
+        raise PermissionDenied
+    return redirect('/')
 
 
 class TransactionCreateView(LoginRequiredMixin, CreateView):
@@ -86,6 +105,37 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
                               onclick="javascript:history.back();"))
         form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
         return form
+
+
+class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
+    form_class = TransactionFormFull
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form_date = self.kwargs.get('date')
+        if form_date is None:
+            form_date = datetime.now().strftime("%Y-%m-%d")
+        account_id = self.kwargs.get('account_pk')
+        account = get_object_or_404(Account, id=account_id)
+        if account.can_edit() is False:
+            raise PermissionDenied
+        form.initial['date_actual'] = form_date
+        form.initial['account_source'] = account
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
+        return form
+
+
+def load_payment_transaction(request):
+    account_id = request.GET.get('account')
+    transactions = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
+    return render(request, 'budgetdb/payment_transaction_dropdown_list.html', {'transactions': transactions})
+
+
+###################################################################################################################
+# Audits
 
 
 class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
@@ -117,25 +167,8 @@ class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
         return form
 
 
-class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
-    model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
-    form_class = TransactionFormFull
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form_date = self.kwargs.get('date')
-        if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
-        account_id = self.kwargs.get('account_pk')
-        account = get_object_or_404(Account, id=account_id)
-        if account.can_edit() is False:
-            raise PermissionDenied
-        form.initial['date_actual'] = form_date
-        form.initial['account_source'] = account
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
-        return form
+###################################################################################################################
+# JoinedTransactions
 
 
 class JoinedTransactionListView(LoginRequiredMixin, ListView):
@@ -247,7 +280,7 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         context['pdate'] = previousrecurrence
         context['ndate'] = nextrecurrence
         context['transactiondate'] = date
-        
+
         return context
 
 

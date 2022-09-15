@@ -109,9 +109,19 @@ class BaseSoftDelete(models.Model):
         abstract = True
 
     def soft_delete(self, user_id=None):
+        if self.is_deleted:
+            return
         self.is_deleted = True
         self.deleted_by = user_id
         self.deleted_at = timezone.now()
+        self.save()
+
+    def soft_undelete(self, user_id=None):
+        if not self.is_deleted:
+            return
+        self.is_deleted = False
+        self.deleted_by = None
+        self.deleted_at = None
         self.save()
 
 
@@ -668,7 +678,7 @@ class Transaction(BaseSoftDelete):
         )
 
     def __str__(self):
-        return self.description
+        return f'{self.description} - {self.date_actual}'
 
     def get_absolute_url(self):
         return reverse('budgetdb:details_transaction', kwargs={'pk': self.pk})

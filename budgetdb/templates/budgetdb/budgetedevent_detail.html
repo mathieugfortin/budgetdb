@@ -30,11 +30,13 @@
             <li>Vendor:  {% if object.vendor != None %}  {{ object.vendor }} {% endif %}</li>    
         </ul>
     </div>
-    {% if editable  %} 
+     
     <div class="clearfix">
-        <a class="btn btn-info left" href="{% url 'budgetdb:update_be' object.id %}"> Modify </a>
+        {% if editable  %}
+            <a class="btn btn-info left" href="{% url 'budgetdb:update_be' object.id %}"> Modify </a>
+        {% endif %}
+        <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
     </div>
-    {% endif %}
     <div id="transactionlist">
         <h2>List of transactions</h2>
         <ol>

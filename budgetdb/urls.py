@@ -204,6 +204,8 @@ urlpatterns = [
          name='details_transaction'),
     path('transaction/add/', views.TransactionCreateView.as_view(),
          name='create_transaction'),
+    path('transaction/delete/<int:pk>/', views.TransactionDelete,
+         name='delete_transaction'),
     path('transaction/add/<slug:date>/<int:account_pk>', views.TransactionCreateViewFromDateAccount.as_view(),
          name='create_transaction_from_date_account'),
     path('transaction/add/<int:account_pk>', views.TransactionCreateViewFromDateAccount.as_view(),

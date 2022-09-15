@@ -476,12 +476,6 @@ def load_cat2(request):
     return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
 
 
-def load_payment_transaction(request):
-    account_id = request.GET.get('account')
-    transactions = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
-    return render(request, 'budgetdb/payment_transaction_dropdown_list.html', {'transactions': transactions})
-
-
 def timeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
 
@@ -942,6 +936,18 @@ class StatementDetailView(LoginRequiredMixin, MyDetailView):
             transactions_sum += transaction.amount_actual
         statement.transactions_sum = transactions_sum
         statement.error = transactions_sum - statement.balance
+        min_date = statement.statement_date - relativedelta(months=2)
+        statement.possible_transactions = Transaction.view_objects.filter(is_deleted=False,
+                                                                          account_source=statement.account,
+                                                                          date_actual__lte=statement.statement_date,
+                                                                          date_actual__gt=min_date,
+                                                                          statement__isnull=True,
+                                                                          audit=False
+                                                                          ).order_by('date_actual')
+        transactions_sumP = 0
+        for transaction in statement.possible_transactions:
+            transactions_sumP += transaction.amount_actual
+        statement.transactions_sumP = transactions_sumP
         return statement
 
 

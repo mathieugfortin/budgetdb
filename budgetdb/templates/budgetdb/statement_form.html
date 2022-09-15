@@ -16,27 +16,6 @@
 
 <script>
 
-(function($) {
-    $('#add-form').click(function() {
-        var index = $('#id_inline_test_models-TOTAL_FORMS').val()
-        var newTable = $('#id_inline_test_models-__prefix__-DELETE').parents('table').clone()
-        newTable.find(':input').each(function() {
-            for (attr of ['name', 'id'])
-                $(this).attr(
-                    attr,
-                    $(this).attr(attr).replace('__prefix__', index)
-                )
-        })
-        newTable.insertBefore($(this))
-        $('#id_inline_test_models-TOTAL_FORMS').val(
-            parseInt($('#id_inline_test_models-TOTAL_FORMS').val()) + 1
-        )
-        newTable.slideDown()
-    })
-})($)
-
-
-
 $("#id_account").change(function () {
       var url = "{% url 'budgetdb:ajax_load_payment_transaction' %}";
       var accountid = $(this).val();  
@@ -46,8 +25,8 @@ $("#id_account").change(function () {
         data: {
           'account': accountid      
         },
-        success: function (data) {   // `data` is the return of the `load_cities` view function
-          $("#id_payment_transaction").html(data);  // replace the contents of the city input with the data that came from the server
+        success: function (data) {   // `data` is the return of the `load_payment_transaction` view function
+          $("#id_payment_transaction").html(data);  // replace the contents of transaction input with the data that came from the server
         }
       });
 

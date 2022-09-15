@@ -198,21 +198,36 @@ class StatementForm(forms.ModelForm):
         friends_ids = get_current_user().friends.values('id')
         self.helper = FormHelper()
         self.helper.form_id = 'AccountHostForm'
+
+        if 'account' in self.data:
+            try:
+                account_id = int(self.data.get('account'))
+                self.fields['payment_transaction'].queryset = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')                
+            except (ValueError, TypeError):
+                self.fields['payment_transaction'].queryset = Transaction.objects.none()
+        elif 'cat1' in self.initial:
+            try:
+                account_id = int(self.initial.get('account'))
+                self.fields['payment_transaction'].queryset = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
+            except (ValueError, TypeError):
+                self.fields['payment_transaction'].queryset = Transaction.objects.none()
+        else:
+            self.fields['payment_transaction'].queryset = Transaction.objects.none()
+
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
-        self.fields['payment_transaction'].queryset = Transaction.view_objects.none()
         self.helper.layout = Layout(
             Div(
                 Div('account', css_class='form-group col-md-6 mb-0'),
                 css_class='form-row'
             ),
             Div(
-                Div('statement_date', css_class='form-group col-md-4 mb-0'),
-                Div('balance', css_class='form-group col-md-4 mb-0'),
-                Div('minimum_payment', css_class='form-group col-md-4 mb-0'),
-                Div('statement_due_date', css_class='form-group col-md-4 mb-0'),
+                Div('statement_date', css_class='form-group col-md-4'),
+                Div('balance', css_class='form-group col-md-2'),
+                Div('minimum_payment', css_class='form-group col-md-2 '),
+                Div('statement_due_date', css_class='form-group col-md-4 '),
                 css_class='form-row'
             ),
             Div(
@@ -561,13 +576,19 @@ class TransactionFormFull(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        if 'cat1' in self.initial:
+        if 'cat1' in self.data:
+            try:
+                cat1 = int(self.data.get('cat1'))
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+            except (ValueError, TypeError):
+                self.fields['cat2'].queryset = Cat2.objects.none()
+        elif 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
-        elif 'cat1' not in self.data:
+        else:
             self.fields['cat2'].queryset = Cat2.objects.none()
 
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)

@@ -43,3 +43,4 @@ venv.bak/
 
 /secrets.json
 secret*.sql
+/logs
