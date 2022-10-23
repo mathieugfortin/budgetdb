@@ -520,7 +520,7 @@ def timeline2JSON(request):
                 "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
                 "pointBorderColor": "#fff",
                 'data': linedata,
-                'label': account.name,
+                'label': f'{account.account_host} - {account.name}',
                 'name': account.name,
                 'index': account.id,
                 'cubicInterpolationMode': 'monotone',
@@ -716,7 +716,8 @@ class AccountListViewSimple(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/account_list_simple.html'
 
     def get_queryset(self):
-        accounts = Account.view_objects.filter(is_deleted=False).order_by('name').order_by('account_host__name', 'name')
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
+        #accounts = Account.view_objects.filter(is_deleted=False).order_by('name').order_by('account_host__name', 'name')
         for account in accounts:
             account.my_categories = AccountCategory.view_objects.filter(accounts=account)
         return accounts
@@ -1004,7 +1005,7 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/account_list_detailed.html'
 
     def get_queryset(self):
-        accountps = AccountPresentation.objects.filter(is_deleted=False)
+        accountps = AccountPresentation.objects.filter(is_deleted=False).order_by('account_host__name', 'name')
 
         for accountp in accountps:
             account = Account.objects.get(id=accountp.id)

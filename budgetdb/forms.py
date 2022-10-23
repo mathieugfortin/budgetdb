@@ -694,7 +694,7 @@ class TransactionAuditFormFull(forms.ModelForm):
         self.helper.layout = Layout(
             Field('description'),
             Div(
-                Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
+                Div(PrependedText('amount_actual', '$', css_class='active form-group col-sm-6 mb-0 ml-0')),
                 Div('date_actual', css_class='form-group col-md-4 mb-0'),
                 css_class='form-row'
             ),

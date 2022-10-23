@@ -21,14 +21,14 @@
                 {% if account.childrens != None %}
                     <i class="fas fa-plus"></i>
                 {% endif %}
-                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a>
+                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.account_host }} - {{ account.name }}</a>
             </td>
             <td>{{ account.balance|floatformat:2 }}$</td>
             <td><a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a></td>   
         {% else %}
             <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
                 <div class='p-3'>
-                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.name }}</a>
+                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.account_host }} - {{ account.name }}</a>
             </div>
             </div></td>
             <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
