@@ -34,17 +34,25 @@
 <table class="table table-hover table-striped">
     <thead class="thead-dark">
     <tr>
-        <th>Name</th>
-        <th>Host</th>
-        <th>parent</th>
-        <th>Category</th>
+        <th class="ml-2">Host</th>
+        <th class="ml-2">Name</th>
+        <th class="ml-2">Owner</th>
+        <th class="ml-2">Access</th>
+        <th class="ml-4">parent</th>
+        <th class="ml-4">Category</th>
     </tr>
     </thead>
     {% for account in account_list %}
     <tr>
-        <td><a href="{% url 'budgetdb:account_max_redirect' account.id %}">{{ account.name }}</a></td>
-        
         <td><a href="{% url 'budgetdb:accounthost_max_redirect' account.account_host.id %}">{{ account.account_host }}</a></td>
+        <td><a href="{% url 'budgetdb:account_max_redirect' account.id %}">{{ account.name }}</a></td>
+        <td>{{ account.owner|capfirst }}</td>
+        <td>{% if account.can_edit %}
+            Full
+            {% else %}
+            Read Only
+            {% endif %} 
+        </td>
         {% if account.account_parent == None %}
             <td></td>
         {% else %}

@@ -520,7 +520,7 @@ def timeline2JSON(request):
                 "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
                 "pointBorderColor": "#fff",
                 'data': linedata,
-                'label': account.name,
+                'label': f'{account.account_host} - {account.name}',
                 'name': account.name,
                 'index': account.id,
                 'cubicInterpolationMode': 'monotone',
@@ -716,7 +716,8 @@ class AccountListViewSimple(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/account_list_simple.html'
 
     def get_queryset(self):
-        accounts = Account.view_objects.filter(is_deleted=False).order_by('name')
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
+        #accounts = Account.view_objects.filter(is_deleted=False).order_by('name').order_by('account_host__name', 'name')
         for account in accounts:
             account.my_categories = AccountCategory.view_objects.filter(accounts=account)
         return accounts
@@ -832,7 +833,7 @@ class Cat2ListView(LoginRequiredMixin, ListView):
     context_object_name = 'subcategories_list'
 
     def get_queryset(self):
-        cat2s = Cat2.view_objects.filter(is_deleted=False).order_by('name')
+        cat2s = Cat2.view_objects.filter(is_deleted=False).order_by('cat1', 'name')
         return cat2s
 
 
@@ -931,17 +932,60 @@ class StatementDetailView(LoginRequiredMixin, MyDetailView):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
         statement.included_transactions = Transaction.objects.filter(is_deleted=False, statement=statement).order_by('date_actual')
+        transactions_sum = 0
+        for transaction in statement.included_transactions:
+            transactions_sum += transaction.amount_actual
+        statement.transactions_sum = transactions_sum
+        statement.error = transactions_sum - statement.balance
+        min_date = statement.statement_date - relativedelta(months=2)
+        statement.possible_transactions = Transaction.view_objects.filter(is_deleted=False,
+                                                                          account_source=statement.account,
+                                                                          date_actual__lte=statement.statement_date,
+                                                                          date_actual__gt=min_date,
+                                                                          statement__isnull=True,
+                                                                          audit=False
+                                                                          ).order_by('date_actual')
+        transactions_sumP = 0
+        for transaction in statement.possible_transactions:
+            transactions_sumP += transaction.amount_actual
+        statement.transactions_sumP = transactions_sumP
         return statement
 
 
-class StatementUpdateView(LoginRequiredMixin, MyUpdateView):
+class StatementUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Statement
-    form_class = VendorForm
+    form_class = StatementForm
+    task = 'Update'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
+        return form
 
 
-class StatementCreateView(LoginRequiredMixin, MyCreateView):
+class StatementCreateView(LoginRequiredMixin, CreateView):
     model = Statement
-    form_class = VendorForm
+    form_class = StatementForm
+    task = 'Create'
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        return form
 
 ###################################################################################################################
 ###################################################################################################################
@@ -961,7 +1005,7 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/account_list_detailed.html'
 
     def get_queryset(self):
-        accountps = AccountPresentation.objects.filter(is_deleted=False)
+        accountps = AccountPresentation.objects.filter(is_deleted=False).order_by('account_host__name', 'name')
 
         for accountp in accountps:
             account = Account.objects.get(id=accountp.id)

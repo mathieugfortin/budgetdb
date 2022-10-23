@@ -1,0 +1,4 @@
+<option value="">---------</option>
+{% for transaction in transactions %}
+<option value="{{ transaction.pk }}">{{ transaction.description }} - {{ transaction.date_actual }}</option>
+{% endfor %}

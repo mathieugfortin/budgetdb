@@ -1,0 +1,49 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}DELETE Transaction - {{ transaction.description }}{% endblock %}
+
+
+{% block content %}
+
+<h1>{{ transaction.description }}</h1>
+
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<div id="details">
+    <ul>
+        <li>Date: {{ transaction.date_actual }}</li>        
+        <li>Amount Planned: {{ transaction.amount_actual }}</li>        
+        <li>Source: 
+            {% if transaction.account_source != None %} 
+                <a href="{% url 'budgetdb:list_account_activity' transaction.account_source.id %}"> {{ transaction.account_source }} </a> 
+            {% endif %}
+        </li>
+        <li>Destination: 
+            {% if transaction.account_destination != None %} 
+                <a href="{% url 'budgetdb:list_account_activity' transaction.account_destination.id %}"> {{ transaction.account_destination }} </a>
+                {% endif %}
+        </li>
+        <li>Category: {{ transaction.cat1 }}</li>
+        <li>SubCategory: {{ transaction.cat2 }}</li>
+        <li>Vendor: {{ transaction.vendor }}</li>  
+        <li>budgetedevent: 
+            {% if transaction.budgetedevent != None %} 
+                <a href="{% url 'budgetdb:details_be' transaction.budgetedevent.id %}"> {{ transaction.budgetedevent }} </a>
+            {% endif %}
+        </li>  
+        <li>Verified with statement?: {{ transaction.verified }}</li>  
+        <li>Checked with receipt? : {{ transaction.receipt }}</li>  
+    </ul>
+</div>
+<div class="clearfix">
+    {% if transaction.editable %} 
+    <form method="post">{% csrf_token %}
+        <p>Are you sure you want to delete this transaction ?</p>
+        <input type="submit" value="Delete" class="btn btn-danger">
+        <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+    </form>
+    {% endif %}
+    
+</div>
+
+{% endblock %}

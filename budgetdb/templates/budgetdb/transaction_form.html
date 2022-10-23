@@ -4,6 +4,8 @@
 
 {% block title %}Transaction Form{% endblock %}
 
+{% csrf_token %}
+
 {% block content %}
   <h2>Transaction Form</h2>
   {% load crispy_forms_tags %}
@@ -37,15 +39,15 @@
 
 $("#id_cat1").change(function () {
       var url = "{% url 'budgetdb:ajax_load_cat2' %}";
-      var cat1Id = $(this).val();  // get the selected country ID from the HTML input
+      var cat1Id = $(this).val(); 
 
       $.ajax({                       // initialize an AJAX request
-        url: url,                    // set the url of the request (= localhost:8000/hr/ajax/load-cities/)
+        url: url,                 
         data: {
-          'cat1': cat1Id       // add the country id to the GET parameters
+          'cat1': cat1Id       
         },
-        success: function (data) {   // `data` is the return of the `load_cities` view function
-          $("#id_cat2").html(data);  // replace the contents of the city input with the data that came from the server
+        success: function (data) {   
+          $("#id_cat2").html(data);  
         }
       });
 

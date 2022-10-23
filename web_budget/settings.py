@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'dal_select2',
     # 'django_addanother',
     'budgetdb.apps.BudgetdbConfig',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,6 +53,10 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'budgetdb.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
+                        'https://code-server.patatemagique.biz',
+                        'http://code-server.patatemagique.biz:880',
+                        ]
 
 MIDDLEWARE = [
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',

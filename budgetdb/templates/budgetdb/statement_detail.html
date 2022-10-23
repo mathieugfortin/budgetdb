@@ -17,48 +17,49 @@
     </thead>
     <tr>
         <td>{{ statement.statement_date }}</td>
-        <td>{{ statement.balance }}</td>
-        <td>{{ statement.minimum_payment }}</td>
+        <td>{{ statement.balance }}$</td>
+        <td>{{ statement.minimum_payment }}$</td>
         <td>{{ statement.statement_due_date }}</td>
     </tr>
+    {% if statement.error != 0 %}
+    <tr>
+        <td></td>
+        <td>Verification: {{ statement.transactions_sum }}$</td>
+        <td>error: {{ statement.error }}$ </td>
+        <td></td>
+    </tr>
+    {% endif %}
+
 </table>
 
 
 {% if statement.payment_transaction %}
-<h5>Payment: {{ statement.payment_transaction.amount_actual }} on {{ statement.payment_transaction.date_actual }} from  {{ statement.payment_transaction.account_source }}</h5>
+<h5>Payment: {{ statement.payment_transaction.amount_actual }}$ on {{ statement.payment_transaction.date_actual }} from account  {{ statement.payment_transaction.account_source }}</h5>
 {% else %}
 <h5>No payment linked</h5>
 {% endif %}
 
-
+<div class="clearfix">
+    {% if statement.editable %}
+        <a href="{% url 'budgetdb:update_statement' statement.id %}" class="btn btn-outline-primary" role="button"> Modify </a>
+    {% endif %}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
 {% if statement.included_transactions %}
 <h2>Transactions</h2>
-
 <table class="table table-hover table-striped">
     <thead class="thead-dark">
     <tr>
         <th>date</th>
         <th>Description</th>
         <th>Amount</th>
-        <th>Source Account</th>
-        <th>Destination Account</th>
     </tr>
     </thead>
     {% for transaction in statement.included_transactions %}
     <tr>
         <td>{{ transaction.date_actual }}</td>
         <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
-        <td>{{ transaction.amount_actual }}</td>
-        <td>
-            {% if transaction.account_source %}
-            {{ transaction.account_source }}
-            {% endif %}
-        </td>
-        <td>
-            {% if transaction.account_destination %}
-            {{ transaction.account_destination }}
-            {% endif %}
-        </td>
+        <td>{{ transaction.amount_actual }}$</td>
     </tr>
     {% endfor %}
 </table>
@@ -67,17 +68,31 @@
 {% endif %}
 
 
+{% if statement.possible_transactions %}
+<h2>Transactions potentielles, {{ statement.transactions_sumP }}$</h2>
+<table class="table table-hover table-striped">
+    <thead class="thead-dark">
+    <tr>
+        <th>date</th>
+        <th>Description</th>
+        <th>Amount</th>
+    </tr>
+    </thead>
+    {% for transaction in statement.possible_transactions %}
+    <tr>
+        <td>{{ transaction.date_actual }}</td>
+        <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
+        <td>{{ transaction.amount_actual }}$</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endif %}
 
 
 
 
 
 
-<div class="clearfix">
-    {% if cat2.editable %}
-    <a class="btn btn-info top" href="{% url 'budgetdb:update_statement' statement.id %}">Modify</a>
-    {% endif%}
-    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
-</div>
 
 {% endblock %}

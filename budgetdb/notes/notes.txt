@@ -49,3 +49,7 @@ to get formset errors: formset.errors.....
 
 Get current user
 https://django-crum.readthedocs.io/en/latest/
+
+
+icones:
+https://fontawesome.cc/
