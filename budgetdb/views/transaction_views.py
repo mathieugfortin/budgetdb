@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
-from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull
+from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull, TransactionModalForm
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -19,6 +19,7 @@ from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView
 from django.utils.safestring import mark_safe
 from django.forms import formset_factory
 from django import forms
+from bootstrap_modal_forms.generic import BSModalUpdateView
 
 
 ###################################################################################################################
@@ -133,6 +134,12 @@ def load_payment_transaction(request):
     transactions = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
     return render(request, 'budgetdb/payment_transaction_dropdown_list.html', {'transactions': transactions})
 
+
+class TransactionModalUpdate(BSModalUpdateView):
+    template_name = 'budgetdb/transaction_modal.html'
+    form_class = TransactionModalForm
+    success_message = 'Success: Transaction was updated.'
+    success_url = reverse_lazy('index')
 
 ###################################################################################################################
 # Audits

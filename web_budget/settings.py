@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django_extensions',
     # 'debug_toolbar',
     'chartjs',
+    'bootstrap_modal_forms',
 ]
 
 AUTH_USER_MODEL = 'budgetdb.User'

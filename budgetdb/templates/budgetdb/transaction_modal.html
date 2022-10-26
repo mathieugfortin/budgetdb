@@ -1,23 +1,28 @@
-
-<script>
-    $(document).on("click", ".open-incident", function (e) {
-      e.preventDefault();
-      var $popup = $("#popup");
-      var popup_url = $(this).data("popup-url");
-      $(".modal-body", $popup).load(popup_url, function () {
-        $popup.modal("show");
-      });
-    });
-  </script>
-
-<div id="popup" class="modal fade" role="dialog">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-body"></div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-info" data-dismiss="modal">Close
-          </button>
-        </div>
-      </div>
+<form method=<s>"post"</s> action=<s>""</s>>
+    {% csrf_token %}
+  
+   <div class=<s>"modal-header"</s>>
+      <h5 class=<s>"modal-title"</s>>Update Transaction</h5>
+      <button type=<s>"button"</s> class=<s>"close"</s> data-dismiss=<s>"modal"</s> aria-label=<s>"Close"</s>>
+        <span aria-hidden=<s>"true"</s>>&times;</span>
+      </button>
     </div>
-  </div>
+  
+    <div class=<s>"modal-body"</s>>
+      {% for field in form %}
+        <div class=<s>"form-group{% if field.errors %} invalid{% endif %}"</s>>
+          <label for=<s>"{{ field.id_for_label }}"</s>>{{ field.label }}</label>
+          {{ field }}
+          {% for error in field.errors %}
+            <p class=<s>"help-block"</s>>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  
+    <div class=<s>"modal-footer"</s>>
+      <button type=<s>"button"</s> class=<s>"btn btn-default"</s> data-dismiss=<s>"modal"</s>>Close</button>
+      <button type=<s>"submit"</s> class=<s>"btn btn-primary"</s>>Create</button>
+    </div>
+  
+  </form>

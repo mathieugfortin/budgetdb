@@ -11,6 +11,7 @@ from django.forms.models import modelformset_factory, inlineformset_factory, for
 from datetime import datetime, date
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from crum import get_current_user
+from bootstrap_modal_forms.forms import BSModalModelForm
 
 
 class UserSignUpForm(UserCreationForm):
@@ -841,3 +842,29 @@ TransactionFormSet = modelformset_factory(
         ],
     extra=0,
     )
+
+
+class TransactionModalForm(BSModalModelForm):
+    class Meta:
+        model = Transaction
+        fields = [
+            'description',
+            'vendor',
+            'amount_actual',
+            'date_planned',
+            'cat1',
+            'cat2',
+            'account_source',
+            'account_destination',
+            'statement',
+            'verified',
+            'receipt',
+            'Fuel_L',
+            'Fuel_price',
+            'date_actual',
+            'budgetedevent',
+            'audit',
+            'ismanual',
+            'is_deleted',
+            'comment',
+        ]

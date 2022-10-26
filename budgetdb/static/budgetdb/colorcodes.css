@@ -3,16 +3,15 @@
   tr.AUDIT {
     background-color: rgb(147, 154, 185)
   }
-  tr.UNVERIFIED_BUDGET {
+  tr.UNVERIFIED.BUDGET {
     background-color: rgb(78, 167, 240)
   }
   tr.UNVERIFIED {
     background-color: rgb(252, 221, 156)
   }
-  tr.UNVERIFIED_MANUAL_BUDGET {
+  tr.UNVERIFIED.MANUAL.NORECEIPT {
     background-color: rgb(233, 111, 90)
   }
-  tr.UNVERIFIED_MANUAL {
-    background-color: rgb(233, 111, 90)
+  tr.UNVERIFIED.RECEIPT {
+    background-color: rgb(206, 177, 172)
   }
-

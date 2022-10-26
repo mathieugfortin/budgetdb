@@ -218,6 +218,8 @@ urlpatterns = [
          name='update_transaction'),
     path('transaction/update_popup/<int:pk>/', views.TransactionUpdatePopupView.as_view(),
          name='update_transaction_popup'),
+    path('transaction/update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
+         name='update_transaction_modal'),
     # path('audit/<int:pk>/', views..as_view(),
     #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),

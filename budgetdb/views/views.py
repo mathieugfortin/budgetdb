@@ -25,6 +25,7 @@ from decimal import *
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Button
 from crum import get_current_user
+from bootstrap_modal_forms.generic import BSModalCreateView
 
 # colors stolen from django chart js library
 COLORS = [
@@ -1140,3 +1141,4 @@ class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
         return form
+
