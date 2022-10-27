@@ -135,11 +135,29 @@ def load_payment_transaction(request):
     return render(request, 'budgetdb/payment_transaction_dropdown_list.html', {'transactions': transactions})
 
 
-class TransactionModalUpdate(BSModalUpdateView):
-    template_name = 'budgetdb/transaction_modal.html'
+class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpdateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionModalForm
+    task = 'Update'
     success_message = 'Success: Transaction was updated.'
-    success_url = reverse_lazy('index')
+    success_url = reverse_lazy('budgetdb:home')
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary'))
+        form.helper.add_input(Button('delete', 'Delete', css_class='btn-danger'))
+        return form
+
 
 ###################################################################################################################
 # Audits

@@ -868,3 +868,86 @@ class TransactionModalForm(BSModalModelForm):
             'is_deleted',
             'comment',
         ]
+        widgets = {
+            'date_actual': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+            'date_planned': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        if 'cat1' in self.data:
+            try:
+                cat1 = int(self.data.get('cat1'))
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+            except (ValueError, TypeError):
+                self.fields['cat2'].queryset = Cat2.objects.none()
+        elif 'cat1' in self.initial:
+            try:
+                cat1 = int(self.initial.get('cat1'))
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+            except (ValueError, TypeError):
+                self.fields['cat2'].queryset = Cat2.objects.none()
+        else:
+            self.fields['cat2'].queryset = Cat2.objects.none()
+
+        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
+        self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
+        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
+        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.filter(is_deleted=False)
+
+        self.fields['cat1'].label = "Category"
+        self.fields['cat2'].label = "Sub-Category"
+        self.fields['amount_actual'].label = "Amount"
+        self.helper.layout = Layout(
+            Field('description'),
+            Div(
+                Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
+                Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6 mb-0 mr-0 ml-0')),
+                Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6 mb-0')),
+                css_class='form-row'
+            ),
+            Div(
+                Div('date_actual', css_class='form-group col-md-4 mb-0'),
+                Div('date_planned', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('cat1', css_class='form-group col-md-4 mb-0'),
+                Div('cat2', css_class='form-group col-md-4 mb-0'),
+                css_class='form-row'
+            ),
+            Div(
+                Div('account_source', css_class='form-group col-md-4 mb-0'),
+                Div('account_destination', css_class='form-group col-md-4 mb-0 '),
+                css_class='form-row'
+            ),
+            Div(
+                Div('verified', css_class='form-group col-md-4 mb-0'),
+                Div('receipt', css_class='form-group col-md-4 mb-0 '),
+                Div('is_deleted', css_class='form-group col-md-4 mb-0 '),
+                css_class='form-row'
+            ),
+            Div(
+                Div('audit', css_class='form-group col-md-4 mb-0'),
+                Div('ismanual', css_class='form-group col-md-8 mb-0 '),
+                css_class='form-row'
+            ),
+            Field('comment'),
+            Div(
+                Div('budgetedevent', css_class='form-group col-md-4 mb-0'),
+                Div('vendor', css_class='form-group col-md-4 mb-0'),
+                Div('statement', css_class='form-group col-md-4 mb-0 '),
+                css_class='form-row'
+            ),
+        )
+        

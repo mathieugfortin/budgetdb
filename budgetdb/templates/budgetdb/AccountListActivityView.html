@@ -161,18 +161,14 @@ tr.VERIFIED button.verify::before {
         </td>
         <td>{{ event.date_actual|date:'Y-m-d' }}</td>
         <td>{% if event.statement != None %} {{ event.statement }} {% endif %}</td>
-        <td><button  type="button" 
-                data-form-url="{% url 'budgetdb:update_transaction_modal' event.id %}" 
-               class="update-transaction btn btn-secondary btn-sm" >
+        <td><button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:update_transaction_modal' event.id %}" >
                 {{ event.description }}
-        </button>
-
-
-                {% if event.account_destination and event.account_destination.name != account_name%}
+            </button>
+            {% if event.account_destination and event.account_destination.name != account_name%}
                 <a href="{% url 'budgetdb:list_account_activity' event.account_destination.id %}" class="btn btn-info btn-sm" role="button"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </a>
-                {% elif event.account_source and event.account_source.name != account_name %}
+            {% elif event.account_source and event.account_source.name != account_name %}
                 <a href="{% url 'budgetdb:list_account_activity' event.account_source.id %}"  class="btn btn-info btn-sm" role="button">     <i class="fas fa-arrow-left"></i> {{event.account_source}}</a>
-                {% endif %}
+            {% endif %}
         </td>
         <td>{% if event.budgetedevent_id != None %} 
             <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-cog"></i></a>
@@ -213,17 +209,66 @@ tr.VERIFIED button.verify::before {
 
 {% endblock %}
 
-
 {% block script %}
-    <script type="text/javascript">
-        $(function () {
-            function updateTransactionSyncModalForm() {
-                $("#update-transaction").modalForm({
-                    formURL: "/en/budgetdb/transaction/update_modal/3898",
-                });
-            }
-        });        
-    </script>
+  
+
+
+<script type="text/javascript">
+    $(function () {
+        
+
+        // Update book asynchronous button
+        // message
+        var asyncSuccessMessageUpdate = [
+          "<div ",
+          "style='position:fixed;top:0;z-index:10000;width:100%;border-radius:0;' ",
+          "class='alert alert-icon alert-success alert-dismissible fade show mb-0' role='alert'>",
+          "Success: Book was updated.",
+          "<button type='button' class='close' data-dismiss='alert' aria-label='Close'>",
+          "<span aria-hidden='true'>&times;</span>",
+          "</button>",
+          "</div>",
+          "<script>",
+          "$('.alert').fadeTo(2000, 500).slideUp(500, function () {$('.alert').slideUp(500).remove();});",
+          "<\/script>"
+        ].join("");
+
+        // modal form
+        function updateTransactionModalForm() {
+          $(".update-transaction").each(function () {
+            $(this).modalForm({
+              formURL: $(this).data("form-url"),
+              // asyncUpdate: true,
+              // asyncSettings: {
+              //   closeOnSubmit: false,
+              //   successMessage: asyncSuccessMessageUpdate,
+              //   dataUrl: "books/",
+              //   dataElementId: "#books-table",
+              //   dataKey: "table",
+              //   addModalFormFunction: reinstantiateModalForms
+              // }
+            });
+          });
+        }
+        updateTransactionModalForm();
+
+
+        function reinstantiateModalForms() {
+          
+            updateTransactionModalForm();
+         
+        }
+
+
+        // Hide message
+        $(".alert").fadeTo(2000, 500).slideUp(500, function () {
+            $(".alert").slideUp(500);
+        });
+    });
+</script>
+
+
+
     <script>
         function toggleverifyT(transaction_id){
             data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
