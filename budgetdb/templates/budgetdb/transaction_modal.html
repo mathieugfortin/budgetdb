@@ -1,28 +1,28 @@
-<form method=<s>"post"</s> action=<s>""</s>>
+<form method="post" action="">
     {% csrf_token %}
   
-   <div class=<s>"modal-header"</s>>
-      <h5 class=<s>"modal-title"</s>>Update Transaction</h5>
-      <button type=<s>"button"</s> class=<s>"close"</s> data-dismiss=<s>"modal"</s> aria-label=<s>"Close"</s>>
-        <span aria-hidden=<s>"true"</s>>&times;</span>
+   <div class="modal-header">
+      <h5 class="modal-title">Update Transaction</h5>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
       </button>
     </div>
   
-    <div class=<s>"modal-body"</s>>
+    <div class="modal-body">
       {% for field in form %}
-        <div class=<s>"form-group{% if field.errors %} invalid{% endif %}"</s>>
-          <label for=<s>"{{ field.id_for_label }}"</s>>{{ field.label }}</label>
+        <div class="form-group{% if field.errors %} invalid{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
           {% for error in field.errors %}
-            <p class=<s>"help-block"</s>>{{ error }}</p>
+            <p class="help-block">{{ error }}</p>
           {% endfor %}
         </div>
       {% endfor %}
     </div>
   
-    <div class=<s>"modal-footer"</s>>
-      <button type=<s>"button"</s> class=<s>"btn btn-default"</s> data-dismiss=<s>"modal"</s>>Close</button>
-      <button type=<s>"submit"</s> class=<s>"btn btn-primary"</s>>Create</button>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      <button type="submit" class="btn btn-primary">Create</button>
     </div>
   
   </form>

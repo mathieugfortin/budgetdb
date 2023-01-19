@@ -268,6 +268,11 @@ class Account(BaseSoftDelete, UserPermissions):
                 event.calc_amount = str(amount) + "$"
                 event.viewname = f'{event._meta.app_label}:details_transaction'
             event.balance = str(balance) + "$"
+            if event.transactions.first() is not None:
+                event.joinedtransaction = event.transactions.first()
+            elif event.budgetedevent is not None:
+                if event.budgetedevent.budgeted_events.first() is not None:
+                    event.joinedtransaction = event.budgetedevent.budgeted_events.first()
         return events
 
     def build_balance_array(self, start_date, end_date):

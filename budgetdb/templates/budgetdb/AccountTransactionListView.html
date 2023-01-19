@@ -1,4 +1,4 @@
-<!-- template name: AccountListActivityView-->
+<!-- template name: AccountTransactionListView-->
 {% extends "budgetdb/base.html" %}
 {% load static %}
 {% block title %}
@@ -161,9 +161,12 @@ tr.VERIFIED button.verify::before {
         </td>
         <td>{{ event.date_actual|date:'Y-m-d' }}</td>
         <td>{% if event.statement != None %} {{ event.statement }} {% endif %}</td>
-        <td><button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:update_transaction_modal' event.id %}" >
+        <td><button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' pk event.id %}" >
                 {{ event.description }}
             </button>
+            {% if event.joinedtransaction != None %} 
+                <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_actual|date:'Y-m-d' %}"> <i class="fas fa-object-group"></i></a>
+            {% endif %}
             {% if event.account_destination and event.account_destination.name != account_name%}
                 <a href="{% url 'budgetdb:list_account_activity' event.account_destination.id %}" class="btn btn-info btn-sm" role="button"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </a>
             {% elif event.account_source and event.account_source.name != account_name %}
@@ -214,56 +217,12 @@ tr.VERIFIED button.verify::before {
 
 
 <script type="text/javascript">
-    $(function () {
-        
-
-        // Update book asynchronous button
-        // message
-        var asyncSuccessMessageUpdate = [
-          "<div ",
-          "style='position:fixed;top:0;z-index:10000;width:100%;border-radius:0;' ",
-          "class='alert alert-icon alert-success alert-dismissible fade show mb-0' role='alert'>",
-          "Success: Book was updated.",
-          "<button type='button' class='close' data-dismiss='alert' aria-label='Close'>",
-          "<span aria-hidden='true'>&times;</span>",
-          "</button>",
-          "</div>",
-          "<script>",
-          "$('.alert').fadeTo(2000, 500).slideUp(500, function () {$('.alert').slideUp(500).remove();});",
-          "<\/script>"
-        ].join("");
-
-        // modal form
-        function updateTransactionModalForm() {
+    $(document).ready(function () {
           $(".update-transaction").each(function () {
             $(this).modalForm({
-              formURL: $(this).data("form-url"),
-              // asyncUpdate: true,
-              // asyncSettings: {
-              //   closeOnSubmit: false,
-              //   successMessage: asyncSuccessMessageUpdate,
-              //   dataUrl: "books/",
-              //   dataElementId: "#books-table",
-              //   dataKey: "table",
-              //   addModalFormFunction: reinstantiateModalForms
-              // }
+              formURL: $(this).data("form-url")
             });
           });
-        }
-        updateTransactionModalForm();
-
-
-        function reinstantiateModalForms() {
-          
-            updateTransactionModalForm();
-         
-        }
-
-
-        // Hide message
-        $(".alert").fadeTo(2000, 500).slideUp(500, function () {
-            $(".alert").slideUp(500);
-        });
     });
 </script>
 

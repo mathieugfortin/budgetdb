@@ -1023,9 +1023,9 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
         return accountps
 
 
-class AccountListActivityView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Account
-    template_name = 'budgetdb/AccountListActivityView.html'
+    template_name = 'budgetdb/AccountTransactionListView.html'
 
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])

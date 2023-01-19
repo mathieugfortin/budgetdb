@@ -1,9 +1,29 @@
 {% load crispy_forms_tags %}
 
-<div class="formset">
+
     {{ formset.management_form|crispy }}
     {% for form in formset.forms %}
-      
-      {% crispy form %}
+
+      <tr>
+        <td> {{form.description|as_crispy_field}} </td>
+<!--        <td> {{form.cat1|as_crispy_field}} </td> 
+        <td> {{form.cat2|as_crispy_field}} </td>
+        <td> {{form.account_source|as_crispy_field}} </td>
+        <td> {{form.account_destination|as_crispy_field}} </td> -->
+        {{form.id.as_hidden}}
+        {{form.budgetedevent.as_hidden}}
+        {{form.amount_planned.as_hidden}}
+        {{form.date_actual.as_hidden}}
+        {{form.date_planned.as_hidden}}
+        {{form.cat1.as_hidden}}
+        {{form.cat2.as_hidden}}
+        {{form.account_source.as_hidden}}
+        {{form.account_destination.as_hidden}}
+
+
+        <td> {{form.verified}} </td>
+        <td> {{form.receipt}} </td>
+        <td> {{form.is_deleted}} </td>
+        <td> {{form.amount_actual|as_crispy_field}} </td>
+      </tr>
     {% endfor %}
-</div>

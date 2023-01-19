@@ -33,8 +33,6 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'dal',
-    'dal_select2',
     # 'django_addanother',
     'budgetdb.apps.BudgetdbConfig',
     'django.contrib.admin',
@@ -49,6 +47,8 @@ INSTALLED_APPS = [
     # 'debug_toolbar',
     'chartjs',
     'bootstrap_modal_forms',
+    'dal',
+    'dal_select2',
 ]
 
 AUTH_USER_MODEL = 'budgetdb.User'
@@ -139,7 +139,7 @@ LANGUAGES = (
     ('fr', _('Francais')),
 )
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-CA'
 
 TIME_ZONE = 'America/Montreal'
 

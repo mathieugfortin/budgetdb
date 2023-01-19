@@ -53,3 +53,9 @@ https://django-crum.readthedocs.io/en/latest/
 
 icones:
 https://fontawesome.cc/
+v4
+https://fontawesome.com/v4/icons/
+
+https://stackoverflow.com/questions/30067767/how-do-i-collapse-sections-of-code-in-visual-studio-code-for-windows
+collapse: Ctrl-k-1
+expand Ctrl-k-j

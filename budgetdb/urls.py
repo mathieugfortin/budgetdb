@@ -91,8 +91,10 @@ urlpatterns = [
          name='update_account'),
     path('account/ac/', views.AutocompleteAccount.as_view(),
          name='autocomplete_account'),
-    path('account/listactivity/<int:pk>/', views.AccountListActivityView.as_view(),
+    path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
+    path('account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
+         name='account_listview_update_transaction_modal'),
 
     # AccountCategory
     path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
@@ -218,8 +220,7 @@ urlpatterns = [
          name='update_transaction'),
     path('transaction/update_popup/<int:pk>/', views.TransactionUpdatePopupView.as_view(),
          name='update_transaction_popup'),
-    path('transaction/update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
-         name='update_transaction_modal'),
+
     # path('audit/<int:pk>/', views..as_view(),
     #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),

@@ -1,6 +1,6 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull, TransactionModalForm
@@ -141,7 +141,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
     form_class = TransactionModalForm
     task = 'Update'
     success_message = 'Success: Transaction was updated.'
-    success_url = reverse_lazy('budgetdb:home')
+    # success_url = reverse('budgetdb:list_account_activity', kwargs={'pk': 2})
 
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
@@ -152,11 +152,15 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
+
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary'))
-        form.helper.add_input(Button('delete', 'Delete', css_class='btn-danger'))
+        # form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        # form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary'))
+        # form.helper.add_input(Button('delete', 'Delete', css_class='btn-danger'))
         return form
+
+    def get_success_url(self):
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs['accountid']})
 
 
 ###################################################################################################################
@@ -273,6 +277,8 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         form = super().get_form(form_class)
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="window.location.href = '{}';".format(reverse('budgetdb:details_joinedtransactions', args=[self.kwargs['pk'],self.kwargs['date']]))))
         return form
 
     def get_context_data(self, **kwargs):
@@ -290,7 +296,10 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
             transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
         transactions = transactions.order_by('joined_order')
         if self.request.POST:
-            context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions)
+            try:
+                context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions)
+            except ValidationError:
+                context['formset'] = None
         else:
             context['formset'] = TransactionFormSet(queryset=transactions)
         transactionsHelper = FormHelper()

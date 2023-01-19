@@ -203,7 +203,7 @@ class StatementForm(forms.ModelForm):
         if 'account' in self.data:
             try:
                 account_id = int(self.data.get('account'))
-                self.fields['payment_transaction'].queryset = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')                
+                self.fields['payment_transaction'].queryset = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
             except (ValueError, TypeError):
                 self.fields['payment_transaction'].queryset = Transaction.objects.none()
         elif 'cat1' in self.initial:
@@ -520,21 +520,20 @@ class JoinedTransactionsForm(forms.ModelForm):
         self.helper.layout = Layout(
             Hidden('name', self.initial['name']),
             # Field('name'),
-            Div(
-                HTML("<div class='col-md-2' >Description</div>"),
-                HTML("<div class='col-md-1' >Category</div>"),
-                HTML("<div class='col-md-2' >Subcategory</div>"),
-                HTML("<div class='col-md-1' >Source</div>"),
-                HTML("<div class='col-md-1' >Destination</div>"),
-                HTML("<div class='col-md-1 text-center' >Verified</div>"),
-                HTML("<div class='col-md-1 text-center' >Receipt</div>"),
-                HTML("<div class='col-md-1 text-center' >Deleted</div>"),
-                HTML("<div class='col-md-1' >Amount</div>"),
-                css_class='form-row'
-            ),
-            Div(
-                Fieldset('', Formset('formset', helper_context_name='helper')),
-            )
+            HTML("<table class='table table-hover table-sm '><tr>"),
+            HTML("<th scope='col'>Description</th>"),
+            # HTML("<th scope='col'>Category</th>"),
+            # HTML("<th scope='col'>Subcategory</th>"),
+            # HTML("<th scope='col'>Source</th>"),
+            # HTML("<th scope='col'>Destination</th>"),
+            HTML("<th scope='col'>Verified</th>"),
+            HTML("<th scope='col'>Receipt</th>"),
+            HTML("<th scope='col'>Deleted</th>"),
+            HTML("<th scope='col'>Amount</th>"),
+            HTML("</tr>"),
+            # Fieldset('', Formset('formset', helper_context_name='helper')),
+            Formset('formset', helper_context_name='helper'),
+            HTML("</table>"),
         )
 
 
@@ -545,7 +544,7 @@ class TransactionFormFull(forms.ModelForm):
             'description',
             'vendor',
             'amount_actual',
-            'date_planned',
+            #'date_planned',
             'cat1',
             'cat2',
             'account_source',
@@ -565,11 +564,11 @@ class TransactionFormFull(forms.ModelForm):
         widgets = {
             'date_actual': forms.DateInput(
                 format=('%Y-%m-%d'),
-                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+                attrs={'class': 'form-control', 'type': 'date'}
             ),
             'date_planned': forms.DateInput(
                 format=('%Y-%m-%d'),
-                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
+                attrs={'class': 'form-control', 'type': 'date'}
             ),
         }
 
@@ -592,7 +591,7 @@ class TransactionFormFull(forms.ModelForm):
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
 
-        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        # doublon? self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
         self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
         self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
         self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
@@ -612,7 +611,7 @@ class TransactionFormFull(forms.ModelForm):
             ),
             Div(
                 Div('date_actual', css_class='form-group col-md-4 mb-0'),
-                Div('date_planned', css_class='form-group col-md-4 mb-0'),
+    #            Div('date_planned', css_class='form-group col-md-4 mb-0'),
                 css_class='form-row'
             ),
             Div(
@@ -851,7 +850,7 @@ class TransactionModalForm(BSModalModelForm):
             'description',
             'vendor',
             'amount_actual',
-            'date_planned',
+        #    'date_planned',
             'cat1',
             'cat2',
             'account_source',
@@ -898,7 +897,7 @@ class TransactionModalForm(BSModalModelForm):
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
 
-        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        # doublon? self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
         self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
         self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
         self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
@@ -916,11 +915,7 @@ class TransactionModalForm(BSModalModelForm):
                 Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6 mb-0')),
                 css_class='form-row'
             ),
-            Div(
-                Div('date_actual', css_class='form-group col-md-4 mb-0'),
-                Div('date_planned', css_class='form-group col-md-4 mb-0'),
-                css_class='form-row'
-            ),
+            Div('date_actual', css_class='form-group col-md-4 mb-0'),
             Div(
                 Div('cat1', css_class='form-group col-md-4 mb-0'),
                 Div('cat2', css_class='form-group col-md-4 mb-0'),
@@ -949,5 +944,8 @@ class TransactionModalForm(BSModalModelForm):
                 Div('statement', css_class='form-group col-md-4 mb-0 '),
                 css_class='form-row'
             ),
+            Div(
+                HTML('<button type="submit" id="submit-id-submit" class="btn btn-primary" >Update</button>'),
+                HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
+            ),
         )
-        
