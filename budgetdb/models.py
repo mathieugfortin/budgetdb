@@ -69,7 +69,7 @@ class UserPermissions(models.Model):
     # groups_view = models.ManyToManyField(Group, related_name='g_can_view_%(app_label)s_%(class)s', blank=True)
     users_admin = models.ManyToManyField("User", related_name='users_full_access_%(app_label)s_%(class)s', blank=True)
     users_view = models.ManyToManyField("User", related_name='users_view_access_%(app_label)s_%(class)s', blank=True)
-    objects = models.Manager()  # The default manager.  
+    objects = models.Manager()  # The default manager.
     view_objects = ViewerManager()
     admin_objects = AdminManager()
 
@@ -268,6 +268,7 @@ class Account(BaseSoftDelete, UserPermissions):
                 event.calc_amount = str(amount) + "$"
                 event.viewname = f'{event._meta.app_label}:details_transaction'
             event.balance = str(balance) + "$"
+            # checking if the event is part of a joinedTransaction
             if event.transactions.first() is not None:
                 event.joinedtransaction = event.transactions.first()
             elif event.budgetedevent is not None:
@@ -627,7 +628,7 @@ class Transaction(BaseSoftDelete):
         verbose_name = 'Transaction'
         verbose_name_plural = 'Transactions'
 
-    objects = models.Manager()  # The default manager.  
+    objects = models.Manager()  # The default manager.
     view_objects = TransactionViewerManager()
     admin_objects = TransactionAdminManager()
 

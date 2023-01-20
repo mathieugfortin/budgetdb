@@ -295,6 +295,7 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         for budgetedevent in joinedtransactions.budgetedevents.filter(is_deleted=False):
             transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
         transactions = transactions.order_by('joined_order')
+        transactionsHelper = FormHelper()
         if self.request.POST:
             try:
                 context['formset'] = TransactionFormSet(self.request.POST, queryset=transactions)
@@ -302,12 +303,13 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
                 context['formset'] = None
         else:
             context['formset'] = TransactionFormSet(queryset=transactions)
-        transactionsHelper = FormHelper()
+            context['helper'] = transactionsHelper
+
         transactionsHelper.layout = Layout(
             Div(
                 Div('description', css_class='form-group col-md-4 mb-0'),
                 Div('users_view', css_class='form-group col-md-4 mb-0'),
-                css_class='form-row'
+                css_class='row'
             ),
         )
         context['joinedtransactions'] = joinedtransactions

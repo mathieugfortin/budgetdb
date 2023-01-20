@@ -1,5 +1,6 @@
 from django.urls import path, register_converter, include
-
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.views.generic.base import RedirectView
 from . import views
 
 
@@ -41,6 +42,8 @@ app_name = 'budgetdb'
 
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
+
+    path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('static/budgetdb/favicon.ico'))),
 
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
@@ -236,7 +239,7 @@ urlpatterns = [
 
     # Joined Transactions
     path('joinedtransactions/list/', views.JoinedTransactionListView.as_view(),
-         name='list_joinedtransactions'),   
+         name='list_joinedtransactions'),
     path('joinedtransactions/add/', views.JoinedTransactionsUpdateView.as_view(),
          name='create_joinedtransactions'),
     # path('joinedtransactions/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsUpdateView.as_view(),
