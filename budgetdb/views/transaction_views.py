@@ -38,7 +38,7 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     task = 'Update'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -61,7 +61,7 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
     task = 'Update'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -144,7 +144,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
     # success_url = reverse('budgetdb:list_account_activity', kwargs={'pk': 2})
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -160,7 +160,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         return form
 
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs['accountid']})
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('accountid')})
 
 
 ###################################################################################################################
@@ -213,7 +213,7 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, UserPassesTestMixin, Deta
     template_name = 'budgetdb/joinedtransactions_detail.html'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_view()
 
     def handle_no_permission(self):
@@ -226,22 +226,24 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, UserPassesTestMixin, Deta
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
-        date = self.kwargs['date']
-        joinedtransactions = context['joinedtransactions']
+        pk = self.kwargs.get('pk')
+        date = self.kwargs.get('date')
+        joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.all()
-        transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
+        transactionPlannedDate = datetime.strptime(date, "%Y-%m-%d").date()
         firstbudgetedevent = joinedtransactions.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
-        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
-        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
+        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
+        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         for budgetedevent in joinedtransactions.budgetedevents.filter(is_deleted=False):
-            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
+            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_planned=transactionPlannedDate)
         transactions = transactions.order_by('joined_order')
+        transactionActualDate = transactions.first().date_actual.strftime("%Y-%m-%d")
         context['joinedtransactions'] = joinedtransactions
         context['transactions'] = transactions
         context['pdate'] = previousrecurrence
         context['ndate'] = nextrecurrence
-        context['transactiondate'] = date
+        context['transactionPlannedDate'] = date
+        context['transactionActualDate'] = transactionActualDate
         return context
 
 
@@ -251,7 +253,7 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
     template_name = 'budgetdb/joinedtransactions_form.html'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -259,14 +261,19 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
     def form_valid(self, form):
         context = self.get_context_data()
-        transactions = context['formset']
+        transactions = context.get('formset')
 
-        if transactions.is_valid():
-            transactions.save()
+        for transaction in transactions:
+            if transaction.is_valid():
+                transaction.instance.date_actual = form.cleaned_data.get('common_date')
+                transaction.save()
+
+        # if transactions.is_valid():
+        #    transactions.save()
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('budgetdb:details_joinedtransactions', kwargs={'pk': self.kwargs['pk'], 'date': self.kwargs['date']})
+        return reverse('budgetdb:details_joinedtransactions', kwargs={'pk': self.kwargs.get('pk'), 'date': self.kwargs.get('datep')})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -278,23 +285,25 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
         form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="window.location.href = '{}';".format(reverse('budgetdb:details_joinedtransactions', args=[self.kwargs['pk'],self.kwargs['date']]))))
+                              onclick="window.location.href = '{}';".format(reverse('budgetdb:details_joinedtransactions', args=[self.kwargs.get('pk'),self.kwargs.get('datep')]))))
         return form
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
-        date = self.kwargs['date']
-        joinedtransactions = context['joinedtransactions']
+        pk = self.kwargs.get('pk')
+        datep = self.kwargs.get('datep')
+        datea = self.kwargs.get('datea')
+        joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.all()
-        transactiondate = datetime.strptime(date, "%Y-%m-%d").date()
+        transactionPlannedDate = datetime.strptime(datep, "%Y-%m-%d").date()
         # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
         firstbudgetedevent = joinedtransactions.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
-        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
-        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactiondate).first().date_actual.strftime("%Y-%m-%d")
+        nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
+        previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         for budgetedevent in joinedtransactions.budgetedevents.filter(is_deleted=False):
-            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_actual=transactiondate)
+            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_planned=transactionPlannedDate)
         transactions = transactions.order_by('joined_order')
+        transactionActualDate = transactions.first().date_actual.strftime("%Y-%m-%d")
         transactionsHelper = FormHelper()
         if self.request.POST:
             try:
@@ -315,7 +324,8 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         context['joinedtransactions'] = joinedtransactions
         context['pdate'] = previousrecurrence
         context['ndate'] = nextrecurrence
-        context['transactiondate'] = date
+        context['transactionPlannedDate'] = datep
+        context['transactionActualDate'] = transactionActualDate
 
         return context
 

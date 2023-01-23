@@ -59,7 +59,7 @@ class MyUpdateView(UserPassesTestMixin, UpdateView):
     task = 'Update'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -102,7 +102,7 @@ class MyCreateView(CreateView):
 
 class MyDetailView(UserPassesTestMixin, DetailView):
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_view()
 
     def handle_no_permission(self):
@@ -555,7 +555,7 @@ class CatTotalPieChart(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        cat_type_pk = self.kwargs['cat_type_pk']
+        cat_type_pk = self.kwargs.get('cat_type_pk')
         cattype = CatType.objects.get(pk=cat_type_pk)
 
         begin = self.request.GET.get('begin', None)
@@ -584,7 +584,7 @@ class CatTotalBarChart(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        cat_type_pk = self.kwargs['cat_type_pk']
+        cat_type_pk = self.kwargs.get('cat_type_pk')
         cattype = CatType.objects.get(pk=cat_type_pk)
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
@@ -692,7 +692,7 @@ class ObjectMaxRedirect(RedirectView):
     model = ''
 
     def get_redirect_url(*args, **kwargs):
-        pk = kwargs['pk']
+        pk = kwargs.get('pk')
         model_name = args[0].model
         model = apps.get_model('budgetdb', model_name)
         redirect_object = get_object_or_404(model, pk=pk)
@@ -959,7 +959,7 @@ class StatementUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     task = 'Update'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -1028,14 +1028,14 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
     template_name = 'budgetdb/AccountTransactionListView.html'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs['pk'])
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_view()
 
     def handle_no_permission(self):
         raise PermissionDenied
 
     def get_queryset(self):
-        pk = self.kwargs['pk']
+        pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
         begin = preference.start_interval
         end = preference.end_interval
@@ -1055,7 +1055,7 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs['pk']
+        pk = self.kwargs.get('pk')
         # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
         context['pk'] = pk
         context['account_name'] = Account.objects.get(id=pk).name

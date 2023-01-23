@@ -556,20 +556,35 @@ class JoinedTransactionsForm(forms.ModelForm):
         fields = [
             'name',
         ]
+        widgets = {
+            'common_date': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'type': 'date'}
+            ),
+        }
+    common_date = forms.DateField(required=True)
 
     def save(self):
         return super().save(self)
 
     def __init__(self, *args, **kwargs):
         pk = kwargs.pop('pk', None)
-        date = kwargs.pop('date', None)
+        datep = kwargs.pop('datep', None)
+        datea = kwargs.pop('datea', None)
+        if not datea:
+            datea = datep
         super(JoinedTransactionsForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_show_labels = False
         self.helper.form_class = 'form-horizontal'
         self.helper.form_tag = True
+        self.fields['common_date'].label = "Date of the transactions"
+        self.fields['common_date'].initial = datea
         self.helper.layout = Layout(
-            Hidden('name', self.initial['name']),
+            Hidden('name', self.initial.get('name')),
+            # Field('common_date'),
+            HTML("Date of the transactions"),
+            Div('common_date', css_class='form-group col-md-4 mb-0'),
             # Field('name'),
             HTML("<table class='table table-hover table-sm '><tr>"),
             HTML("<th scope='col'>Description</th>"),
@@ -652,7 +667,7 @@ class TransactionFormFull(forms.ModelForm):
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Amount"
-        
+
         self.helper.layout = Layout(
             Field('description'),
             Div(
@@ -914,7 +929,7 @@ class TransactionModalForm(BSModalModelForm):
             'Fuel_price',
             'date_actual',
             'budgetedevent',
-            'audit',
+            # 'audit',
             'ismanual',
             'is_deleted',
             'comment',
@@ -959,7 +974,13 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Amount"
-        if kwargs['instance'].transactions.first() is None and kwargs['instance'].budgetedevent.budgeted_events.first() is None:
+        allowRecurringPatternUpdate = True
+        if kwargs['instance'].transactions.first() is not None:
+            allowRecurringPatternUpdate = False
+        if kwargs['instance'].budgetedevent is not None:
+            if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
+                allowRecurringPatternUpdate = False
+        if allowRecurringPatternUpdate:
             self.helper.layout = Layout(
                 Field('description'),
                 Div(
@@ -989,7 +1010,7 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row'
                 ),
                 Div(
-                    Div('audit', css_class='form-group col-md-4 mb-0'),
+                    # Field('audit', css_class='form-group col-md-4 mb-0', type="hidden"),
                     Div('ismanual', css_class='form-group col-md-8 mb-0 '),
                     css_class='row'
                 ),
@@ -1035,7 +1056,7 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row'
                 ),
                 Div(
-                    Div('audit', css_class='form-group col-md-4 mb-0'),
+                    # Div('audit', css_class='form-group col-md-4 mb-0', type="hidden"),
                     Div('ismanual', css_class='form-group col-md-8 mb-0 '),
                     css_class='row'
                 ),

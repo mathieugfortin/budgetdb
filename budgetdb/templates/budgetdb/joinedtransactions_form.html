@@ -10,8 +10,13 @@
     <a href="{% url 'budgetdb:update_joinedtransactions' joinedtransactions.id pdate %}" class="btn btn-info" role="button"> {{ pdate }} </a>
     </div>
     <div class="col-md-10">
-    <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactiondate }}</button>
-    </div>
+        {% if transactionPlannedDate != transactionActualDate %}
+            <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactionPlannedDate }} <i class="fa fa-arrow-right"></i>
+                {{ transactionActualDate }}</button>
+        {% else %}
+            <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactionPlannedDate }}</button>
+        {% endif %}
+        </div>
     <div class="col-md-1">
     <a href="{% url 'budgetdb:update_joinedtransactions' joinedtransactions.id ndate %} " class="btn btn-info" role="button"> {{ ndate }} </a>
     </div>

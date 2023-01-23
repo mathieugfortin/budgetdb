@@ -165,7 +165,7 @@ tr.VERIFIED button.verify::before {
                 {{ event.description }}
             </button>
             {% if event.joinedtransaction != None %} 
-                <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_actual|date:'Y-m-d' %}"> <i class="fas fa-object-group"></i></a>
+                <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_planned|date:'Y-m-d' event.date_actual|date:'Y-m-d'%}"> <i class="fas fa-object-group"></i></a>
             {% endif %}
             {% if event.account_destination and event.account_destination.name != account_name%}
                 <a href="{% url 'budgetdb:list_account_activity' event.account_destination.id %}" class="btn btn-info btn-sm" role="button"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </a>
