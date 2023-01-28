@@ -15,29 +15,18 @@
         <th>Host</th>
     </tr>
     {% for account in account_list %}
-    <tr data-bs-toggle="collapse" data-bs-target=".C{{ account.id }}" aria-controls="{{ account.childrens }}" class="clickable">
-        {% if account.account_parent_id == None %}
-            <td>
-                {% if account.childrens != None %}
-                    <i class="fas fa-plus"></i>
-                {% endif %}
-                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.account_host }} - {{ account.name }}</a>
-            </td>
-            <td>{{ account.balance|floatformat:2 }}$</td>
-            <td><a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a></td>   
-        {% else %}
-            <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
-                <div class='p-3'>
-                <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.account_host }} - {{ account.name }}</a>
-            </div>
-            </div></td>
-            <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
-                {{ account.balance|floatformat:2 }}$
-            </div></td>
-            <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
-                <a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a>
-            </div></td>
-        {% endif %}
+    <tr {% if account.account_children.first is not None %} class="table-primary" {% elif account.account_parent is None  %} class="table-primary" {% else %} class="table-info" {% endif %} >
+        <td>
+            {% if account.account_parent is not None %}
+                <i class="fa fa-arrow-circle-right"></i>
+            {% endif %}
+            <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.account_host }} - {{ account.name }}</a>
+        </td>
+        <td>{{ account.balance|floatformat:2 }}$</td>
+
+        <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
+            <a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a>
+        </div></td>
     </tr>
     {% endfor %}
 </table>

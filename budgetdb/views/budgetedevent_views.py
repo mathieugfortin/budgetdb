@@ -36,11 +36,43 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context = super().get_context_data(**kwargs)
         budgetedEvent = BudgetedEvent.objects.get(pk=self.kwargs.get('pk'))
         editable = budgetedEvent.can_edit()
+        dayWeekMapBin = budgetedEvent.repeat_weekday_mask
+        weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+        dayWeekMapDic = {}
+        for day in range(7):
+            if dayWeekMapBin & 2**day > 0:
+                dayWeekMapDic[weekdays[day]] = True
+            else:
+                dayWeekMapDic[weekdays[day]] = False
+        monthMapBin = budgetedEvent.repeat_months_mask
+        monthMapDic = {}
+        for month in range(12):
+            if monthMapBin & 2**month > 0:
+                monthMapDic[months[month]] = True
+            else:
+                monthMapDic[months[month]] = False
+        dayMonthMapBin = budgetedEvent.repeat_dayofmonth_mask
+        dayMonthMapDic = {}
+        for day in range(31):
+            if dayMonthMapBin & 2**day > 0:
+                dayMonthMapDic[day+1] = True
+            else:
+                dayMonthMapDic[day+1] = False
+        weekMonthMapBin = budgetedEvent.repeat_weekofmonth_mask
+        weekMonthMapDic = {}
+        for week in range(5):
+            if weekMonthMapBin & 2**week > 0:
+                weekMonthMapDic[week+1] = True
+            else:
+                weekMonthMapDic[week+1] = False
 
-        # context['vendor_list'] = Vendor.view_objects.filter(is_deleted==False)
-        # context['cat1_list'] = Cat1.view_objects.filter(is_deleted=False)
-        # context['cat2_list'] = Cat2.view_objects.filter(is_deleted=False)
         context['editable'] = editable
+        context['monthMapDic'] = monthMapDic
+        context['dayWeekMapDic'] = dayWeekMapDic
+        context['dayMonthMapDic'] = dayMonthMapDic
+        context['weekMonthMapDic'] = weekMonthMapDic
+        
         begin_interval = datetime.today().date() + relativedelta(months=-6)
         context['next_transactions'] = budgetedEvent.listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context
@@ -55,6 +87,27 @@ class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_edit()
 
+    def form_valid(self, form):
+        context = self.get_context_data()
+        daysOfWeek = form.cleaned_data.get('daysOfWeek')
+        monthsOfYear = form.cleaned_data.get('monthsOfYear')
+        weeksOfMonth = form.cleaned_data.get('weeksOfMonth')
+        daysOfMonth = form.cleaned_data.get('daysOfMonth')
+        form.instance.repeat_weekday_mask = 0
+        for i in daysOfWeek:
+            form.instance.repeat_weekday_mask += int(i)
+        form.instance.repeat_months_mask = 0
+        for i in monthsOfYear:
+            form.instance.repeat_months_mask += int(i)
+        form.instance.repeat_dayofmonth_mask = 0
+        for i in daysOfMonth:
+            form.instance.repeat_dayofmonth_mask += int(i)
+        form.instance.repeat_weekofmonth_mask = 0
+        for i in weeksOfMonth:
+            form.instance.repeat_weekofmonth_mask += int(i)
+
+        return super().form_valid(form)
+
     def handle_no_permission(self):
         raise PermissionDenied
 
@@ -64,35 +117,39 @@ class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
         return form
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
 
 class BudgetedEventCreate(LoginRequiredMixin, CreateView):
-    # template_name = 'budgetdb/budgetedeventmod_form.html'
+    template_name = 'budgetdb/budgetedevent_form.html'
     model = BudgetedEvent
-    fields = (
-            'description',
-            'amount_planned',
-            'cat1',
-            'cat2',
-            'ismanual',
-            'repeat_start',
-            'repeat_stop',
-            'vendor',
-            'account_source',
-            'account_destination',
-            'budget_only',
-            'isrecurring',
-            'repeat_interval_days',
-            'repeat_interval_weeks',
-            'repeat_interval_months',
-            'repeat_interval_years',
-        )
+    form_class = BudgetedEventForm
 
     def form_valid(self, form):
+        context = self.get_context_data()
+        daysOfWeek = form.cleaned_data.get('daysOfWeek')
+        monthsOfYear = form.cleaned_data.get('monthsOfYear')
+        weeksOfMonth = form.cleaned_data.get('weeksOfMonth')
+        daysOfMonth = form.cleaned_data.get('daysOfMonth')
+        form.instance.repeat_weekday_mask = 0
+        for i in daysOfWeek:
+            form.instance.repeat_weekday_mask += int(i)
+        form.instance.repeat_months_mask = 0
+        for i in monthsOfYear:
+            form.instance.repeat_months_mask += int(i)
+        form.instance.repeat_dayofmonth_mask = 0
+        for i in daysOfMonth:
+            form.instance.repeat_dayofmonth_mask += int(i)
+        form.instance.repeat_weekofmonth_mask = 0
+        for i in weeksOfMonth:
+            form.instance.repeat_weekofmonth_mask += int(i)
+
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.helper = FormHelper()
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form

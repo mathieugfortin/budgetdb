@@ -305,7 +305,7 @@ class AccountCategoryForm(forms.ModelForm):
                 css_class='row'
             ),
             Div(
-                Div('accounts', css_class='form-group col-md-4 mb-0'),
+                Div('accounts', css_class='form-group col-md-10 mb-0'),
             ),
             Div(
                 Div('users_admin', css_class='form-group col-md-4 mb-0'),
@@ -315,7 +315,47 @@ class AccountCategoryForm(forms.ModelForm):
         )
 
 
-class BudgetedEventForm(forms.ModelForm):
+class RecurringBitmaps(forms.Form):
+    weekdays = [(1, 'Monday'), (2, 'Tuesday'), (4, 'Wednesday'), (8, 'Thursday'), (16, 'Friday'), (32, 'Saturday')]
+    weeks = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5')]
+    months = [(1, 'January'), (2, 'February'), (4, 'March'), (8, 'April'), (16, 'May'), (32, 'June'), (64, 'July'), (128, 'August'), (256, 'September'), (512, 'October'), (1024, 'November'), (2048, 'December')] 
+    days = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5'), (32, '6'), (64, '7'), (128, '8'),
+            (256, '9'), (512, '10'), (1024, '11'), (2048, '12'), (4096, '13'), (8192, '14'), (2**14, '15'),
+            (2**15, '16'), (2**16, '17'), (2**17, '18'), (2**18, '19'), (2**19, '20'), (2**20, '21'), (2**21, '22'), 
+            (2**22, '23'), (2**23, '24'), (2**24, '25'), (2**25, '26'), (2**26, '27'), (2**27, '28'), (2**28, '29'), 
+            (2**29, '30'), (2**30, '31')
+            ] 
+    daysOfWeek = forms.MultipleChoiceField(required=False, initial=[1, 2, 4, 8, 16, 32],
+                                           widget=forms.CheckboxSelectMultiple,
+                                           choices=weekdays,
+                                           label="Days of the week"
+                                           )
+    monthsOfYear = forms.MultipleChoiceField(required=False, initial=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048],
+                                             widget=forms.CheckboxSelectMultiple,
+                                             choices=months,
+                                             label="Months"
+                                             )
+    weeksOfMonth = forms.MultipleChoiceField(required=False, initial=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048],
+                                             widget=forms.CheckboxSelectMultiple,
+                                             choices=weeks,
+                                             label="Weeks of month"
+                                             )
+    daysOfMonth = forms.MultipleChoiceField(required=False, initial=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 2**12,
+                                                                     2**13, 2**14, 2**15, 2**16, 2**17, 2**18, 2**19, 2**20,
+                                                                     2**21, 2**22, 2**23, 2**24, 2**25, 2**26, 2**27, 2**28,
+                                                                     2**29, 2**30, 2**31
+                                                                     ],
+                                            widget=forms.CheckboxSelectMultiple,
+                                            choices=days,
+                                            label="Days"
+                                            )
+
+
+class JoinedTransactionConfigForm(forms.ModelForm):
+    pass
+
+
+class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
     class Meta:
         model = BudgetedEvent
         # fields = ('__all__')
@@ -338,6 +378,10 @@ class BudgetedEventForm(forms.ModelForm):
             'repeat_interval_years',
             'users_admin',
             'users_view',
+            'repeat_months_mask',
+            'repeat_dayofmonth_mask',
+            'repeat_weekofmonth_mask',
+            'repeat_weekday_mask',
         )
 
         widgets = {
@@ -351,7 +395,13 @@ class BudgetedEventForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_id = 'BudgetedEventForm'
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        if 'cat1' in self.initial:
+        if 'cat1' in self.data:
+            try:
+                cat1 = int(self.data.get('cat1'))
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+            except (ValueError, TypeError):
+                self.fields['cat2'].queryset = Cat2.objects.none()
+        elif 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
@@ -368,7 +418,33 @@ class BudgetedEventForm(forms.ModelForm):
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
-        if kwargs['instance'].budgeted_events.first() is None:
+        if 'repeat_weekday_mask' in self.initial:
+            map = []
+            for i in range(7):
+                if int(self.initial.get('repeat_weekday_mask')) & 2**i > 0:
+                    map.append(2**i)
+            self.fields["daysOfWeek"].initial = map
+            map = []
+            for i in range(12):
+                if int(self.initial.get('repeat_months_mask')) & 2**i > 0:
+                    map.append(2**i)
+            self.fields["monthsOfYear"].initial = map
+            map = []
+            for i in range(31):
+                if int(self.initial.get('repeat_dayofmonth_mask')) & 2**i > 0:
+                    map.append(2**i)
+            self.fields["daysOfMonth"].initial = map
+            map = []
+            for i in range(5):
+                if int(self.initial.get('repeat_weekofmonth_mask')) & 2**i > 0:
+                    map.append(2**i)
+            self.fields["weeksOfMonth"].initial = map
+        full = True
+        if kwargs['instance'] is not None:
+            if kwargs['instance'].budgeted_events is not None:
+                if kwargs['instance'].budgeted_events.first() is not None:
+                    full = False
+        if full:
             self.helper.layout = Layout(
                 Div(
                     Div('description', css_class='form-group col-md-6 mb-0'),
@@ -393,7 +469,7 @@ class BudgetedEventForm(forms.ModelForm):
                 Div(
                     Div('budget_only', css_class='form-group col-md-4 mb-0'),
                     Div('ismanual', css_class='form-group col-md-4 mb-0'),
-                    Div('isrecurring', css_class='form-group col-md-4 mb-0'),
+                    Field('isrecurring', css_class='form-group col-md-4 mb-0', type="hidden"),
                     # css_class='row'
                 ),
                 Div(
@@ -406,6 +482,10 @@ class BudgetedEventForm(forms.ModelForm):
                     Div('repeat_interval_weeks', css_class='form-group col-md-2 mb-0'),
                     Div('repeat_interval_months', css_class='form-group col-md-2 mb-0'),
                     Div('repeat_interval_years', css_class='form-group col-md-2 mb-0'),
+                    Field('repeat_weekday_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Field('repeat_months_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Field('repeat_dayofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Field('repeat_weekofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
                     css_class='row'
                 ),
                 Div(
@@ -413,7 +493,15 @@ class BudgetedEventForm(forms.ModelForm):
                     Div('users_view', css_class='form-group col-md-4 mb-0'),
                     css_class='row'
                 ),
-            )
+                HTML("<h4>Recurrence mask</h4>"),
+                Div(
+                    Div('daysOfWeek', css_class='form-group col-md-2 mb-0'),
+                    Div('weeksOfMonth', css_class='form-group col-md-2 mb-0'),
+                    Div('monthsOfYear', css_class='form-group col-md-2 mb-0'),
+                    Div('daysOfMonth', css_class='form-group col-md-2 mb-0'),
+                    css_class='row'
+                ),
+             )
         else:
             self.helper.layout = Layout(
                 Div(
@@ -449,6 +537,10 @@ class BudgetedEventForm(forms.ModelForm):
                     Field('isrecurring', css_class='form-group col-md-4 mb-0', type="hidden"),
                     Field('repeat_start', css_class='form-group col-md-4 mb-0', type="hidden"),
                     Field('repeat_stop', css_class='form-group col-md-4 mb-0', type="hidden"),
+                    Field('repeat_weekday_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Field('repeat_months_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Field('repeat_dayofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Field('repeat_weekofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
                     css_class='row'
                 ),
                 Div(

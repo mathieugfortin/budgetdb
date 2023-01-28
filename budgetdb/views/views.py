@@ -729,6 +729,47 @@ class AccountDetailView(LoginRequiredMixin, MyDetailView):
     template_name = 'budgetdb/account_detail.html'
 
 
+class AccountYearReportDetailView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    model = Account
+    template_name = 'budgetdb/AccountYearReportView.html'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_queryset(self):
+        pk = self.kwargs.get('pk')
+        year = self.kwargs.get('year')
+        preference = Preference.objects.get(user=self.request.user.id)
+        begin = preference.start_interval
+        end = preference.end_interval
+
+        beginstr = self.request.GET.get('begin', None)
+        endstr = self.request.GET.get('end', None)
+        if beginstr is not None:
+            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+            end = begin + relativedelta(months=1)
+        if endstr is not None:
+            end = datetime.strptime(endstr, "%Y-%m-%d").date()
+        if end < begin:
+            end = begin + relativedelta(months=1)
+
+        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
+        return events
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
+        context['pk'] = pk
+        context['account_name'] = Account.objects.get(id=pk).name
+        return context
+
+
+
 class AccountUpdateView(LoginRequiredMixin, MyUpdateView):
     model = Account
     form_class = AccountForm
@@ -953,17 +994,10 @@ class StatementDetailView(LoginRequiredMixin, MyDetailView):
         return statement
 
 
-class StatementUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class StatementUpdateView(LoginRequiredMixin, UpdateView):
     model = Statement
     form_class = StatementForm
     task = 'Update'
-
-    def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
-        return view_object.can_edit()
-
-    def handle_no_permission(self):
-        raise PermissionDenied
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -1000,7 +1034,7 @@ class IndexView(LoginRequiredMixin, ListView):
         return Cat1.objects.order_by('name')
 
 
-class AccountSummaryView(LoginRequiredMixin, ListView):
+class AccountSummaryViewold(LoginRequiredMixin, ListView):
     model = Account
     context_object_name = 'account_list'
     template_name = 'budgetdb/account_list_detailed.html'
@@ -1021,6 +1055,29 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
                 i += 1
             accountp.balance = balance
         return accountps
+
+
+class AccountSummaryView(LoginRequiredMixin, ListView):
+    model = Account
+    context_object_name = 'account_list'
+    template_name = 'budgetdb/account_list_detailed.html'
+
+    def get_queryset(self):
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
+
+        for account in accounts:
+            # account = Account.objects.get(id=accountp.id)
+            balance = account.balance_by_EOD(datetime.today())
+            # categories = account.account_categories.filter(is_deleted=False)
+            # accountp.account_cat = ''
+            # i = 0
+            # for category in categories:
+            #    if i:
+            #         accountp.account_cat += f', '
+            #     accountp.account_cat += category.name
+            #    i += 1
+            account.balance = balance
+        return accounts
 
 
 class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):

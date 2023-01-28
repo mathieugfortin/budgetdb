@@ -194,6 +194,8 @@ class AccountPresentation(BaseSoftDelete):
     account_number = models.CharField(max_length=200, blank=True)
     childrens = models.CharField(max_length=200, blank=True, null=True)
     parent = models.CharField(max_length=200, blank=True, null=True)
+    owner = models.ForeignKey("User", on_delete=models.DO_NOTHING, blank=False, null=False,
+                              related_name='object_owner_%(app_label)s_%(class)s')
 
 
 class Account(BaseSoftDelete, UserPermissions):
@@ -205,7 +207,7 @@ class Account(BaseSoftDelete, UserPermissions):
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
     account_host = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
-    account_parent = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True)
+    account_parent = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True, related_name='account_children')
     name = models.CharField(max_length=200)
     account_number = models.CharField(max_length=200, blank=True)
     comment = models.CharField("Comment", max_length=200, blank=True, null=True)
@@ -769,7 +771,7 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
     repeat_dayofmonth_mask = models.IntegerField(
         'binary mask of applicable month days. Always Applicable ALL=2147483647', default=2147483647
     )
-    repeat_weekofmonth_mask = models.IntegerField('binary mask of applicable month week. Always Applicable ALL=15',
+    repeat_weekofmonth_mask = models.IntegerField('binary mask of applicable month week. Always Applicable ALL=31',
                                                   default=63)
 
     repeat_weekday_mask = models.IntegerField('binary mask of applicable week day. Always Applicable ALL=127',

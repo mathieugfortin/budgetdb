@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.models import JoinedTransactions
-from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull, TransactionModalForm
+from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull, TransactionModalForm, JoinedTransactionConfigForm
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -28,7 +28,7 @@ from bootstrap_modal_forms.generic import BSModalUpdateView
 
 class TransactionDetailView(LoginRequiredMixin, MyDetailView):
     model = Transaction
-    template_name = 'budgetdb/transact_detail.html'
+    template_name = 'budgetdb/transaction_detail.html'
 
 
 class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -202,10 +202,34 @@ class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
 
 class JoinedTransactionListView(LoginRequiredMixin, ListView):
     model = JoinedTransactions
-    context_object_name = 'vendor_list'
+    context_object_name = 'joined_transactions_list'
+    template_name = 'budgetdb/joinedtransactions__list.html'
 
     def get_queryset(self):
         return JoinedTransactions.view_objects.filter(is_deleted=False).order_by('name')
+
+
+class JoinedTransactionsConfigDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = JoinedTransactions
+    template_name = 'budgetdb/joinedtransactionsconfig_detail.html'
+    context_object_name = 'jt'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        joinedtransactions = JoinedTransactions.objects.get(pk=pk)
+        transactions = joinedtransactions.transactions.all()
+        budgetedevents = joinedtransactions.budgetedevents.all()
+        context['transactions'] = transactions
+        context['budgetedevents'] = budgetedevents
+        return context
 
 
 class JoinedTransactionsDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -332,6 +356,29 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
 class JoinedTransactionCreateView(LoginRequiredMixin, CreateView):
     ArticleFormSet = formset_factory(JoinedTransactions)
+
+
+class JoinedTransactionsConfigUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_form.html'
+    form_class = JoinedTransactionConfigForm
+    task = 'Update'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
+        return form
 
 
 def saveTransaction(request, transaction_id):
