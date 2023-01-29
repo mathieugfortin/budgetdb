@@ -198,6 +198,18 @@ class AccountPresentation(BaseSoftDelete):
                               related_name='object_owner_%(app_label)s_%(class)s')
 
 
+class ReportMonth():
+    def __init__(self, year=None, month=None, deposits=None, withdrawals=None, dividends=None, balance_end=None, monthlyreturn=None):
+        self.year = year
+        self.month = month
+        self.deposits = Decimal(0.00) if deposits is None else deposits
+        self.withdrawals = Decimal(0.00) if withdrawals is None else withdrawals
+        self.dividends = Decimal(0.00) if dividends is None else dividends
+        self.balance_end = Decimal(0.00) if balance_end is None else balance_end
+        self.monthlyreturn = Decimal(0.00) if monthlyreturn is None else monthlyreturn
+
+
+
 class Account(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Account'
@@ -248,6 +260,44 @@ class Account(BaseSoftDelete, UserPermissions):
             balance += child.balance_by_EOD(dateCheck)
 
         return balance
+
+    def build_yearly_report(self, year):
+        account_list = Account.objects.filter(account_parent_id=self.id)
+        start_date = datetime(year, 1, 1)
+        previous_day = start_date + timedelta(days=-1)
+        reports = []
+        for account in account_list:
+            report = []
+            for month in range(12):
+                report.append(account.build_monthly_report(year, month+1))
+            reports.append(report)
+        report = []
+        balance_beginning = self.balance_by_EOD(previous_day)
+        for month in range(12):
+            current = self.build_monthly_report(year, month+1)
+            
+            balance_current = current.balance_end - current.deposits + current.withdrawals - current.dividends
+            current.monthlyreturn = (balance_beginning - balance_current) / balance_beginning
+            report.append(current)
+            balance_beginning = current.balance_end
+        return report
+
+    def build_monthly_report(self, year, month):
+        start_date = datetime(year, month, 1)
+        end_date = start_date + relativedelta(day=+31)
+        balance_end = self.balance_by_EOD(end_date)
+        transactions = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date,)
+        deposits = transactions.filter(account_destination=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
+        withdrawals = transactions.filter(account_source=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
+        # dividends
+        reportmonth = ReportMonth(year=year,
+                                  month=month,
+                                  balance_end=balance_end,
+                                  deposits=deposits,
+                                  
+                                  withdrawals=withdrawals,
+                                  )
+        return reportmonth
 
     def build_report_with_balance(self, start_date, end_date):
         events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', 'audit')

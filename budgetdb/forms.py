@@ -1072,17 +1072,20 @@ class TransactionModalForm(BSModalModelForm):
         if kwargs['instance'].budgetedevent is not None:
             if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
                 allowRecurringPatternUpdate = False
-        if allowRecurringPatternUpdate:
-            self.helper.layout = Layout(
-                Field('description'),
+        
+        self.helper.layout = Layout(
+            Field('description'),
+            Div(
+                Div('date_actual', css_class='form-group col-md-6 mb-0'),
+                css_class='row'
+            ),
+        )
+        if kwargs['instance'].audit is False:
+            self.helper.layout.extend([
                 Div(
                     Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
                     Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6 mb-0 mr-0 ml-0')),
                     Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6 mb-0')),
-                    css_class='row'
-                ),
-                Div(
-                    Div('date_actual', css_class='form-group col-md-6 mb-0'),
                     css_class='row'
                 ),
                 Div(
@@ -1102,66 +1105,30 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row'
                 ),
                 Div(
-                    # Field('audit', css_class='form-group col-md-4 mb-0', type="hidden"),
                     Div('ismanual', css_class='form-group col-md-8 mb-0 '),
                     css_class='row'
                 ),
-                Field('comment'),
                 Div(
                     Div('budgetedevent', css_class='form-group col-md-4 mb-0'),
                     Div('vendor', css_class='form-group col-md-4 mb-0'),
                     Div('statement', css_class='form-group col-md-4 mb-0 '),
                     css_class='row'
                 ),
-                Div(
-                    HTML('<button type="submit" id="submit-id-submit" class="btn btn-primary" >Update</button>'),
-                    HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
-                ),
-            )
+            ])
         else:
-            self.helper.layout = Layout(
-                Field('description'),
+            self.helper.layout.extend([
                 Div(
                     Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
-                    Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6 mb-0 mr-0 ml-0')),
-                    Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6 mb-0')),
                     css_class='row'
                 ),
-                Div(
-                    Field('date_actual', css_class='form-group col-md-6 mb-0', type="hidden"),
-                    css_class='row'
-                ),
-                Div(
-                    Div('cat1', css_class='form-group col-md-4 mb-0'),
-                    Div('cat2', css_class='form-group col-md-4 mb-0'),
-                    css_class='row'
-                ),
-                Div(
-                    Div('account_source', css_class='form-group col-md-4 mb-0'),
-                    Div('account_destination', css_class='form-group col-md-4 mb-0 '),
-                    css_class='row'
-                ),
-                Div(
-                    Div('verified', css_class='form-group col-md-4 mb-0'),
-                    Div('receipt', css_class='form-group col-md-4 mb-0 '),
-                    Div('is_deleted', css_class='form-group col-md-4 mb-0 '),
-                    css_class='row'
-                ),
-                Div(
-                    # Div('audit', css_class='form-group col-md-4 mb-0', type="hidden"),
-                    Div('ismanual', css_class='form-group col-md-8 mb-0 '),
-                    css_class='row'
-                ),
-                Field('comment'),
-                Div(
-                    Div('budgetedevent', css_class='form-group col-md-4 mb-0'),
-                    Div('vendor', css_class='form-group col-md-4 mb-0'),
-                    Div('statement', css_class='form-group col-md-4 mb-0 '),
-                    css_class='row'
-                ),
-                Div(
-                    HTML('<button type="submit" id="submit-id-submit" class="btn btn-primary" >Update</button>'),
-                    HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
-                ),
-            )
+            ])
 
+        self.helper.layout.extend([
+            Field('comment'),
+            Div(
+                HTML('<button type="submit" id="submit-id-submit" class="btn btn-primary" >Update</button>'),
+                HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
+            ),
+        ])
+
+        a = 2

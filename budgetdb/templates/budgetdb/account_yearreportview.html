@@ -1,0 +1,54 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}Yearly Report for account {{ account_name }}{% endblock %}
+
+{% block content %}
+{% load humanize %}
+<h1>Yearly Report for account {{ account_name }}</h1>
+
+{% if report %}
+    <table class="table">
+        <thread>
+            <tr>
+                <th scole="col">Account</th>
+                <th scole="col">1</th>
+                <th scole="col">2</th>
+                <th scole="col">3</th>
+                <th scole="col">4</th>
+                <th scole="col">5</th>
+                <th scole="col">6</th>
+                <th scole="col">7</th>
+                <th scole="col">8</th>
+                <th scole="col">9</th>
+                <th scole="col">10</th>
+                <th scole="col">11</th>
+                <th scole="col">12</th>
+            </tr>
+        </thread>
+        <tbody>
+            <tr>
+                <td><a href="{% url 'budgetdb:list_account_activity' pk %}">{{ account_name }}</a></td>
+                {% for month in report %}
+                <td>${{ month.balance_end|floatformat:2 }} {{ month.monthlyreturn|floatformat:2 }}%</td>
+                {% endfor %}
+            </tr>
+    </tbody>
+</table>
+{% else %}
+    <p>No Report.</p>
+{% endif %}
+
+
+
+
+
+
+
+<div class="clearfix">
+    {% if cat2.editable %}
+    <a class="btn btn-info top" href="{% url 'budgetdb:update_cat2' cat2.id %}">Modify</a>
+    {% endif%}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
+
+{% endblock %}

@@ -731,7 +731,7 @@ class AccountDetailView(LoginRequiredMixin, MyDetailView):
 
 class AccountYearReportDetailView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Account
-    template_name = 'budgetdb/AccountYearReportView.html'
+    template_name = 'budgetdb/account_yearreportview.html'
 
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
@@ -742,32 +742,17 @@ class AccountYearReportDetailView(LoginRequiredMixin, UserPassesTestMixin, ListV
 
     def get_queryset(self):
         pk = self.kwargs.get('pk')
-        year = self.kwargs.get('year')
-        preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
-
-        beginstr = self.request.GET.get('begin', None)
-        endstr = self.request.GET.get('end', None)
-        if beginstr is not None:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-            end = begin + relativedelta(months=1)
-        if endstr is not None:
-            end = datetime.strptime(endstr, "%Y-%m-%d").date()
-        if end < begin:
-            end = begin + relativedelta(months=1)
-
-        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
-        return events
+        return Account.objects.get(pk=pk)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs.get('pk')
+        year = self.kwargs.get('year')
         # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
         context['pk'] = pk
         context['account_name'] = Account.objects.get(id=pk).name
+        context['report'] = Account.objects.get(pk=pk).build_yearly_report(year)
         return context
-
 
 
 class AccountUpdateView(LoginRequiredMixin, MyUpdateView):
