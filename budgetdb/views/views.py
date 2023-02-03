@@ -138,7 +138,7 @@ def TransactionVerifyToggleJSON(request):
     transaction_ID = request.POST.get("transaction_id", None)
     if transaction_ID:
         transaction = Transaction.objects.get(pk=transaction_ID)
-        transaction.verified = not(transaction.verified)
+        transaction.verified = not transaction.verified
     transaction.save()
     return HttpResponse(status=200)
 
@@ -147,7 +147,7 @@ def TransactionReceiptToggleJSON(request):
     transaction_ID = request.POST.get("transaction_id", None)
     if transaction_ID:
         transaction = Transaction.objects.get(pk=transaction_ID)
-        transaction.receipt = not(transaction.receipt)
+        transaction.receipt = not transaction.receipt
     transaction.save()
     return HttpResponse(status=200)
 
@@ -192,7 +192,7 @@ def GetAccountViewListJSON(request):
 
 def GetAccountDetailedViewListJSON(request):
     queryset = Account.view_objects.filter(is_deleted=False)
-    queryset = queryset.order_by("account_host","name")
+    queryset = queryset.order_by("account_host", "name")
 
     array = []
 
@@ -506,27 +506,31 @@ def timeline2JSON(request):
     nb_days = len(labels)
     linetotaldata = [Decimal(0.00)] * nb_days
     for account in accounts:
-        if account.can_view():
-            color = next(colors)
-            balances = account.build_balance_array(begin, end)
-            linedata = []
-            i = 0
-            for day in balances:
-                linetotaldata[i] += day.balance
-                linedata.append(day.balance)
-                i += 1
-            linedict = {
-                "backgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
-                "borderColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-                "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-                "pointBorderColor": "#fff",
-                'data': linedata,
-                'label': f'{account.account_host} - {account.name}',
-                'name': account.name,
-                'index': account.id,
-                'cubicInterpolationMode': 'monotone',
-            }
-            datasets.append(linedict)
+        if account.can_view() is False:
+            continue
+        if account.date_closed is not None:
+            if account.date_closed < begin:
+                continue
+        color = next(colors)
+        balances = account.build_balance_array(begin, end)
+        linedata = []
+        i = 0
+        for day in balances:
+            linetotaldata[i] += day.balance
+            linedata.append(day.balance)
+            i += 1
+        linedict = {
+            "backgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
+            "borderColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+            "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
+            "pointBorderColor": "#fff",
+            'data': linedata,
+            'label': f'{account.account_host} - {account.name}',
+            'name': account.name,
+            'index': account.id,
+            'cubicInterpolationMode': 'monotone',
+        }
+        datasets.append(linedict)
 
     linedict = {
         "backgroundColor": f"rgba(0,0,0, 0.5)",
@@ -718,7 +722,7 @@ class AccountListViewSimple(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
-        #accounts = Account.view_objects.filter(is_deleted=False).order_by('name').order_by('account_host__name', 'name')
+        # accounts = Account.view_objects.filter(is_deleted=False).order_by('name').order_by('account_host__name', 'name')
         for account in accounts:
             account.my_categories = AccountCategory.view_objects.filter(accounts=account)
         return accounts
@@ -729,20 +733,9 @@ class AccountDetailView(LoginRequiredMixin, MyDetailView):
     template_name = 'budgetdb/account_detail.html'
 
 
-class AccountYearReportDetailView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+class AccountYearReportDetailView(LoginRequiredMixin, MyDetailView):
     model = Account
     template_name = 'budgetdb/account_yearreportview.html'
-
-    def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
-        return view_object.can_view()
-
-    def handle_no_permission(self):
-        raise PermissionDenied
-
-    def get_queryset(self):
-        pk = self.kwargs.get('pk')
-        return Account.objects.get(pk=pk)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -750,8 +743,27 @@ class AccountYearReportDetailView(LoginRequiredMixin, UserPassesTestMixin, ListV
         year = self.kwargs.get('year')
         # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
         context['pk'] = pk
+        context['year'] = year
+        context['nyear'] = year + 1
+        context['pyear'] = year - 1
         context['account_name'] = Account.objects.get(id=pk).name
-        context['report'] = Account.objects.get(pk=pk).build_yearly_report(year)
+        context['reports'] = Account.objects.get(pk=pk).build_yearly_report(year)
+        return context
+
+
+class AccountCatYearReportDetailView(LoginRequiredMixin, MyDetailView):
+    model = AccountCategory
+    template_name = 'budgetdb/account_yearreportview.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        year = self.kwargs.get('year')
+        # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
+        context['pk'] = pk
+        context['year'] = year
+        context['account_name'] = Account.objects.get(id=pk).name
+        context['reports'] = Account.objects.get(pk=pk).build_yearly_report(year)
         return context
 
 
@@ -1098,8 +1110,12 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs.get('pk')
+        preference = Preference.objects.get(user=self.request.user.id)
+        year = preference.end_interval.year
         # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
         context['pk'] = pk
+        context['year'] = year
+
         context['account_name'] = Account.objects.get(id=pk).name
         return context
 
@@ -1183,4 +1199,3 @@ class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
         return form
-

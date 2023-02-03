@@ -80,6 +80,8 @@ class AccountForm(forms.ModelForm):
             'RRSP',
             'users_admin',
             'users_view',
+            'date_open',
+            'date_closed'
             )
 
     def __init__(self, *args, **kwargs):
@@ -96,6 +98,11 @@ class AccountForm(forms.ModelForm):
             Div(
                 Div('name', css_class='form-group col-md-4 mb-0'),
                 Div('account_number', css_class='form-group col-md-4 mb-0'),
+                css_class='row'
+            ),
+            Div(
+                Div('date_open', css_class='form-group col-md-4 mb-0'),
+                Div('date_closed', css_class='form-group col-md-4 mb-0'),
                 css_class='row'
             ),
             Div('comment', css_class='form-group col-md-6 mb-0'),
@@ -318,13 +325,13 @@ class AccountCategoryForm(forms.ModelForm):
 class RecurringBitmaps(forms.Form):
     weekdays = [(1, 'Monday'), (2, 'Tuesday'), (4, 'Wednesday'), (8, 'Thursday'), (16, 'Friday'), (32, 'Saturday')]
     weeks = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5')]
-    months = [(1, 'January'), (2, 'February'), (4, 'March'), (8, 'April'), (16, 'May'), (32, 'June'), (64, 'July'), (128, 'August'), (256, 'September'), (512, 'October'), (1024, 'November'), (2048, 'December')] 
+    months = [(1, 'January'), (2, 'February'), (4, 'March'), (8, 'April'), (16, 'May'), (32, 'June'), (64, 'July'), (128, 'August'), (256, 'September'), (512, 'October'), (1024, 'November'), (2048, 'December')]
     days = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5'), (32, '6'), (64, '7'), (128, '8'),
             (256, '9'), (512, '10'), (1024, '11'), (2048, '12'), (4096, '13'), (8192, '14'), (2**14, '15'),
-            (2**15, '16'), (2**16, '17'), (2**17, '18'), (2**18, '19'), (2**19, '20'), (2**20, '21'), (2**21, '22'), 
-            (2**22, '23'), (2**23, '24'), (2**24, '25'), (2**25, '26'), (2**26, '27'), (2**27, '28'), (2**28, '29'), 
+            (2**15, '16'), (2**16, '17'), (2**17, '18'), (2**18, '19'), (2**19, '20'), (2**20, '21'), (2**21, '22'),
+            (2**22, '23'), (2**23, '24'), (2**24, '25'), (2**25, '26'), (2**26, '27'), (2**27, '28'), (2**28, '29'),
             (2**29, '30'), (2**30, '31')
-            ] 
+            ]
     daysOfWeek = forms.MultipleChoiceField(required=False, initial=[1, 2, 4, 8, 16, 32],
                                            widget=forms.CheckboxSelectMultiple,
                                            choices=weekdays,
@@ -1072,7 +1079,7 @@ class TransactionModalForm(BSModalModelForm):
         if kwargs['instance'].budgetedevent is not None:
             if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
                 allowRecurringPatternUpdate = False
-        
+
         self.helper.layout = Layout(
             Field('description'),
             Div(
@@ -1119,6 +1126,7 @@ class TransactionModalForm(BSModalModelForm):
             self.helper.layout.extend([
                 Div(
                     Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
+                    Field('account_source', css_class='form-group col-md-4 mb-0', type='hidden'),
                     css_class='row'
                 ),
             ])

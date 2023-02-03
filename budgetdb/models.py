@@ -1,7 +1,7 @@
 # import datetime
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Cast, Coalesce
@@ -198,16 +198,35 @@ class AccountPresentation(BaseSoftDelete):
                               related_name='object_owner_%(app_label)s_%(class)s')
 
 
-class ReportMonth():
-    def __init__(self, year=None, month=None, deposits=None, withdrawals=None, dividends=None, balance_end=None, monthlyreturn=None):
+class AccountReport():
+    def __init__(self, accountname=None, accountid=None, isaccountparent=True, year=None, month=None, deposits=None, withdrawals=None, dividends=None, balance_end=None, rate=None, interests=None):
         self.year = year
         self.month = month
         self.deposits = Decimal(0.00) if deposits is None else deposits
         self.withdrawals = Decimal(0.00) if withdrawals is None else withdrawals
         self.dividends = Decimal(0.00) if dividends is None else dividends
         self.balance_end = Decimal(0.00) if balance_end is None else balance_end
-        self.monthlyreturn = Decimal(0.00) if monthlyreturn is None else monthlyreturn
+        self.rate = Decimal(0.00) if rate is None else rate
+        self.interests = Decimal(0.00) if interests is None else interests
+        self.accountname = '' if accountname is None else accountname
+        self.accountid = accountid
+        self.isaccountparent = isaccountparent
 
+    def addmonthYearly(self, monthreport):
+        self.deposits += monthreport.deposits
+        self.withdrawals += monthreport.withdrawals
+        self.dividends += monthreport.dividends
+        self.balance_end = monthreport.balance_end
+        self.rate = ((((self.rate/Decimal(100)) + Decimal(1)) * ((monthreport.rate/Decimal(100)) + Decimal(1))) - Decimal(1))*Decimal(100)
+        self.interests += monthreport.interests
+
+    def addAccountFormonth(self, monthreport):
+        self.deposits += monthreport.deposits
+        self.withdrawals += monthreport.withdrawals
+        self.dividends += monthreport.dividends
+        self.balance_end += monthreport.balance_end
+        self.interests += monthreport.interests
+        self.rate = (self.interests / (self.balance_end - self.interests))*Decimal(100)
 
 
 class Account(BaseSoftDelete, UserPermissions):
@@ -218,6 +237,8 @@ class Account(BaseSoftDelete, UserPermissions):
 
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
+    date_open = models.DateField('date opened', blank=True, null=True)
+    date_closed = models.DateField('date closed', blank=True, null=True)
     account_host = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
     account_parent = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True, related_name='account_children')
     name = models.CharField(max_length=200)
@@ -261,42 +282,90 @@ class Account(BaseSoftDelete, UserPermissions):
 
         return balance
 
-    def build_yearly_report(self, year):
-        account_list = Account.objects.filter(account_parent_id=self.id)
+    def build_yearly_report_unit(self, year):
         start_date = datetime(year, 1, 1)
+        account_list = Account.objects.filter(account_parent_id=self.id, is_deleted=False).exclude(date_closed__lt=start_date)
         previous_day = start_date + timedelta(days=-1)
-        reports = []
-        for account in account_list:
-            report = []
-            for month in range(12):
-                report.append(account.build_monthly_report(year, month+1))
-            reports.append(report)
-        report = []
-        balance_beginning = self.balance_by_EOD(previous_day)
-        for month in range(12):
-            current = self.build_monthly_report(year, month+1)
-            
-            balance_current = current.balance_end - current.deposits + current.withdrawals - current.dividends
-            current.monthlyreturn = (balance_beginning - balance_current) / balance_beginning
-            report.append(current)
-            balance_beginning = current.balance_end
-        return report
 
-    def build_monthly_report(self, year, month):
-        start_date = datetime(year, month, 1)
-        end_date = start_date + relativedelta(day=+31)
+        accountsReport = []
+        for account in account_list:
+            account_report = account.build_yearly_report_unit(year)
+            accountsReport.append(account_report)
+
+        if account_list.first() is None:
+            # if it's a account without children, return a report with 12 months + total
+            account_report = []
+            balance_beginning = self.balance_by_EOD(previous_day)
+            report_account_year = AccountReport(isaccountparent=False)
+            for month in range(12):
+                report_current_month = self.build_report(year, month+1, balance_beginning)
+                report_account_year.addmonthYearly(report_current_month)
+                account_report.append(report_current_month)
+                balance_beginning = report_current_month.balance_end
+            account_report.append(report_account_year)
+            accountsReport = account_report
+        else:
+            # if the account has childrens, it can't have direct transactions, just sum the childrens
+            # add a check so as to not add parent accounts
+            reports_totals_monthly = [AccountReport(accountname=self.name, accountid=self.id) for i in range(13)]
+            for account_report in accountsReport:
+                # do not add parent accounts to the totals
+                if account_report[0].isaccountparent:
+                    continue
+                for month in range(13):
+                    reports_totals_monthly[month].addAccountFormonth(account_report[month])
+                try:
+                    reports_totals_monthly[month].rate = 100 * (reports_totals_monthly[month].interests / (reports_totals_monthly[month].balance_end - reports_totals_monthly[month].interests))
+                except (InvalidOperation):
+                    reports_totals_monthly[month].rate = 0
+            accountsReport.append(reports_totals_monthly)
+        return accountsReport
+
+    def build_yearly_report(self, year):
+        account_report = self.build_yearly_report_unit(year)
+        accountsReport = []
+        # if there is only one account in the report,
+        # put it in a list so that the template can iterate over it
+        if len(account_report) == 13:
+            accountsReport.append(account_report)
+        else:
+            accountsReport = account_report
+
+        return accountsReport
+
+    def build_report(self, year, month=None, balance_beginning=None):
+        if month is None:
+            start_date = datetime(year-1, 12, 31)
+            end_date = datetime(year, 12, 31)
+        else:
+            start_date = datetime(year, month, 1)
+            end_date = start_date + relativedelta(day=+31)
+
         balance_end = self.balance_by_EOD(end_date)
-        transactions = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date,)
-        deposits = transactions.filter(account_destination=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
-        withdrawals = transactions.filter(account_source=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
-        # dividends
-        reportmonth = ReportMonth(year=year,
-                                  month=month,
-                                  balance_end=balance_end,
-                                  deposits=deposits,
-                                  
-                                  withdrawals=withdrawals,
-                                  )
+        transactions = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False,)
+        deposits = transactions.filter(account_destination=self, audit=False, is_deleted=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
+        withdrawals = transactions.filter(account_source=self, audit=False, is_deleted=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
+        if withdrawals is None:
+            withdrawals = Decimal(0)
+        if deposits is None:
+            deposits = Decimal(0)
+        dividends = Decimal(0)
+        interests = Decimal(0)
+        rate = Decimal(0)
+        if balance_beginning is not None and balance_beginning != 0:
+            interests = balance_end - balance_beginning - deposits + withdrawals - dividends
+            rate = (interests / balance_beginning) * Decimal(100)
+        reportmonth = AccountReport(year=year,
+                                    month=month,
+                                    balance_end=balance_end,
+                                    deposits=deposits,
+                                    accountname=self.name,
+                                    withdrawals=withdrawals,
+                                    interests=interests,
+                                    rate=rate,
+                                    accountid=self.id,
+                                    isaccountparent=False,
+                                    )
         return reportmonth
 
     def build_report_with_balance(self, start_date, end_date):
@@ -341,9 +410,9 @@ class Account(BaseSoftDelete, UserPermissions):
                 f"END) AS delta " \
                 f"FROM budgetdb.budgetdb_mycalendar c " \
                 f"left join budgetdb.budgetdb_transaction t ON c.db_date = t.date_actual " \
-                f"    AND (t.account_source_id={self.id} OR t.account_destination_id={self.id}) AND t.audit = 0 " \
+                f"    AND (t.account_source_id={self.id} OR t.account_destination_id={self.id}) AND t.audit = 0 AND t.is_deleted = 0 " \
                 f"LEFT JOIN budgetdb.budgetdb_transaction ta ON c.db_date = ta.date_actual " \
-                f"    AND ta.audit = 1 AND ta.account_source_id = {self.id} " \
+                f"    AND ta.audit = 1 AND ta.account_source_id = {self.id} AND ta.is_deleted = 0 " \
                 f"WHERE c.db_date BETWEEN '{start_date}' AND '{end_date}' " \
                 f"GROUP BY c.db_date " \
                 f"ORDER BY c.db_date "

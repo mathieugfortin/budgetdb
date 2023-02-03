@@ -111,6 +111,8 @@ urlpatterns = [
          name='list_accountcategory'),
     path('accountcat/add/', views.AccountCatCreateView.as_view(),
          name='create_accountcategory'),
+    path('accountcat/yearreport/<int:pk>/<yyyy:year>/', views.AccountCatYearReportDetailView.as_view(),
+         name='year_report_accountcategory'),
 
     # Account_Host
     path('accountHost/ListJSON', views.GetAccountHostViewListJSON, name='account_host_list_json'),

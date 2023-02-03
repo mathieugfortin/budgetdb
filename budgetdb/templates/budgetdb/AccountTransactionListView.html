@@ -125,7 +125,9 @@ tr.VERIFIED button.verify::before {
     </div>
 </div>
 
-<h3>{{ account_name }}   <i class="fas fa-chart-line"></i></h3>  
+<h3>{{ account_name }}   <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
+    <i class="fas fa-chart-line"></i>
+</a></h3>  
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <table class="table table-hover table-sm ">
