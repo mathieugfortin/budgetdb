@@ -776,6 +776,12 @@ class AccountCreateView(LoginRequiredMixin, MyCreateView):
     model = Account
     form_class = AccountForm
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        user = get_current_user()
+        preference = get_object_or_404(Preference, id=user.id)
+        form.initial['currency'] = preference.currency_prefered
+        return form
 
 ###################################################################################################################
 # AccountCategories
@@ -1031,50 +1037,24 @@ class IndexView(LoginRequiredMixin, ListView):
         return Cat1.objects.order_by('name')
 
 
-class AccountSummaryViewold(LoginRequiredMixin, ListView):
-    model = Account
-    context_object_name = 'account_list'
-    template_name = 'budgetdb/account_list_detailed.html'
-
-    def get_queryset(self):
-        accountps = AccountPresentation.objects.filter(is_deleted=False).order_by('account_host__name', 'name')
-
-        for accountp in accountps:
-            account = Account.objects.get(id=accountp.id)
-            balance = account.balance_by_EOD(datetime.today())
-            categories = account.account_categories.filter(is_deleted=False)
-            accountp.account_cat = ''
-            i = 0
-            for category in categories:
-                if i:
-                    accountp.account_cat += f', '
-                accountp.account_cat += category.name
-                i += 1
-            accountp.balance = balance
-        return accountps
-
-
 class AccountSummaryView(LoginRequiredMixin, ListView):
     model = Account
-    context_object_name = 'account_list'
+    # context_object_name = 'account_list'
     template_name = 'budgetdb/account_list_detailed.html'
 
     def get_queryset(self):
         accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
-
-        for account in accounts:
-            # account = Account.objects.get(id=accountp.id)
-            balance = account.balance_by_EOD(datetime.today())
-            # categories = account.account_categories.filter(is_deleted=False)
-            # accountp.account_cat = ''
-            # i = 0
-            # for category in categories:
-            #    if i:
-            #         accountp.account_cat += f', '
-            #     accountp.account_cat += category.name
-            #    i += 1
-            account.balance = balance
+        accounts = accounts.exclude(date_closed__lt=datetime.today())
         return accounts
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        decorated = []
+        for account in self.object_list:
+            account.balance = account.balance_by_EOD(datetime.today())
+            decorated.append(account)
+        context['decorated'] = decorated
+        return context
 
 
 class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
@@ -1082,7 +1062,7 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
     template_name = 'budgetdb/AccountTransactionListView.html'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'), is_deleted=False)
         return view_object.can_view()
 
     def handle_no_permission(self):
@@ -1104,6 +1084,11 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
         if end < begin:
             end = begin + relativedelta(months=1)
 
+        # events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', 'audit')
+        # account = Account.view_objects.get(id=pk)
+        # accounts = account | account.account_children.filter(is_deleted=False)
+        # events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
+
         events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
         return events
 
@@ -1113,9 +1098,19 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
         preference = Preference.objects.get(user=self.request.user.id)
         year = preference.end_interval.year
         # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
+        decorated = []
+        for transaction in self.object_list:
+            transaction.show_currency = False
+            if transaction.account_destination is not None:
+                if transaction.account_destination.currency != transaction.currency:
+                    transaction.show_currency = True
+            if transaction.account_source is not None:
+                if transaction.account_source.currency != transaction.currency:
+                    transaction.show_currency = True
+            decorated.append(transaction)
         context['pk'] = pk
         context['year'] = year
-
+        context['decorated'] = decorated
         context['account_name'] = Account.objects.get(id=pk).name
         return context
 

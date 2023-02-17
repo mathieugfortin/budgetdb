@@ -48,8 +48,8 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="transaction_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a>
-<!--                        <a class="dropdown-item" href="{% url 'budgetdb:list_transaction' %}">All transaction</a>     
-                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>           removed, need to think about permissions       -->
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_transaction2' %}">All transaction</a>     
+<!--                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>           removed, need to think about permissions       -->
                     </div>
                 </li>
     <!--            <li class="nav-item dropdown">
@@ -97,6 +97,7 @@
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="transaction_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:list_unverified_transaction' %}">Old Unverified</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_manual_transaction' %}">Manual</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_deleted_transaction' %}">Deleted</a>
                     </div>
                 </li>
   

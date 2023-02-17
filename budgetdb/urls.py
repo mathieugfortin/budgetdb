@@ -76,6 +76,8 @@ urlpatterns = [
          name='vendor_max_redirect'),
     path('transaction/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Transaction'),
          name='transaction_max_redirect'),
+    path('budgetedEvent/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='BudgetedEvent'),
+         name='budgetedevent_max_redirect'),
 
     # Account
     path('account/ListJSON', views.GetAccountViewListJSON,
@@ -96,10 +98,20 @@ urlpatterns = [
          name='update_account'),
     path('account/ac/', views.AutocompleteAccount.as_view(),
          name='autocomplete_account'),
+
+    # Account Transactions List View
     path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
     path('account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
+    path('account/listactivity/<int:pk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+         name='list_account_activity_create_audit_from_account'),
+    path('account/listactivity/<int:pk>/audit_add/<slug:date>/<slug:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+         name='list_account_activity_create_audit_from_account'),
+    path('account/listactivity/add/<int:pk>/<slug:date>/', views.TransactionCreateModal.as_view(),
+         name='create_transaction_from_date_account_modal'),
+    path('account/listactivity/add/<int:pk>/', views.TransactionCreateModal.as_view(),
+         name='create_transaction_from_date_account_modal'),
 
     # AccountCategory
     path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
@@ -234,10 +246,14 @@ urlpatterns = [
          name='calendar_transaction'),
     path('transaction/list/', views.TransactionListView.as_view(),
          name='list_transaction'),
+    path('transaction/list2/', views.TransactionList2View.as_view(),
+         name='list_transaction2'),
     path('transaction/unverified_list/', views.TransactionUnverifiedListView.as_view(),
          name='list_unverified_transaction'),
     path('transaction/manual_list/', views.TransactionManualListView.as_view(),
          name='list_manual_transaction'),
+    path('transaction/deleted_list/', views.TransactionDeletedListView.as_view(),
+         name='list_deleted_transaction'),
     path('ajax/load-payment-transaction/', views.load_payment_transaction,
          name='ajax_load_payment_transaction'),
 

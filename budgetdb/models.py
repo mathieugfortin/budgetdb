@@ -131,7 +131,8 @@ class Preference(models.Model):
     end_interval = models.DateField(blank=True)
     max_interval_slider = models.DateField(blank=True, null=True)
     min_interval_slider = models.DateField(blank=True, null=True)
-
+    currencies = models.ManyToManyField("Currency", related_name="currencies")
+    currency_prefered = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, related_name="currency_prefered")
     # add ordre of listing, old first/ new first
 
 
@@ -178,6 +179,21 @@ class AccountHost(BaseSoftDelete, UserPermissions):
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_accounthost')
+
+
+class Currency(models.Model):
+    class Meta:
+        verbose_name = 'Currency'
+        verbose_name_plural = 'Currencies'
+        ordering = ['priority']
+
+    name = models.CharField(max_length=200)
+    name_short = models.CharField(max_length=10)
+    symbol = models.CharField(max_length=5)
+    priority = models.IntegerField("priority", blank=True)
+
+    def __str__(self):
+        return self.name
 
 
 class AccountPresentation(BaseSoftDelete):
@@ -242,6 +258,7 @@ class Account(BaseSoftDelete, UserPermissions):
     account_host = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
     account_parent = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True, related_name='account_children')
     name = models.CharField(max_length=200)
+    currency = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, blank=False, null=False)
     account_number = models.CharField(max_length=200, blank=True)
     comment = models.CharField("Comment", max_length=200, blank=True, null=True)
     TFSA = models.BooleanField('Account is a TFSA for canadian fiscal considerations', default=False)
@@ -254,14 +271,26 @@ class Account(BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_account_simple')
 
     def balance_by_EOD(self, dateCheck):
-        closestAudit = Transaction.view_objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True, is_deleted=False).order_by('-date_actual')[:1]
 
+        audit_today = Transaction.objects.filter(account_source_id=self.id, date_actual=dateCheck, audit=True, is_deleted=False).order_by('-date_actual')[:1]
+        if audit_today.count() == 1:
+            return audit_today.first().amount_actual
+
+        balance = Decimal(0.00)
+
+        childrens = self.account_children.all()
+        if childrens.count() > 0:
+            for children in childrens:
+                balance += children.balance_by_EOD(dateCheck)
+            return balance
+
+        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True, is_deleted=False).order_by('-date_actual')[:1]
         if closestAudit.count() == 0:
             balance = Decimal(0.00)
-            events = Transaction.view_objects.filter(date_actual__lte=dateCheck, is_deleted=False)
+            events = Transaction.objects.filter(date_actual__lte=dateCheck, is_deleted=False)
         else:
             balance = Decimal(closestAudit.first().amount_actual)
-            events = Transaction.view_objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck, is_deleted=False)
+            events = Transaction.objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck, is_deleted=False)
 
         events = events.filter(account_source_id=self.id) | events.filter(account_destination_id=self.id)
 
@@ -271,14 +300,9 @@ class Account(BaseSoftDelete, UserPermissions):
                 balance = event.amount_actual
             elif not (event.budget_only is True and event.date_actual <= date.today()):
                 if event.account_destination_id == self.id:
-                    amount += event.amount_actual
+                    balance += event.amount_actual
                 if event.account_source_id == self.id:
-                    amount -= event.amount_actual
-                balance = balance + amount
-
-        accounts_child = Account.view_objects.filter(account_parent=self)
-        for child in accounts_child:
-            balance += child.balance_by_EOD(dateCheck)
+                    balance -= event.amount_actual
 
         return balance
 
@@ -326,6 +350,7 @@ class Account(BaseSoftDelete, UserPermissions):
         accountsReport = []
         # if there is only one account in the report,
         # put it in a list so that the template can iterate over it
+        # this is a really ugly test, find something better
         if len(account_report) == 13:
             accountsReport.append(account_report)
         else:
@@ -370,16 +395,23 @@ class Account(BaseSoftDelete, UserPermissions):
 
     def build_report_with_balance(self, start_date, end_date):
         events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', 'audit')
-        account_list = Account.view_objects.filter(is_deleted=False)
-        account_list = account_list.filter(id=self.id) | account_list.filter(account_parent_id=self.id)
+        childrens = self.account_children.filter(is_deleted=False)
+        account_list = Account.objects.filter(id=self.id, is_deleted=False) | childrens
         events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
-        balance = Decimal(Account.view_objects.get(id=self.id).balance_by_EOD(start_date))
+        # balance = Decimal(Account.view_objects.get(id=self.id).balance_by_EOD(start_date))
+        balance = Decimal(self.balance_by_EOD(start_date))
         for event in events:
             amount = Decimal(0.00)
             if event.audit is True:
                 balance = event.amount_actual
-                event.calc_amount = ""
-                event.viewname = f'{event._meta.app_label}:details_transaction_Audit'
+                if childrens.count() > 0:
+                    total_with_children = Decimal(self.balance_by_EOD(event.date_actual))
+                    event.calc_amount = str(event.amount_actual) + "$"
+                    event.audit_amount = str(total_with_children) + "$"
+                else:
+                    event.calc_amount = str(event.amount_actual) + "$"
+                    event.audit_amount = str(event.amount_actual) + "$"
+                # event.viewname = f'{event._meta.app_label}:details_transaction_Audit'
             elif not (event.budget_only is True and event.date_actual <= date.today()):
                 if event.account_destination_id == self.id:
                     amount += event.amount_actual
@@ -387,7 +419,7 @@ class Account(BaseSoftDelete, UserPermissions):
                     amount -= event.amount_actual
                 balance = balance + amount
                 event.calc_amount = str(amount) + "$"
-                event.viewname = f'{event._meta.app_label}:details_transaction'
+                # event.viewname = f'{event._meta.app_label}:details_transaction'
             event.balance = str(balance) + "$"
             # checking if the event is part of a joinedTransaction
             if event.transactions.first() is not None:
@@ -770,11 +802,15 @@ class Transaction(BaseSoftDelete):
     amount_actual = models.DecimalField(
         'transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
     )
+    currency = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, blank=False, null=False)
+    amount_actual_foreign_currency = models.DecimalField(
+        'original amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
+    )
     Fuel_L = models.DecimalField(
         'Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True
     )
     Fuel_price = models.DecimalField(
-        'Fuel cost', decimal_places=3, max_digits=5, blank=True, null=True
+        'Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True
     )
 
     description = models.CharField('Description', max_length=200)
@@ -1027,7 +1063,9 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
                                                          cat2=self.cat2,
                                                          vendor=self.vendor,
                                                          budget_only=self.budget_only,
-                                                         joined_order=self.joined_order
+                                                         joined_order=self.joined_order,
+                                                         currency_id=1,
+                                                         amount_actual_foreign_currency=0,
                                                          )
             new_transaction.save()
             # Needs a lot more work with these interval management  #######

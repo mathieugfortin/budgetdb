@@ -132,9 +132,11 @@ tr.VERIFIED button.verify::before {
 
 <table class="table table-hover table-sm ">
     <tr>
-        <th id=c1><button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' pk %}','popup','width=1000,height=700'); return false;" class="btn btn-dark btn-sm" >
-            <i class="fas fa-plus"></i>
-        </button></th>
+        <th id=c1>
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
+                <i class="fas fa-plus"></i>
+            </button>            
+        </th>
         <th id=c2>Date</th>
         <th id=c3>Statement</th>
         <th id=c4>Description</th>
@@ -145,7 +147,11 @@ tr.VERIFIED button.verify::before {
         <th id=c9>Verified</th>
         <th id=c10>Receipt</th>
         <th id=c11>Balance</th>
-        <th id=c12><button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_audit_from_account' pk %}','popup','width=1000,height=400'); return false;" class="btn btn-dark btn-sm" role="button">Audit</button></th>
+        <th id=c12>
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
+                <i class="fas fa-plus"></i>
+            </button>
+        </th>
     </tr>
 
     {% for event in object_list reversed %}
@@ -158,14 +164,23 @@ tr.VERIFIED button.verify::before {
         {% elif event.receipt == 0 %} NORECEIPT {% endif %}"
         id=T{{event.id}}
     >
-        <td><button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' event.date_actual|date:'Y-m-d' pk %}','popup','width=1000,height=700'); return false;" >
-            <i class="fas fa-plus"></i> </button>
+        <td>        
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk event.date_actual|date:'Y-m-d' %}" >
+                <i class="fas fa-plus"></i>
+            </button>
         </td>
         <td>{{ event.date_actual|date:'Y-m-d' }}</td>
         <td>{% if event.statement != None %} {{ event.statement }} {% endif %}</td>
         <td><button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' pk event.id %}" >
                 {{ event.description }}
             </button>
+            
+            {% if event.show_currency == True %}
+                <button  type="button" class="btn btn-info btn-sm">
+                    {{ event.amount_actual_foreign_currency }}
+                    {{ event.currency.name_short }}
+                </button>
+            {% endif %}
             {% if event.joinedtransaction != None %} 
                 <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_planned|date:'Y-m-d' event.date_actual|date:'Y-m-d'%}"> <i class="fas fa-object-group"></i></a>
             {% endif %}
@@ -199,13 +214,15 @@ tr.VERIFIED button.verify::before {
         </td>
         <td money>
             {% if event.audit == 0 %}
-            {{ event.balance }}
+                {{ event.balance }}
             {% endif %} 
         </td>
         <td>{% if event.audit == 0 %}
-            <button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_audit_from_account' event.date_actual|date:'Y-m-d' pk event.balance|slugify %}','popup','width=1000,height=400'); return false;" class="btn-default btn-sm audit" role="button"></button>
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk event.date_actual|date:'Y-m-d' event.balance|slugify %}" >
+                <i class="fas fa-plus"></i>
+            </button>
             {% else %} 
-            {{ event.balance }}
+                {{ event.audit_amount }}
             {% endif %} 
         </td>
     </tr>

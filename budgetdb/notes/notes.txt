@@ -64,8 +64,13 @@ expand Ctrl-k-j
 debug form post
     def form_invalid(self, form):
         a = 1
+        # form.errors
         return super().form_invalid(form)
 
     def clean(self, value):
         a = 1
         return super().clean(form)
+
+
+
+class visually-hidden

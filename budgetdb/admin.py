@@ -20,7 +20,6 @@ admin.site.register(User, UserAdmin)
 
 # class Cat2Inline(admin.StackedInline):
 class Cat2Inline(admin.TabularInline):
-
     model = Cat2
     extra = 3
 

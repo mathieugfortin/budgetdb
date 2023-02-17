@@ -1,7 +1,7 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
 from budgetdb.models import JoinedTransactions
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull, TransactionModalForm, JoinedTransactionConfigForm
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
@@ -19,7 +19,8 @@ from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView
 from django.utils.safestring import mark_safe
 from django.forms import formset_factory
 from django import forms
-from bootstrap_modal_forms.generic import BSModalUpdateView
+from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView
+from crum import get_current_user
 
 
 ###################################################################################################################
@@ -135,13 +136,59 @@ def load_payment_transaction(request):
     return render(request, 'budgetdb/payment_transaction_dropdown_list.html', {'transactions': transactions})
 
 
+class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
+    form_class = TransactionModalForm
+    task = 'Create'
+    user = None
+
+    def test_func(self):
+        view_object = get_object_or_404(Account, pk=self.kwargs.get('pk'))
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        preference = get_object_or_404(Preference, id=self.user.id)
+        context['currency'] = preference.currency_prefered.id
+        return context
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form_date = self.kwargs.get('date')
+        if form_date is None:
+            form_date = datetime.now().strftime("%Y-%m-%d")
+        account = get_object_or_404(Account, id=self.kwargs.get('pk'))
+        preference = get_object_or_404(Preference, id=self.user.id)
+        form.initial['date_actual'] = form_date
+        form.initial['account_source'] = account
+        form.initial['currency'] = preference.currency_prefered
+        form.initial['amount_actual_foreign_currency'] = Decimal(0)
+        form.initial['audit'] = False
+        form.helper.form_method = 'POST'
+        return form
+
+    def get_success_url(self):
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('pk')})
+
+
 class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpdateView):
     model = Transaction
     template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionModalForm
     task = 'Update'
     success_message = 'Success: Transaction was updated.'
-    # success_url = reverse('budgetdb:list_account_activity', kwargs={'pk': 2})
+    user = None
 
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
@@ -150,13 +197,23 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
     def handle_no_permission(self):
         raise PermissionDenied
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['audit'] = False
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        preference = get_object_or_404(Preference, id=self.user.id)
+        context['currency'] = preference.currency_prefered.id
+        return context
+
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-
         form.helper.form_method = 'POST'
-        # form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        # form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary'))
-        # form.helper.add_input(Button('delete', 'Delete', css_class='btn-danger'))
         return form
 
     def get_success_url(self):
@@ -166,11 +223,82 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
 ###################################################################################################################
 # Audits
 
+class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_popup_form.html'
+    form_class = TransactionModalForm
+    task = 'Create'
+    user = None
 
-class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
+    def test_func(self):
+        view_object = get_object_or_404(Account, pk=self.kwargs.get('pk'))
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['audit'] = True
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form_date = self.kwargs.get('date')
+        form_amount = self.kwargs.get('amount')
+        if form_date is None:
+            form_date = datetime.now().strftime("%Y-%m-%d")
+            form.initial['description'] = f'Ajustement du marché'
+        else:
+            form.initial['description'] = f'Confirmation de solde'
+            length = len(form_amount)
+            clean_amount = form_amount[:length-2] + '.' + form_amount[-2:]
+            form.initial['amount_actual'] = clean_amount
+        account_id = self.kwargs.get('pk')
+        account = get_object_or_404(Account, id=account_id)
+        preference = get_object_or_404(Preference, id=self.user.id)
+        form.initial['date_actual'] = form_date
+        form.initial['account_source'] = account
+        form.initial['audit'] = True
+        form.initial['currency'] = preference.currency_prefered
+        form.initial['amount_actual_foreign_currency'] = Decimal(0)
+
+        form.helper.form_method = 'POST'
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        preference = get_object_or_404(Preference, id=self.user.id)
+        context['currency'] = preference.currency_prefered
+        return context
+
+    def get_success_url(self):
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('pk')})
+
+
+class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Transaction
     template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionAuditFormFull
+
+    def form_invalid(self, form):
+        a = 1
+        # form.errors
+        return super().form_invalid(form)
+
+    def clean(self, value):
+        a = 1
+        return super().clean(form)
+
+    def test_func(self):
+        view_object = get_object_or_404(Account, pk=self.kwargs.get('account_pk'))
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -186,11 +314,12 @@ class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
             form.initial['amount_actual'] = clean_amount
         account_id = self.kwargs.get('account_pk')
         account = get_object_or_404(Account, id=account_id)
-        if account.can_edit() is False:
-            raise PermissionDenied
+        user = get_current_user()
+        preference = get_object_or_404(Preference, id=user.id)
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.initial['audit'] = True
+        form.initial['currency'] = preference.currency_prefered
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form
@@ -340,8 +469,8 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
         transactionsHelper.layout = Layout(
             Div(
-                Div('description', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('description', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -417,8 +546,39 @@ class TransactionListView(LoginRequiredMixin, ListView):
         return context
 
 
-class TransactionUnverifiedListView(LoginRequiredMixin, ListView):
+class TransactionList2View(LoginRequiredMixin, ListView):
     # Patate rebuild this without calendar to gain speed
+    model = Transaction
+    context_object_name = 'calendar_list'
+    template_name = 'budgetdb/transaction_list2.html'
+
+    def get_queryset(self):
+        preference = Preference.objects.get(user=self.request.user.id)
+        begin = preference.start_interval
+        end = preference.end_interval
+
+        beginstr = self.request.GET.get('begin', None)
+        endstr = self.request.GET.get('end', None)
+        if beginstr is not None:
+            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+            end = begin + relativedelta(months=1)
+        if endstr is not None:
+            end = datetime.strptime(endstr, "%Y-%m-%d").date()
+        if end < begin:
+            end = begin + relativedelta(months=1)
+
+        qs = Transaction.view_objects.filter(date_actual__gt=begin, date_actual__lte=end, is_deleted=False).order_by('date_actual', 'audit')
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['now_month'] = date.today().month
+        context['now_year'] = date.today().year
+        return context
+
+
+class TransactionUnverifiedListView(LoginRequiredMixin, ListView):
     model = Transaction
     template_name = 'budgetdb/transaction_list.html'
     context_object_name = 'transaction_list'
@@ -435,7 +595,6 @@ class TransactionUnverifiedListView(LoginRequiredMixin, ListView):
 
 
 class TransactionManualListView(LoginRequiredMixin, ListView):
-    # Patate rebuild this without calendar to gain speed
     model = Transaction
     template_name = 'budgetdb/transaction_list.html'
     context_object_name = 'transaction_list'
@@ -448,6 +607,22 @@ class TransactionManualListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Upcoming Manual Transactions'
+        return context
+
+
+class TransactionDeletedListView(LoginRequiredMixin, ListView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_list.html'
+    context_object_name = 'transaction_list'
+
+    def get_queryset(self):
+        inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
+        transactions = Transaction.view_objects.filter(is_deleted=1, date_actual__lt=inamonth).order_by('-date_actual')
+        return transactions
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Deleted Transactions'
         return context
 
 

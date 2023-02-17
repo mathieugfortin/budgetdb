@@ -78,6 +78,7 @@ class AccountForm(forms.ModelForm):
             'comment',
             'TFSA',
             'RRSP',
+            'currency',
             'users_admin',
             'users_view',
             'date_open',
@@ -94,31 +95,34 @@ class AccountForm(forms.ModelForm):
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["account_host"].queryset = AccountHost.view_objects.all()
         self.fields["account_parent"].queryset = Account.view_objects.all()
+        user = get_current_user()
+        self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
         self.helper.layout = Layout(
             Div(
-                Div('name', css_class='form-group col-md-4 mb-0'),
-                Div('account_number', css_class='form-group col-md-4 mb-0'),
+                Div('name', css_class='form-group col-md-4  '),
+                Div('account_number', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('date_open', css_class='form-group col-md-4 mb-0'),
-                Div('date_closed', css_class='form-group col-md-4 mb-0'),
+                Div('date_open', css_class='form-group col-md-4  '),
+                Div('date_closed', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
-            Div('comment', css_class='form-group col-md-6 mb-0'),
+            Div('comment', css_class='form-group col-md-6  '),
+            Div('currency', css_class='form-group col-md-4  '),
             Div(
-                Div('account_host', css_class='form-group col-md-4 mb-0'),
-                Div('account_parent', css_class='form-group col-md-4 mb-0'),
-                css_class='row'
-            ),
-            Div(
-                Div('TFSA', css_class='form-group col-md-4 mb-0'),
-                Div('RRSP', css_class='form-group col-md-4 mb-0'),
+                Div('account_host', css_class='form-group col-md-4  '),
+                Div('account_parent', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('TFSA', css_class='form-group col-md-4  '),
+                Div('RRSP', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -144,12 +148,12 @@ class AccountHostForm(forms.ModelForm):
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
         self.helper.layout = Layout(
             Div(
-                Div('name', css_class='form-group col-md-6 mb-0'),
+                Div('name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -175,12 +179,12 @@ class VendorForm(forms.ModelForm):
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
         self.helper.layout = Layout(
             Div(
-                Div('name', css_class='form-group col-md-6 mb-0'),
+                Div('name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -228,7 +232,7 @@ class StatementForm(forms.ModelForm):
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
         self.helper.layout = Layout(
             Div(
-                Div('account', css_class='form-group col-md-6 mb-0'),
+                Div('account', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
@@ -239,16 +243,16 @@ class StatementForm(forms.ModelForm):
                 css_class='row'
             ),
             Div(
-                Div('comment', css_class='form-group col-md-6 mb-0'),
+                Div('comment', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('payment_transaction', css_class='form-group col-md-6 mb-0'),
+                Div('payment_transaction', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -274,12 +278,12 @@ class CatTypeForm(forms.ModelForm):
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
         self.helper.layout = Layout(
             Div(
-                Div('name', css_class='form-group col-md-6 mb-0'),
+                Div('name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -308,15 +312,15 @@ class AccountCategoryForm(forms.ModelForm):
         self.fields["accounts"].queryset = Account.view_objects.all()
         self.helper.layout = Layout(
             Div(
-                Div('name', css_class='form-group col-md-6 mb-0'),
+                Div('name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('accounts', css_class='form-group col-md-10 mb-0'),
+                Div('accounts', css_class='form-group col-md-10  '),
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -454,105 +458,105 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
         if full:
             self.helper.layout = Layout(
                 Div(
-                    Div('description', css_class='form-group col-md-6 mb-0'),
-                    Div('vendor', css_class='form-group col-md-4 mb-0'),
+                    Div('description', css_class='form-group col-md-6  '),
+                    Div('vendor', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
-                    Div('cat1', css_class='form-group col-md-6 mb-0'),
-                    Div('cat2', css_class='form-group col-md-6 mb-0'),
+                    Div('cat1', css_class='form-group col-md-6  '),
+                    Div('cat2', css_class='form-group col-md-6  '),
                     css_class='row'
                 ),
                 Div(
-                    # Div('amount_planned', css_class='form-group col-md-4 mb-0'),
-                    Div(PrependedText('amount_planned', '$', css_class='form-group col-md-4 mb-0')),
+                    # Div('amount_planned', css_class='form-group col-md-4  '),
+                    Div(PrependedText('amount_planned', '$', css_class='form-group col-md-4  ')),
                     css_class='row'
                 ),
                 Div(
-                    Div('account_source', css_class='form-group col-md-6 mb-0'),
-                    Div('account_destination', css_class='form-group col-md-6 mb-0'),
+                    Div('account_source', css_class='form-group col-md-6  '),
+                    Div('account_destination', css_class='form-group col-md-6  '),
                     css_class='row'
                 ),
                 Div(
-                    Div('budget_only', css_class='form-group col-md-4 mb-0'),
-                    Div('ismanual', css_class='form-group col-md-4 mb-0'),
-                    Field('isrecurring', css_class='form-group col-md-4 mb-0', type="hidden"),
+                    Div('budget_only', css_class='form-group col-md-4  '),
+                    Div('ismanual', css_class='form-group col-md-4  '),
+                    Field('isrecurring', css_class='form-group col-md-4  ', type="hidden"),
                     # css_class='row'
                 ),
                 Div(
-                    Div('repeat_start', css_class='form-group col-md-4 mb-0'),
-                    Div('repeat_stop', css_class='form-group col-md-4 mb-0'),
+                    Div('repeat_start', css_class='form-group col-md-4  '),
+                    Div('repeat_stop', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
-                    Div('repeat_interval_days', css_class='form-group col-md-2 mb-0'),
-                    Div('repeat_interval_weeks', css_class='form-group col-md-2 mb-0'),
-                    Div('repeat_interval_months', css_class='form-group col-md-2 mb-0'),
-                    Div('repeat_interval_years', css_class='form-group col-md-2 mb-0'),
-                    Field('repeat_weekday_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_months_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_dayofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_weekofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Div('repeat_interval_days', css_class='form-group col-md-2  '),
+                    Div('repeat_interval_weeks', css_class='form-group col-md-2  '),
+                    Div('repeat_interval_months', css_class='form-group col-md-2  '),
+                    Div('repeat_interval_years', css_class='form-group col-md-2  '),
+                    Field('repeat_weekday_mask', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_months_mask', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_dayofmonth_mask', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_weekofmonth_mask', css_class='form-group col-md-2  ', type="hidden"),
                     css_class='row'
                 ),
                 Div(
-                    Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                    Div('users_view', css_class='form-group col-md-4 mb-0'),
+                    Div('users_admin', css_class='form-group col-md-4  '),
+                    Div('users_view', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 HTML("<h4>Recurrence mask</h4>"),
                 Div(
-                    Div('daysOfWeek', css_class='form-group col-md-2 mb-0'),
-                    Div('weeksOfMonth', css_class='form-group col-md-2 mb-0'),
-                    Div('monthsOfYear', css_class='form-group col-md-2 mb-0'),
-                    Div('daysOfMonth', css_class='form-group col-md-2 mb-0'),
+                    Div('daysOfWeek', css_class='form-group col-md-2  '),
+                    Div('weeksOfMonth', css_class='form-group col-md-2  '),
+                    Div('monthsOfYear', css_class='form-group col-md-2  '),
+                    Div('daysOfMonth', css_class='form-group col-md-2  '),
                     css_class='row'
                 ),
              )
         else:
             self.helper.layout = Layout(
                 Div(
-                    Div('description', css_class='form-group col-md-6 mb-0'),
-                    Div('vendor', css_class='form-group col-md-4 mb-0'),
+                    Div('description', css_class='form-group col-md-6  '),
+                    Div('vendor', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
-                    Div('cat1', css_class='form-group col-md-4 mb-0'),
-                    Div('cat2', css_class='form-group col-md-4 mb-0'),
+                    Div('cat1', css_class='form-group col-md-4  '),
+                    Div('cat2', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
-                    # Div('amount_planned', css_class='form-group col-md-4 mb-0'),
-                    Div(PrependedText('amount_planned', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
+                    # Div('amount_planned', css_class='form-group col-md-4  '),
+                    Div(PrependedText('amount_planned', '$', css_class='form-group col-sm-6    ')),
                     css_class='row'
                 ),
                 Div(
-                    Div('account_source', css_class='form-group col-md-4 mb-0'),
-                    Div('account_destination', css_class='form-group col-md-4 mb-0'),
+                    Div('account_source', css_class='form-group col-md-4  '),
+                    Div('account_destination', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
-                    Div('budget_only', css_class='form-group col-md-4 mb-0'),
-                    Div('ismanual', css_class='form-group col-md-4 mb-0'),
+                    Div('budget_only', css_class='form-group col-md-4  '),
+                    Div('ismanual', css_class='form-group col-md-4  '),
                     # css_class='row'
                 ),
                 Div(
-                    Field('repeat_interval_days', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_interval_weeks', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_interval_months', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_interval_years', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('isrecurring', css_class='form-group col-md-4 mb-0', type="hidden"),
-                    Field('repeat_start', css_class='form-group col-md-4 mb-0', type="hidden"),
-                    Field('repeat_stop', css_class='form-group col-md-4 mb-0', type="hidden"),
-                    Field('repeat_weekday_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_months_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_dayofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
-                    Field('repeat_weekofmonth_mask', css_class='form-group col-md-2 mb-0', type="hidden"),
+                    Field('repeat_interval_days', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_interval_weeks', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_interval_months', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_interval_years', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('isrecurring', css_class='form-group col-md-4  ', type="hidden"),
+                    Field('repeat_start', css_class='form-group col-md-4  ', type="hidden"),
+                    Field('repeat_stop', css_class='form-group col-md-4  ', type="hidden"),
+                    Field('repeat_weekday_mask', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_months_mask', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_dayofmonth_mask', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_weekofmonth_mask', css_class='form-group col-md-2  ', type="hidden"),
                     css_class='row'
                 ),
                 Div(
-                    Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                    Div('users_view', css_class='form-group col-md-4 mb-0'),
+                    Div('users_admin', css_class='form-group col-md-4  '),
+                    Div('users_view', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
@@ -586,17 +590,17 @@ class Cat1Form(forms.ModelForm):
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
         self.helper.layout = Layout(
             Div(
-                Div('name', css_class='form-group col-md-6 mb-0'),
+                Div('name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('cattype', css_class='form-group col-md-4 mb-0'),
-                Div('catbudget', css_class='form-group col-md-4 mb-0'),
+                Div('cattype', css_class='form-group col-md-4  '),
+                Div('catbudget', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -633,17 +637,17 @@ class Cat2Form(forms.ModelForm):
         self.helper.layout = Layout(
             Field('cat1', type="hidden"),  # feels like allowing to modify this is a bad idea...
             Div(
-                Div('name', css_class='form-group col-md-6 mb-0'),
+                Div('name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('cattype', css_class='form-group col-md-4 mb-0'),
-                Div('catbudget', css_class='form-group col-md-4 mb-0'),
+                Div('cattype', css_class='form-group col-md-4  '),
+                Div('catbudget', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4 mb-0'),
-                Div('users_view', css_class='form-group col-md-4 mb-0'),
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -683,7 +687,7 @@ class JoinedTransactionsForm(forms.ModelForm):
             Hidden('name', self.initial.get('name')),
             # Field('common_date'),
             HTML("Date of the transactions"),
-            Div('common_date', css_class='form-group col-md-4 mb-0'),
+            Div('common_date', css_class='form-group col-md-4  '),
             # Field('name'),
             HTML("<table class='table table-hover table-sm '><tr>"),
             HTML("<th scope='col'>Description</th>"),
@@ -709,6 +713,7 @@ class TransactionFormFull(forms.ModelForm):
             'description',
             'vendor',
             'amount_actual',
+            'currency',
             # 'date_planned',
             'cat1',
             'cat2',
@@ -721,6 +726,7 @@ class TransactionFormFull(forms.ModelForm):
             'Fuel_price',
             'date_actual',
             'budgetedevent',
+            'amount_actual_foreign_currency',
             'audit',
             'ismanual',
             'is_deleted',
@@ -740,7 +746,11 @@ class TransactionFormFull(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        user = get_current_user()
+
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
+
         if 'cat1' in self.data:
             try:
                 cat1 = int(self.data.get('cat1'))
@@ -755,6 +765,8 @@ class TransactionFormFull(forms.ModelForm):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
+            self.fields['currency'].initial = Preference.objects.get(pk=user.id).currency_prefered
+            self.fields['currency'].data = Preference.objects.get(pk=user.id).currency_prefered
 
         # doublon? self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
         self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
@@ -770,42 +782,47 @@ class TransactionFormFull(forms.ModelForm):
         self.helper.layout = Layout(
             Field('description'),
             Div(
-                Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
-                Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6 mb-0 mr-0 ml-0')),
-                Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6 mb-0')),
+                Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6    ')),
+                Div('amount_actual_foreign_currency', css_class='form-group col-md-4  '),
+                Div('currency', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div( 
+                Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6   mr-0  ')),
+                Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6  ')),
                 css_class='row'
             ),
             Div(
-                Div('date_actual', css_class='form-group col-md-4 mb-0'),
-                # Div('date_planned', css_class='form-group col-md-4 mb-0'),
+                Div('date_actual', css_class='form-group col-md-4  '),
+                # Div('date_planned', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('cat1', css_class='form-group col-md-4 mb-0'),
-                Div('cat2', css_class='form-group col-md-4 mb-0'),
+                Div('cat1', css_class='form-group col-md-4  '),
+                Div('cat2', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('account_source', css_class='form-group col-md-4 mb-0'),
-                Div('account_destination', css_class='form-group col-md-4 mb-0 '),
+                Div('account_source', css_class='form-group col-md-4  '),
+                Div('account_destination', css_class='form-group col-md-4   '),
                 css_class='row'
             ),
             Div(
-                Div('verified', css_class='form-group col-md-4 mb-0'),
-                Div('receipt', css_class='form-group col-md-4 mb-0 '),
-                Div('is_deleted', css_class='form-group col-md-4 mb-0 '),
+                Div('verified', css_class='form-group col-md-4  '),
+                Div('receipt', css_class='form-group col-md-4   '),
+                Div('is_deleted', css_class='form-group col-md-4   '),
                 css_class='row'
             ),
             Div(
-                Div('audit', css_class='form-group col-md-4 mb-0'),
-                Div('ismanual', css_class='form-group col-md-8 mb-0 '),
+                Div('audit', css_class='form-group col-md-4  '),
+                Div('ismanual', css_class='form-group col-md-8   '),
                 css_class='row'
             ),
             Field('comment'),
             Div(
-                Div('budgetedevent', css_class='form-group col-md-4 mb-0'),
-                Div('vendor', css_class='form-group col-md-4 mb-0'),
-                Div('statement', css_class='form-group col-md-4 mb-0 '),
+                Div('budgetedevent', css_class='form-group col-md-4  '),
+                Div('vendor', css_class='form-group col-md-4  '),
+                Div('statement', css_class='form-group col-md-4   '),
                 css_class='row'
             ),
         )
@@ -824,6 +841,8 @@ class TransactionAuditFormFull(forms.ModelForm):
             'account_source',
             'account_destination',
             'statement',
+            'currency',
+            'amount_actual_foreign_currency',
             'verified',
             'receipt',
             'Fuel_L',
@@ -860,20 +879,22 @@ class TransactionAuditFormFull(forms.ModelForm):
         self.helper.layout = Layout(
             Field('description'),
             Div(
-                Div(PrependedText('amount_actual', '$', css_class='active form-group col-sm-6 mb-0 ml-0')),
-                Div('date_actual', css_class='form-group col-md-4 mb-0'),
+                Div(PrependedText('amount_actual', '$', css_class='active form-group col-sm-6    ')),
+                Div('date_actual', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('account_source', css_class='form-group col-md-6 mb-0'),
+                Div('account_source', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                Div('is_deleted', css_class='form-group col-md-4 mb-0 '),
+                Div('is_deleted', css_class='form-group col-md-4   '),
                 css_class='row'
             ),
             Div(
                 Field('audit', type="hidden"),
+                Field('currency', type='hidden'),
+                Field('amount_actual_foreign_currency', type='hidden'),
                 css_class='row'
             ),
             Field('comment'),
@@ -908,13 +929,13 @@ class PreferenceForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Div(
-                Div('start_interval', css_class='form-group col-md-4 mb-0'),
-                Div('end_interval', css_class='form-group col-md-4 mb-0'),
+                Div('start_interval', css_class='form-group col-md-4  '),
+                Div('end_interval', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('min_interval_slider', css_class='form-group col-md-4 mb-0'),
-                Div('min_interval_slider', css_class='form-group col-md-4 mb-0'),
+                Div('min_interval_slider', css_class='form-group col-md-4  '),
+                Div('min_interval_slider', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -977,7 +998,7 @@ class TransactionFormShort(forms.ModelForm):
                 Div('verified', css_class='form-group col-md-1'),
                 Div('receipt', css_class='form-group col-md-1'),
                 Div(PrependedText('amount_actual', '$'), css_class='form-group col-md-1'),
-                Field('date_actual', css_class='form-group col-md-2 mb-0', type='hidden'),
+                Field('date_actual', css_class='form-group col-md-2  ', type='hidden'),
                 # Div('amount_actual', css_class='form-group col-md-1'),
                 Field('budgetedevent', css_class='form-group col-md-1', type='hidden'),
                 # HTML('<a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>'),
@@ -1016,9 +1037,11 @@ class TransactionModalForm(BSModalModelForm):
             'description',
             'vendor',
             'amount_actual',
+            'currency',
             # 'date_planned',
             'cat1',
             'cat2',
+            'currency',
             'account_source',
             'account_destination',
             'statement',
@@ -1028,7 +1051,8 @@ class TransactionModalForm(BSModalModelForm):
             'Fuel_price',
             'date_actual',
             'budgetedevent',
-            # 'audit',
+            'amount_actual_foreign_currency',
+            'audit',
             'ismanual',
             'is_deleted',
             'comment',
@@ -1045,12 +1069,21 @@ class TransactionModalForm(BSModalModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        audit_view = kwargs.pop('audit', False)
+        task = kwargs.pop('task', 'Update')
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        currency_symbol = ''
+        if audit_view is True:
+            self.fields['amount_actual'].widget.attrs.update({'autofocus': True})
+        else:
+            self.fields['description'].widget.attrs.update({'autofocus': True})
         if 'cat1' in self.data:
             try:
                 cat1 = int(self.data.get('cat1'))
+                # currency_symbol = self.data.get('cat1')
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
@@ -1068,65 +1101,83 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
         self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
         self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
+        self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.filter(is_deleted=False)
 
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Amount"
         allowRecurringPatternUpdate = True
-        if kwargs['instance'].transactions.first() is not None:
-            allowRecurringPatternUpdate = False
-        if kwargs['instance'].budgetedevent is not None:
-            if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
-                allowRecurringPatternUpdate = False
+        if kwargs['instance'] is not None:
+            if kwargs['instance'].transactions is not None:
+                if kwargs['instance'].transactions.first() is not None:
+                    allowRecurringPatternUpdate = False
+            if kwargs['instance'].budgetedevent is not None:
+                if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
+                    allowRecurringPatternUpdate = False
+            if kwargs['instance'].audit is True:
+                audit_view = True
 
         self.helper.layout = Layout(
             Field('description'),
             Div(
-                Div('date_actual', css_class='form-group col-md-6 mb-0'),
+                Div('date_actual', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
         )
-        if kwargs['instance'].audit is False:
+        if audit_view is False:
             self.helper.layout.extend([
                 Div(
-                    Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
-                    Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6 mb-0 mr-0 ml-0')),
-                    Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6 mb-0')),
+                    # Div(PrependedText('amount_actual', '$', css_class='form-group col-3')),
+                    Div('amount_actual', css_class='form-group col-4'),
+                    Div('currency', css_class='form-group col-4'),
+                    Div('amount_actual_foreign_currency', css_class='form-group col-4  '),
                     css_class='row'
                 ),
                 Div(
-                    Div('cat1', css_class='form-group col-md-4 mb-0'),
-                    Div('cat2', css_class='form-group col-md-4 mb-0'),
+                    # Div(AppendedText('Fuel_L', 'L', css_class='form-group col-2')),
+                    # Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-2')),
+                    Div('Fuel_L', css_class='form-group col-4'),
+                    Div('Fuel_price', css_class='form-group col-4'),
+                    css_class='row fuel'
+                ),
+                Div(
+                    Div('cat1', css_class='form-group col-md-4  '),
+                    Div('cat2', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
-                    Div('account_source', css_class='form-group col-md-4 mb-0'),
-                    Div('account_destination', css_class='form-group col-md-4 mb-0 '),
+                    Div('account_source', css_class='form-group col-6  '),
+                    Div('account_destination', css_class='form-group col-6   '),
                     css_class='row'
                 ),
                 Div(
-                    Div('verified', css_class='form-group col-md-4 mb-0'),
-                    Div('receipt', css_class='form-group col-md-4 mb-0 '),
-                    Div('is_deleted', css_class='form-group col-md-4 mb-0 '),
+                    Div('verified', css_class='form-group col-md-4  '),
+                    Div('receipt', css_class='form-group col-md-4   '),
+                    Div('is_deleted', css_class='form-group col-md-4   '),
                     css_class='row'
                 ),
                 Div(
-                    Div('ismanual', css_class='form-group col-md-8 mb-0 '),
+                    Div('ismanual', css_class='form-group col-md-8   '),
                     css_class='row'
                 ),
                 Div(
-                    Div('budgetedevent', css_class='form-group col-md-4 mb-0'),
-                    Div('vendor', css_class='form-group col-md-4 mb-0'),
-                    Div('statement', css_class='form-group col-md-4 mb-0 '),
+                    Div('budgetedevent', css_class='form-group col-md-4  '),
+                    Div('vendor', css_class='form-group col-md-4  '),
+                    Div('statement', css_class='form-group col-md-4   '),
+                    Field('audit', type='hidden'),
                     css_class='row'
                 ),
             ])
         else:
             self.helper.layout.extend([
                 Div(
-                    Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6 mb-0 ml-0')),
-                    Field('account_source', css_class='form-group col-md-4 mb-0', type='hidden'),
+                    Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6    ')),
+                    Field('account_source', type='hidden'),
+                    Field('currency', type='hidden'),
+                    Field('audit', type='hidden'),
+                    Field('amount_actual_foreign_currency', type='hidden'),
+                    Div('is_deleted', css_class='form-group col-md-4   '),
                     css_class='row'
                 ),
             ])
@@ -1134,7 +1185,7 @@ class TransactionModalForm(BSModalModelForm):
         self.helper.layout.extend([
             Field('comment'),
             Div(
-                HTML('<button type="submit" id="submit-id-submit" class="btn btn-primary" >Update</button>'),
+                HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary" >{task}</button>'),
                 HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
             ),
         ])
