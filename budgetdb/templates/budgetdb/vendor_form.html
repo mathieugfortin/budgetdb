@@ -9,5 +9,10 @@
 {% block content %}
   <h2>Vendor</h2>
   {% load crispy_forms_tags %}
+  {% if context.form_invalid %}
+    <div class="alert alert-danger" role="alert">
+        {{ context.form_invalid }}
+    </div>
+  {% endif %}
   {% crispy form %}
 {% endblock %}

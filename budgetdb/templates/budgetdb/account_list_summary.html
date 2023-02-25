@@ -1,0 +1,41 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Accounts Summary{% endblock %}
+
+{% block content %}
+
+{% if object_list %}
+<table class="table table table-hover ">
+    <thead class="thead-dark"></thead>
+    <tr>
+        <th>Name</th>
+        <th>Balance</th>
+        <th>Host</th>
+    </tr>
+    {% for account in object_list %}
+    <tr {% if account.account_children.first is not None %} class="table-primary" {% elif account.account_parent is None  %} class="table-primary" {% else %} class="table-info" {% endif %} >
+        <td>
+            {% if account.account_parent is not None %}
+                <i class="fa fa-arrow-circle-right"></i>
+            {% endif %}
+            <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.account_host }} - {{ account.name }}</a>
+        </td>
+        <td>{{ account.balance|floatformat:2 }}$</td>
+
+        <td><div id="C{{ account.id }}" class="collapse {{ account.parent }}">
+            <a href="{% url 'budgetdb:update_accounthost' account.account_host.id %}">{{ account.account_host }}</a>
+        </div></td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+    <p>No accounts are available.</p>
+{% endif %}
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_account' %}">Create new account</a>
+</div>
+
+{% endblock %}

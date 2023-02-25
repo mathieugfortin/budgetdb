@@ -1,0 +1,127 @@
+{% extends 'budgetdb/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Transaction for {{ now_year }}-{{ now_month }}{% endblock %}
+
+{% block content %}
+
+<table class="table table-hover table-sm w-auto"  id="transactionlist">
+
+      <thead>
+<tr>
+    <th scope="col">Date</th>
+    <th scope="col">Description</th>
+    <th scope="col">amount</th>
+    <th scope="col">Source</th>
+    <th scope="col">Destination</th>
+    <th scope="col">Category</th>
+    <th scope="col">Subcategory</th>
+    <th scope="col">Recurence</th>
+</tr>
+<tr>
+    <td scope="row"><input type="text" class="form-control" id="myDate" onkeyup="myFunctionDate()" placeholder="filter"></td>
+    <td><input type="text" class="form-control" id="myDesc" onkeyup="myFunctionDesc()" placeholder="filter"></td>
+    <td><input type="text" class="form-control" id="myAmm" onkeyup="myFunctionAmm()" placeholder="filter"></td>
+    <td><input type="text" class="form-control" id="mySource" onkeyup="myFunctionSource()" placeholder="filter"></td>
+    <td><input type="text" class="form-control" id="myDest" onkeyup="myFunctionDest()" placeholder="filter"></td>
+    <td><input type="text" class="form-control" id="myCat1" onkeyup="myFunctionCat1()" placeholder="filter"></td>
+    <td><input type="text" class="form-control" id="myCat2" onkeyup="myFunctionCat2()" placeholder="filter"></td>
+    <td><input type="text" class="form-control" id="myBE" onkeyup="myFunctionBE()" placeholder="filter"></td>
+</tr>
+</thead>
+<tbody>
+{% for event in object_list reversed %}
+<tr>
+    <td scope="row">{{ event.date_actual|date:'Y-m-d' }}</td>
+    <td><a href="{% url 'budgetdb:transaction_max_redirect' event.id %}">{{ event.description }}</a></td>
+    <td>{{ event.amount_actual }}</td>
+    <td>{{ event.account_source }}</td>
+    <td>{{ event.account_destination }}</td>
+    <td>{{ event.cat1 }}</td>
+    <td>{{ event.cat2 }}</td>
+    <td>{% if event.budgetedevent_id != None %} 
+            <a href="{% url 'budgetdb:budgetedevent_max_redirect' event.budgetedevent_id %}">{{ event.budgetedevent }}</a>
+        {% else %}
+            None
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+{% endblock %}
+
+{% block script %}
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <!--<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+    crossorigin="anonymous"></script>-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+
+
+<script>
+    function filter(input, index) {
+      var filter, table, tr, td, i, txtValue;
+      filter = input.value.toUpperCase();
+      table = document.getElementById("transactionlist");
+      tr = table.getElementsByTagName("tr");
+      for (i = 2; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[index];
+        if (td) {
+          txtValue = td.textContent || td.innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }       
+      }
+    }
+
+    function myFunctionDate() {
+      var input;
+      input = document.getElementById("myDate");
+      filter(input,0)
+    }
+    function myFunctionDesc() {
+      var input;
+      input = document.getElementById("myDesc");
+      filter(input,1)
+    }
+    function myFunctionAmm() {
+      var input;
+      input = document.getElementById("myAmm");
+      filter(input,2)
+    }
+    function myFunctionSource() {
+      var input;
+      input = document.getElementById("mySource");
+      filter(input,3)
+    }
+    function myFunctionDest() {
+      var input;
+      input = document.getElementById("myDest");
+      filter(input,4)
+    }
+    function myFunctionCat1() {
+      var input;
+      input = document.getElementById("myCat1");
+      filter(input,5)
+    }
+    function myFunctionCat2() {
+      var input;
+      input = document.getElementById("myCat2");
+      filter(input,6)
+    }
+    function myFunctionBE() {
+      var input;
+      input = document.getElementById("myBE");
+      filter(input,7)
+    }
+    </script>
+{% endblock %}

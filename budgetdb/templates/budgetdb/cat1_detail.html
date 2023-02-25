@@ -19,7 +19,7 @@
 
 <ul>
     <h2>Subcategories</h2>
-{% for subcategory in cat1.cat2_set.all %}
+{% for subcategory in cat2s %}
     <li><a href="{% url 'budgetdb:cat2_max_redirect' subcategory.id %}">{{ subcategory.name }}</a></li>
 {% endfor %}
 </ul>

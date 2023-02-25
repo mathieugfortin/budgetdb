@@ -1,5 +1,6 @@
 from django.urls import path, register_converter, include
-
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.views.generic.base import RedirectView
 from . import views
 
 
@@ -42,6 +43,8 @@ app_name = 'budgetdb'
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
 
+    path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('static/budgetdb/favicon.ico'))),
+
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
@@ -52,6 +55,11 @@ urlpatterns = [
          name='signup'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
+
+    path('friend/', views.FriendListView.as_view(),
+         name='list_friend'),
+    path('friend/add/', views.FriendCreateView.as_view(),
+         name='create_friend'),
 
     ##########################################################################################################
     # redirects
@@ -73,6 +81,8 @@ urlpatterns = [
          name='vendor_max_redirect'),
     path('transaction/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Transaction'),
          name='transaction_max_redirect'),
+    path('budgetedEvent/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='BudgetedEvent'),
+         name='budgetedevent_max_redirect'),
 
     # Account
     path('account/ListJSON', views.GetAccountViewListJSON,
@@ -85,14 +95,26 @@ urlpatterns = [
          name='list_account_summary'),
     path('account/<int:pk>/', views.AccountDetailView.as_view(),
          name='details_account'),
+    path('account/yearreport/<int:pk>/<yyyy:year>/', views.AccountYearReportDetailView.as_view(),
+         name='year_report_account'),
     path('account/add/', views.AccountCreateView.as_view(),
          name='create_account'),
     path('account/update/<int:pk>/', views.AccountUpdateView.as_view(),
          name='update_account'),
-    path('account/ac/', views.AutocompleteAccount.as_view(),
-         name='autocomplete_account'),
-    path('account/listactivity/<int:pk>/', views.AccountListActivityView.as_view(),
+
+    # Account Transactions List View
+    path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
+    path('account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
+         name='account_listview_update_transaction_modal'),
+    path('account/listactivity/<int:pk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+         name='list_account_activity_create_audit_from_account'),
+    path('account/listactivity/<int:pk>/audit_add/<slug:date>/<slug:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+         name='list_account_activity_create_audit_from_account'),
+    path('account/listactivity/add/<int:pk>/<slug:date>/', views.TransactionCreateModal.as_view(),
+         name='create_transaction_from_date_account_modal'),
+    path('account/listactivity/add/<int:pk>/', views.TransactionCreateModal.as_view(),
+         name='create_transaction_from_date_account_modal'),
 
     # AccountCategory
     path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
@@ -104,6 +126,8 @@ urlpatterns = [
          name='list_accountcategory'),
     path('accountcat/add/', views.AccountCatCreateView.as_view(),
          name='create_accountcategory'),
+    path('accountcat/yearreport/<int:pk>/<yyyy:year>/', views.AccountCatYearReportDetailView.as_view(),
+         name='year_report_accountcategory'),
 
     # Account_Host
     path('accountHost/ListJSON', views.GetAccountHostViewListJSON, name='account_host_list_json'),
@@ -132,8 +156,6 @@ urlpatterns = [
          name='create_cat1'),
     path('cat1/update/<int:pk>/', views.Cat1UpdateView.as_view(),
          name='update_cat1'),
-    path('cat1/ac/', views.AutocompleteCat1.as_view(),
-         name='autocomplete_cat1'),
 
     # Cat2
     path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
@@ -146,8 +168,6 @@ urlpatterns = [
          name='create_cat2'),
     path('cat2/update/<int:pk>/', views.Cat2UpdateView.as_view(),
          name='update_cat2'),
-    path('cat2/ac/', views.AutocompleteCat2.as_view(),
-         name='autocomplete_cat2'),
     path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
 
@@ -168,14 +188,18 @@ urlpatterns = [
     # BudgetedEvent
     path('budgetedEvent/', views.budgetedEventsListView.as_view(),
          name='list_be'),
+    path('budgetedEvent/anormal', views.budgetedEventsAnormalListView.as_view(),
+         name='list_anormal_be'),
+    path('budgetedEvent/anormal2', views.budgetedEventsAnormal2ListView.as_view(),
+         name='list_anormal2_be'),         
     path('budgetedEvent/<int:pk>/', views.BudgetedEventDetailView.as_view(),
          name='details_be'),
     path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
          name='create_be'),
     path('budgetedEvent/createfromt/<int:transaction_id>/', views.BudgetedEventCreateFromTransaction.as_view(),
          name='create_be_from_t'),
-    path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
-         name='submit_be'),
+    # path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
+    #      name='submit_be'),
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
          name='update_be'),
 
@@ -218,29 +242,39 @@ urlpatterns = [
          name='update_transaction'),
     path('transaction/update_popup/<int:pk>/', views.TransactionUpdatePopupView.as_view(),
          name='update_transaction_popup'),
+
     # path('audit/<int:pk>/', views..as_view(),
     #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),
          name='calendar_transaction'),
     path('transaction/list/', views.TransactionListView.as_view(),
          name='list_transaction'),
+    path('transaction/list2/', views.TransactionList2View.as_view(),
+         name='list_transaction2'),
     path('transaction/unverified_list/', views.TransactionUnverifiedListView.as_view(),
          name='list_unverified_transaction'),
     path('transaction/manual_list/', views.TransactionManualListView.as_view(),
          name='list_manual_transaction'),
+    path('transaction/deleted_list/', views.TransactionDeletedListView.as_view(),
+         name='list_deleted_transaction'),
     path('ajax/load-payment-transaction/', views.load_payment_transaction,
          name='ajax_load_payment_transaction'),
 
     # Joined Transactions
     path('joinedtransactions/list/', views.JoinedTransactionListView.as_view(),
-         name='list_joinedtransactions'),   
-    path('joinedtransactions/add/', views.JoinedTransactionsUpdateView.as_view(),
+         name='list_joinedtransactions'),
+    path('joinedtransactions/add/', views.JoinedTransactionsConfigUpdateView.as_view(),
          name='create_joinedtransactions'),
-    # path('joinedtransactions/update/<int:pk>/<yyyy:year>/<mm:month>/<dd:day>', views.JoinedTransactionsUpdateView.as_view(),
-    path('joinedtransactions/update/<int:pk>/<slug:date>/', views.JoinedTransactionsUpdateView.as_view(),
+    path('joinedtransactions/update/<int:pk>/<slug:datep>/', views.JoinedTransactionsUpdateView.as_view(),
+         name='update_joinedtransactions'),
+    path('joinedtransactions/update/<int:pk>/<slug:datep>/<slug:datea>', views.JoinedTransactionsUpdateView.as_view(),
          name='update_joinedtransactions'),
     path('joinedtransactions/<int:pk>/<slug:date>/', views.JoinedTransactionsDetailView.as_view(),
          name='details_joinedtransactions'),
+    path('joinedtransactions/<int:pk>/', views.JoinedTransactionsConfigDetailView.as_view(),
+         name='details_joinedtransactionsconfig'),
+    path('joinedtransactions/update/<int:pk>/', views.JoinedTransactionsConfigUpdateView.as_view(),
+         name='update_joinedtransactionsconfig'),
 
     # Vendor
     path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),
@@ -252,6 +286,4 @@ urlpatterns = [
          name='create_vendor'),
     path('vendor/update/<int:pk>/', views.VendorUpdateView.as_view(),
          name='update_vendor'),
-    path('vendor/ac/', views.AutocompleteVendor.as_view(),
-         name='autocomplete_vendor'),
 ]

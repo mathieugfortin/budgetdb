@@ -1,0 +1,43 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}Joined Transactions - {{ jt.name }}{% endblock %}
+
+
+{% block content %}
+
+<h1>{{ jt.name }}</h1>
+
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<div id="details">
+    <ul>
+        {% for transaction in transactions %}
+        <li>Transaction: <a href="{% url 'budgetdb:details_transaction' transaction.id %}">{{ transaction.description }}</a></li> 
+            <ul>
+                <li>Date: {{ transaction.date_actual }}</li>        
+                <li>Amount Planned: ${{ transaction.amount_actual }}</li>        
+                <li>Category: {{ transaction.cat1 }}</li>
+                <li>SubCategory: {{ transaction.cat2 }}</li>
+            </ul>
+        {% empty %}
+            <li>No transaction in this connection.</li>
+        {% endfor %}
+        {% for budgetedevent in budgetedevents %}
+        <li>Recurring Event: <a href="{% url 'budgetdb:details_be' budgetedevent.id %}">{{ budgetedevent.description }}</a>
+            <ul>
+                <li>Amount Planned: ${{ budgetedevent.amount_planned }}</li>
+                <li>Category: {{ budgetedevent.cat1 }}</li>
+                <li>SubCategory: {{ budgetedevent.cat2 }}</li>
+            </ul>
+        {% empty %}
+            <li>No recurring event in this connection.</li>
+        {% endfor %}
+        </li>  
+        
+    </ul>
+</div>
+<div class="clearfix">
+    <a class="btn btn-info left" href="{% url 'budgetdb:update_joinedtransactionsconfig' jt.id %}"> Modify </a>
+</div>
+
+{% endblock %}

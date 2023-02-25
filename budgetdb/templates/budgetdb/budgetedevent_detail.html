@@ -12,6 +12,11 @@
 
     <!--budgetedevent_detail-->
     <div id="details">
+        {% if object.is_deleted == True %} 
+        <div class="alert alert-warning" role="alert">
+            Deleted!
+          </div>
+        {% endif %}
         <h2>{{ object.description }}</h2>
         <ul>
             <li>Amount Planned: {{ object.amount_planned }}</li>
@@ -23,11 +28,122 @@
             <li>Destination: 
                 {% if object.account_destination != None %} 
                     <a href="{% url 'budgetdb:list_account_activity' object.account_destination.id %}"> {{ object.account_destination }} </a>
-                    {% endif %}
+                {% endif %}
             </li>
             <li>Category: {{ object.cat1 }}</li>
             <li>SubCategory: {{ object.cat2 }}</li>
-            <li>Vendor:  {% if object.vendor != None %}  {{ object.vendor }} {% endif %}</li>    
+            <li>Vendor:  {% if object.vendor != None %}  {{ object.vendor }} {% endif %}</li>  
+            {% if object.isrecurring != None %} 
+                <li>Start of recurrence: {{ object.repeat_start }}</li>
+                <li>End of recurrence: {{ object.repeat_stop }}</li>
+                <li>Maximum number of events: {{ object.nb_iteration }}</li>
+                {% if object.repeat_interval_days != 0 %} 
+                    <li>Days between events: {{ object.repeat_interval_days }}</li>
+                {% endif %}
+                {% if object.repeat_interval_weeks != 0 %} 
+                    <li>Weeks between events: {{ object.repeat_interval_weeks }}</li>
+                {% endif %}
+                {% if object.repeat_interval_months != 0 %} 
+                    <li>Months between events: {{ object.repeat_interval_months }}</li>
+                {% endif %}
+                {% if object.repeat_interval_years != 0 %} 
+                    <li>Years between events: {{ object.repeat_interval_years }}</li>
+                {% endif %}
+                  
+                <li><!--Effective Week Days-->
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            {% for key, value in dayWeekMapDic.items %}
+                                <th scope="col">{{key}}</th>
+                            {% endfor %}
+                        </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            {% for key, value in dayWeekMapDic.items %}
+                                <td>{%if value %}
+                                    <i class="fas fa-check-circle"></i>
+                                    {% else %}
+                                    <i class="fas fa-circle"></i>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </li>
+                <li><!--Effective Months-->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                {% for key, value in monthMapDic.items %}
+                                    <th scope="col">{{key}}</th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                        <tbody>
+                            <tr>
+                            {% for key, value in monthMapDic.items %}
+                                <td>{%if value %}
+                                    <i class="fas fa-check-circle"></i>
+                                    {% else %}
+                                    <i class="fas fa-circle"></i>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </li>
+                <li><!--Effective Weeks in Month-->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                {% for key, value in weekMonthMapDic.items %}
+                                    <th scope="col">{{key}}</th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                        <tbody>
+                            <tr>
+                            {% for key, value in weekMonthMapDic.items %}
+                                <td>{%if value %}
+                                    <i class="fas fa-check-circle"></i>
+                                    {% else %}
+                                    <i class="fas fa-circle"></i>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </li>
+                <li><!--Effective days in Month-->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                {% for key, value in dayMonthMapDic.items %}
+                                    <th scope="col">{{key}}</th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                        <tbody>
+                            <tr>
+                            {% for key, value in dayMonthMapDic.items %}
+                                <td>{%if value %}
+                                    <i class="fas fa-check-circle"></i>
+                                    {% else %}
+                                    <i class="fas fa-circle"></i>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </li>                
+                {% endif %}
+             
         </ul>
     </div>
      
@@ -44,8 +160,8 @@
             
             <li  {% if transaction.verified == 0 %} class="UNVERIFIED" {% endif %}
             >
-            <a href="{% url 'budgetdb:update_transaction' transaction.id %}">{{ transaction.date_actual }}</a> - 
-                {{ transaction.amount_actual }}$ - 
+            <a href="{% url 'budgetdb:update_transaction' transaction.id %}">{{ transaction.date_actual }}</a>  
+                {{ transaction.amount_actual }}$ -
                 {% if transaction.account_source != None %} From {{transaction.account_source}} {% endif %}
                 {% if transaction.account_destination != None %} To {{transaction.account_destination}} {% endif %}                
                  </li>

@@ -8,14 +8,13 @@
 {% block content %}
 
 {% if cattype_list %}
-    <ul>
+<ul>
     {% for cattype in cattype_list %}
         <li><a href="{% url 'budgetdb:cattype_max_redirect' cattype.id %}">{{ cattype.name }}</a></li>
+    {% empty %}
+        <li>No category type available.</li>
     {% endfor %}
-    </ul>
-{% else %}
-    <p>No category types are available.</p>
-{% endif %}
+</ul>
 
 <div class="clearfix">
     <a class="btn btn-info top" href="{% url 'budgetdb:create_cattype' %}">Create new category type</a>

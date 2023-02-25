@@ -1,23 +1,28 @@
-
-<script>
-    $(document).on("click", ".open-incident", function (e) {
-      e.preventDefault();
-      var $popup = $("#popup");
-      var popup_url = $(this).data("popup-url");
-      $(".modal-body", $popup).load(popup_url, function () {
-        $popup.modal("show");
-      });
-    });
-  </script>
-
-<div id="popup" class="modal fade" role="dialog">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-body"></div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-info" data-dismiss="modal">Close
-          </button>
-        </div>
-      </div>
+<form method="post" action="">
+    {% csrf_token %}
+  
+   <div class="modal-header">
+      <h5 class="modal-title">Update Transaction</h5>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
     </div>
-  </div>
+  
+    <div class="modal-body">
+      {% for field in form %}
+        <div class="form-group{% if field.errors %} invalid{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for error in field.errors %}
+            <p class="help-block">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      <button type="submit" class="btn btn-primary">Create</button>
+    </div>
+  
+  </form>

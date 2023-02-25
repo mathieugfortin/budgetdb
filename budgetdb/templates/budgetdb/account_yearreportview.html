@@ -1,0 +1,86 @@
+{% extends "budgetdb/base.html" %}
+
+{% block title %}Yearly Report - {{ account_name }}{% endblock %}
+
+{% block content %}
+{% load humanize %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-2 text-left">
+            <a href="{% url 'budgetdb:year_report_account' pk pyear %}" class="btn btn-primary"> {{ pyear }} </a>
+        </div>
+        <div class="col-md-8 fs-3 text-center">
+            {{ account }} - {{ year }} </h1>
+        </div>
+        <div class="col-md-2 text-right">
+            <a href="{% url 'budgetdb:year_report_account' pk nyear %}" class="btn btn-primary text-right"> {{ nyear }} </a>
+        </div>
+    </div>
+</div>
+
+
+{% if reports %}
+    <table class="table">
+        <thread>
+            <tr>
+                <th scole="col">Account</th>
+                <th scole="col">1</th>
+                <th scole="col">2</th>
+                <th scole="col">3</th>
+                <th scole="col">4</th>
+                <th scole="col">5</th>
+                <th scole="col">6</th>
+                <th scole="col">7</th>
+                <th scole="col">8</th>
+                <th scole="col">9</th>
+                <th scole="col">10</th>
+                <th scole="col">11</th>
+                <th scole="col">12</th>
+                <th scole="col">Year</th>
+            </tr>
+        </thread>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>
+                    <a href="{% url 'budgetdb:year_report_account' report.0.accountid year %}" > {{ report.0.accountname }} </a>
+                </td>
+                {% for month in report %}
+                <td>{% if month.balance_end != 0 %}
+                    <button type="button" class="btn btn-primary">${{ month.balance_end|floatformat:2 }}</button> 
+                    {% endif %}
+                    {% if month.deposits != 0 %}
+                    <button type="button" class="btn btn-success">${{ month.deposits|floatformat:2 }}</button>
+                    {% endif %}
+                    {% if month.withdrawals != 0 %}
+                    <button type="button" class="btn btn-danger">${{ month.withdrawals|floatformat:2 }}</button>
+                    {% endif %}
+                    {% if month.dividends != 0 %}
+                    <button type="button" class="btn btn-light">${{ month.dividends|floatformat:2 }}</button>
+                    {% endif %}
+                    {{ month.rate|floatformat:1 }}%</button>
+                </td>
+
+                {% endfor %}
+            </tr>
+            {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>No Report.</p>
+{% endif %}
+
+
+
+
+
+
+
+<div class="clearfix">
+    {% if cat2.editable %}
+    <a class="btn btn-info top" href="{% url 'budgetdb:update_cat2' cat2.id %}">Modify</a>
+    {% endif%}
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
+
+{% endblock %}

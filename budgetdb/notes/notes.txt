@@ -53,3 +53,27 @@ https://django-crum.readthedocs.io/en/latest/
 
 icones:
 https://fontawesome.cc/
+v4
+https://fontawesome.com/v4/icons/
+
+https://stackoverflow.com/questions/30067767/how-do-i-collapse-sections-of-code-in-visual-studio-code-for-windows
+collapse: Ctrl-k-1
+expand Ctrl-k-j
+
+
+debug form post
+    def form_invalid(self, form):
+        a = 1
+        # form.errors
+        return super().form_invalid(form)
+
+    def clean(self, value):
+        a = 1
+        return super().clean(form)
+
+
+
+class visually-hidden
+httpx:
+https://testdriven.io/blog/django-async-views/
+https://enzircle.com/responsive-table-with-django-and-htmx

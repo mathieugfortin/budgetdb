@@ -1,4 +1,4 @@
-{% extends 'budgetdb/basecrispy.html' %}
+{% extends 'budgetdb/base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -8,5 +8,10 @@
 
 {% block content %}
   {% load crispy_forms_tags %}
+  {% if context.form_invalid %}
+    <div class="alert alert-danger" role="alert">
+        {{ context.form_invalid }}
+    </div>
+  {% endif %}
   {% crispy form %}
 {% endblock %}

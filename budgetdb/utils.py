@@ -45,7 +45,8 @@ class Calendar(HTMLCalendar):
         events_per_day = events.filter(date_actual__day=day)
         d = ''
         for event in events_per_day:
-
+            if event.can_view() is False:
+                continue
             if event.audit == 1:
                 d += f'<tr class="AUDIT">'
             elif event.budgetedevent_id is not None and event.verified == 0:

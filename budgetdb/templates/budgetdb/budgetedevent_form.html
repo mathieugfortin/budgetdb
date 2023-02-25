@@ -6,10 +6,15 @@
 
 {% block content %}
   <!--budgetedevent_form v3.0-->
-  <h2>Budgeted Event Form</h2>
-  {% load crispy_forms_tags %}
+  <h2>Recurring Event Form</h2>
+  {% if context.form_invalid %}
+    <div class="alert alert-danger" role="alert">
+        {{ context.form_invalid }}
+    </div>
+  {% endif %}
   {% crispy form %}
 {% endblock %}
+
 {% block script %}
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 

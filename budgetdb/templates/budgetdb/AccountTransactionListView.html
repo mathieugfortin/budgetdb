@@ -1,4 +1,4 @@
-<!-- template name: AccountListActivityView-->
+<!-- template name: AccountTransactionListView-->
 {% extends "budgetdb/base.html" %}
 {% load static %}
 {% block title %}
@@ -109,21 +109,34 @@ tr.VERIFIED button.verify::before {
   content: "\f14a";
 }
 
-
-
-
-
-
 </style>
 
-<h3>{{ account_name }}   <i class="fas fa-chart-line"></i></h3>  
+
+<div class="modal fade" id="transaction-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog mt-5">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="modal">
+    <div class="modal-dialog mt-5" role="document">
+        <div class="modal-content"></div>
+    </div>
+</div>
+
+<h3>{{ account_name }}   <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
+    <i class="fas fa-chart-line"></i>
+</a></h3>  
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 
 <table class="table table-hover table-sm ">
     <tr>
-        <th id=c1><button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' pk %}','popup','width=1000,height=700'); return false;" class="btn btn-dark btn-sm" >
-            <i class="fas fa-plus"></i>
-        </button></th>
+        <th id=c1>
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
+                <i class="fas fa-plus"></i>
+            </button>            
+        </th>
         <th id=c2>Date</th>
         <th id=c3>Statement</th>
         <th id=c4>Description</th>
@@ -134,37 +147,48 @@ tr.VERIFIED button.verify::before {
         <th id=c9>Verified</th>
         <th id=c10>Receipt</th>
         <th id=c11>Balance</th>
-        <th id=c12><button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_audit_from_account' pk %}','popup','width=1000,height=400'); return false;" class="btn btn-dark btn-sm" role="button">Audit</button></th>
+        <th id=c12>
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
+                <i class="fas fa-plus"></i>
+            </button>
+        </th>
     </tr>
 
     {% for event in object_list reversed %}
-    <tr {% if event.audit == 1 %} class="AUDIT" 
-        {% elif event.budgetedevent_id != None and event.verified == 0 and event.ismanual == 1 %} class="UNVERIFIED_MANUAL_BUDGET" 
-        {% elif event.budgetedevent_id != None and event.verified == 1 and event.ismanual == 1 %} class="VERIFIED_MANUAL_BUDGET" 
-        {% elif event.budgetedevent_id != None and event.verified == 0 and event.ismanual == 0 %} class="UNVERIFIED_BUDGET" 
-        {% elif event.budgetedevent_id != None and event.verified == 1 and event.ismanual == 0 %} class="VERIFIED_BUDGET" 
-        {% elif event.verified == 1 and event.ismanual == 1 %} class="VERIFIED_MANUAL" 
-        {% elif event.verified == 0 and event.ismanual == 1 %} class="UNVERIFIED_MANUAL" 
-        {% elif event.verified == 1 %} class="VERIFIED" 
-        {% else %} class="UNVERIFIED" 
-        {% endif %}
+    <tr class="{% if event.audit == 1 %} AUDIT {% endif %}
+        {% if event.budgetedevent_id != None %} BUDGET {% endif %}
+        {% if event.verified == 1 %} VERIFIED  
+        {% elif event.verified == 0 %} UNVERIFIED {% endif %}
+        {% if event.ismanual == 1 %} MANUAL {% endif %}
+        {% if event.receipt == 1 %} RECEIPT  
+        {% elif event.receipt == 0 %} NORECEIPT {% endif %}"
         id=T{{event.id}}
     >
-        <td><button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_from_date_account' event.date_actual|date:'Y-m-d' pk %}','popup','width=1000,height=700'); return false;" >
-            <i class="fas fa-plus"></i> </button>
+        <td>        
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk event.date_actual|date:'Y-m-d' %}" >
+                <i class="fas fa-plus"></i>
+            </button>
         </td>
         <td>{{ event.date_actual|date:'Y-m-d' }}</td>
         <td>{% if event.statement != None %} {{ event.statement }} {% endif %}</td>
-        <td><button target="popup" 
-               onclick="window.open('{% url 'budgetdb:update_transaction_popup' event.id %}','popup','width=1000,height=700'); return false;" 
-               class="btn btn-secondary btn-sm" role="button" >
+        <td><button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' pk event.id %}" >
                 {{ event.description }}
-        </button>
-                {% if event.account_destination and event.account_destination.name != account_name%}
+            </button>
+            
+            {% if event.show_currency == True %}
+                <button  type="button" class="btn btn-info btn-sm">
+                    {{ event.amount_actual_foreign_currency }}
+                    {{ event.currency.name_short }}
+                </button>
+            {% endif %}
+            {% if event.joinedtransaction != None %} 
+                <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_planned|date:'Y-m-d' event.date_actual|date:'Y-m-d'%}"> <i class="fas fa-object-group"></i></a>
+            {% endif %}
+            {% if event.account_destination and event.account_destination.name != account_name%}
                 <a href="{% url 'budgetdb:list_account_activity' event.account_destination.id %}" class="btn btn-info btn-sm" role="button"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </a>
-                {% elif event.account_source and event.account_source.name != account_name %}
+            {% elif event.account_source and event.account_source.name != account_name %}
                 <a href="{% url 'budgetdb:list_account_activity' event.account_source.id %}"  class="btn btn-info btn-sm" role="button">     <i class="fas fa-arrow-left"></i> {{event.account_source}}</a>
-                {% endif %}
+            {% endif %}
         </td>
         <td>{% if event.budgetedevent_id != None %} 
             <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-cog"></i></a>
@@ -190,13 +214,15 @@ tr.VERIFIED button.verify::before {
         </td>
         <td money>
             {% if event.audit == 0 %}
-            {{ event.balance }}
+                {{ event.balance }}
             {% endif %} 
         </td>
         <td>{% if event.audit == 0 %}
-            <button target="popup" onclick="window.open('{% url 'budgetdb:create_transaction_audit_from_account' event.date_actual|date:'Y-m-d' pk event.balance|slugify %}','popup','width=1000,height=400'); return false;" class="btn-default btn-sm audit" role="button"></button>
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk event.date_actual|date:'Y-m-d' event.balance|slugify %}" >
+                <i class="fas fa-plus"></i>
+            </button>
             {% else %} 
-            {{ event.balance }}
+                {{ event.audit_amount }}
             {% endif %} 
         </td>
     </tr>
@@ -205,41 +231,41 @@ tr.VERIFIED button.verify::before {
 
 {% endblock %}
 
-
 {% block script %}
-<script>
-    function toggleverifyT(transaction_id){
-        data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
-        $.post('{% url "budgetdb:toggleverifytransaction_json" %}', data );
-        modifiedtr=document.getElementById('T'+transaction_id)
-        if (modifiedtr.attributes.class.nodeValue=='VERIFIED')
-            modifiedtr.setAttribute('class','UNVERIFIED');
-        else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED')
-            modifiedtr.setAttribute('class','VERIFIED');
-        else if (modifiedtr.attributes.class.nodeValue=='VERIFIED_BUDGET')
-            modifiedtr.setAttribute('class','UNVERIFIED_BUDGET');
-        else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED_BUDGET')
-            modifiedtr.setAttribute('class','VERIFIED_BUDGET');
-        else if (modifiedtr.attributes.class.nodeValue=='VERIFIED_MANUAL')
-            modifiedtr.setAttribute('class','UNVERIFIED_MANUAL');
-        else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED_MANUAL')
-            modifiedtr.setAttribute('class','VERIFIED_MANUAL');
-        else if (modifiedtr.attributes.class.nodeValue=='VERIFIED_MANUAL_BUDGET')
-            modifiedtr.setAttribute('class','UNVERIFIED_MANUAL_BUDGET');
-        else if (modifiedtr.attributes.class.nodeValue=='UNVERIFIED_MANUAL_BUDGET')
-            modifiedtr.setAttribute('class','VERIFIED_MANUAL_BUDGET');
+  
 
-    }
-   
-    function togglereceiptT(transaction_id){
-        data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
-        $.post('{% url "budgetdb:togglereceipttransaction_json" %}', data );
-        modifiedtr=document.getElementById('R'+transaction_id)
-        if (modifiedtr.attributes.class.nodeValue=='btn btn-default btn-sm receipt NORECEIPT')
-            modifiedtr.setAttribute('class','btn btn-default btn-sm receipt RECEIPT');
-        else if (modifiedtr.attributes.class.nodeValue=='btn btn-default btn-sm receipt RECEIPT')
-            modifiedtr.setAttribute('class','btn btn-default btn-sm receipt NORECEIPT');
-    }
-     
+
+<script type="text/javascript">
+    $(document).ready(function () {
+          $(".update-transaction").each(function () {
+            $(this).modalForm({
+              formURL: $(this).data("form-url")
+            });
+          });
+    });
 </script>
+
+
+
+    <script>
+        function toggleverifyT(transaction_id){
+            data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
+            $.post('{% url "budgetdb:toggleverifytransaction_json" %}', data );
+            modifiedtr=document.getElementById('T'+transaction_id)
+            modifiedtr.classList.toggle('UNVERIFIED');
+            modifiedtr.classList.toggle('VERIFIED');
+        }
+    
+        function togglereceiptT(transaction_id){
+            data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
+            $.post('{% url "budgetdb:togglereceipttransaction_json" %}', data );
+            modifiedButton=document.getElementById('R'+transaction_id)
+            modifiedtr=document.getElementById('T'+transaction_id)
+            modifiedButton.classList.toggle('RECEIPT');
+            modifiedButton.classList.toggle('NORECEIPT');
+            modifiedtr.classList.toggle('RECEIPT');
+            modifiedtr.classList.toggle('NORECEIPT');
+        }
+    </script>
+
 {% endblock %}

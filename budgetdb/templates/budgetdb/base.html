@@ -1,18 +1,18 @@
 {% load static %}
 {% block head_comment %}{% endblock %}
 <!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
-        <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
-               
-        {% block headblock %}{% endblock %}
-        <title>{% block title %}The I'm not crazy, you're crazy! Budget{% endblock %}</title>
-           
-    </head>
+<html lang="en-ca">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">       
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+            
+    {% block headblock %}{% endblock %}
+    <title>{% block title %}The I'm not crazy, you're crazy! Budget{% endblock %}</title>
+        
+</head>
 <body>
     {% csrf_token %}
 
@@ -48,17 +48,17 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="transaction_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a>
-<!--                        <a class="dropdown-item" href="{% url 'budgetdb:list_transaction' %}">All transaction</a>     
-                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>           removed, need to think about permissions       -->
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_transaction2' %}">All transaction</a>     
+<!--                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>           removed, need to think about permissions       -->
                     </div>
                 </li>
-                <li class="nav-item dropdown">
+    <!--            <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Transactions per categories
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="categories_menu">
                     </div>
-                </li>
+                </li>  -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Accounts
@@ -97,6 +97,9 @@
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="transaction_menu">
                         <a class="dropdown-item" href="{% url 'budgetdb:list_unverified_transaction' %}">Old Unverified</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_manual_transaction' %}">Manual</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_deleted_transaction' %}">Deleted</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_anormal_be' %}">Recurrent no transaction</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_anormal2_be' %}">Recurrent no unverified</a>
                     </div>
                 </li>
   
@@ -114,12 +117,15 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" >
                         <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preferences</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_friend' %}">Invitations</a>
                         <a class="dropdown-item" href="{% url 'admin:logout' %}">Logout</a>
                     </div>
                 </li>
                 {% else %}
                 <li class="nav-item active">
-                    <a class="nav-link" href="{% url 'admin:login' %}?next={% url 'budgetdb:home' %}">Please Login</a>
+                    <a class="nav-link" href="{% url 'budgetdb:login' %}?next={% url 'budgetdb:home' %}">Please Login</a>
+                    <a class="nav-link" href="{% url 'budgetdb:signup' %}?next={% url 'budgetdb:home' %}">or register</a>
+                    
                 </li>                
                 {% endif %}
         </ul>
@@ -128,20 +134,17 @@
     </nav>
     {% endblock %}
 
-    <div id="content">
 
-        {% block content %}{% endblock %}
-    </div>
 
-    <!-- Optional JavaScript -->
+    {% block content %}{% endblock %}
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
- 
-
     <script src="https://kit.fontawesome.com/860aa3fdee.js" crossorigin="anonymous"></script>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script> 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
-    
-    <script>
+
+<script>
 
     var begin_interval;
     var end_interval;
@@ -161,7 +164,7 @@
     function tsToDate(ts) {
         var d = new Date(ts);
     
-        return d.toLocaleDateString('en-CA', {
+        return d.toLocaleDateString('fr-CA', {
             year: 'numeric',
             month: 'numeric',
             day: 'numeric'
@@ -233,6 +236,8 @@
 
 
     </script>
+    <script src="{% static 'js/jquery.bootstrap.modal.forms.js' %}"></script>
+    <!--<script src="{% static 'js/jquery.bootstrap.modal.forms.min.js' %}"></script>-->
     {% block script %}{% endblock %}
   </body>
 </html>
