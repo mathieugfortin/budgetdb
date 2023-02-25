@@ -1,0 +1,23 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+
+{% block title %}Pending Invites{% endblock %}
+
+{% block content %}
+
+<ul>
+{% for friend in object_list %}
+    <li><a href="{% url 'budgetdb:friend_max_redirect' cattype.id %}"></a>{{ friend.email }}</a></li>
+{% empty %}
+    <li>No pending invite</li>
+{% endfor %}
+</ul>
+
+<div class="clearfix">
+    <a class="btn btn-info top" href="{% url 'budgetdb:create_friend' %}">Invite someone</a>
+    <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
+</div>
+
+{% endblock %}

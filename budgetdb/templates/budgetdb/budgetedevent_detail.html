@@ -12,6 +12,11 @@
 
     <!--budgetedevent_detail-->
     <div id="details">
+        {% if object.is_deleted == True %} 
+        <div class="alert alert-warning" role="alert">
+            Deleted!
+          </div>
+        {% endif %}
         <h2>{{ object.description }}</h2>
         <ul>
             <li>Amount Planned: {{ object.amount_planned }}</li>
@@ -155,8 +160,8 @@
             
             <li  {% if transaction.verified == 0 %} class="UNVERIFIED" {% endif %}
             >
-            <a href="{% url 'budgetdb:update_transaction' transaction.id %}">{{ transaction.date_actual }}</a> - 
-                {{ transaction.amount_actual }}$ - 
+            <a href="{% url 'budgetdb:update_transaction' transaction.id %}">{{ transaction.date_actual }}</a>  
+                {{ transaction.amount_actual }}$ -
                 {% if transaction.account_source != None %} From {{transaction.account_source}} {% endif %}
                 {% if transaction.account_destination != None %} To {{transaction.account_destination}} {% endif %}                
                  </li>

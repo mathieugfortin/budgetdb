@@ -3,7 +3,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
+from budgetdb.tables import BudgetedEventListTable
 from budgetdb.forms import BudgetedEventForm
+from budgetdb.filters import BudgetedEventFilter
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
@@ -11,14 +13,51 @@ from crispy_forms.layout import Submit
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from decimal import *
+from django_tables2 import SingleTableView, SingleTableMixin
+from django_filters.views import FilterView
 
 
-class budgetedEventsListView(LoginRequiredMixin, ListView):
+# class budgetedEventsListView(LoginRequiredMixin, ListView):
+class budgetedEventsListView(LoginRequiredMixin, SingleTableMixin, FilterView):
     model = BudgetedEvent
-    context_object_name = 'budgetedevent_list'
+    table_class = BudgetedEventListTable
+    filterset_class = BudgetedEventFilter
+    template_name = "budgetdb/budgetedevent_list.html"
 
     def get_queryset(self):
-        return BudgetedEvent.view_objects.order_by('description')
+        return BudgetedEvent.view_objects.filter(is_deleted=False).order_by('description')
+
+
+class budgetedEventsAnormalListView(LoginRequiredMixin, SingleTableMixin, FilterView):
+    model = BudgetedEvent
+    table_class = BudgetedEventListTable
+    filterset_class = BudgetedEventFilter
+    template_name = "budgetdb/budgetedevent_list.html"
+
+    def get_queryset(self):
+        # transactions = Transaction.objects.filter(budgetedevent=self.id, is_deleted=False)
+        # last_transaction = transactions.order_by('-date_actual').first()
+        # if last_transaction is None:
+        a = 2
+        # return BudgetedEvent.view_objects.filter(is_deleted=False, transaction=None).order_by('description')
+        return BudgetedEvent.view_objects.filter(is_deleted=False, transaction=None).order_by('description')
+
+
+class budgetedEventsAnormal2ListView(LoginRequiredMixin, SingleTableMixin, FilterView):
+    model = BudgetedEvent
+    table_class = BudgetedEventListTable
+    filterset_class = BudgetedEventFilter
+    template_name = "budgetdb/budgetedevent_list.html"
+
+    def get_queryset(self):
+        # transactions = Transaction.objects.filter(budgetedevent=self.id, is_deleted=False)
+        # last_transaction = transactions.order_by('-date_actual').first()
+        # if last_transaction is None:
+        a = 2
+        # return BudgetedEvent.view_objects.filter(is_deleted=False, transaction=None).order_by('description')
+        with_unverified = BudgetedEvent.view_objects.filter(is_deleted=False, transaction__verified=False).distinct()
+        without_unverified = BudgetedEvent.view_objects.filter(is_deleted=False, repeat_stop__gt=date.today()).exclude(id__in=with_unverified)
+        return without_unverified
 
 
 class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -89,6 +128,7 @@ class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         context = self.get_context_data()
+
         daysOfWeek = form.cleaned_data.get('daysOfWeek')
         monthsOfYear = form.cleaned_data.get('monthsOfYear')
         weeksOfMonth = form.cleaned_data.get('weeksOfMonth')

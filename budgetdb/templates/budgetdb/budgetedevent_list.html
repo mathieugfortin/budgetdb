@@ -3,18 +3,28 @@
 {% block title %}Recurring Transactions{% endblock %}
 
 {% block content %}
-    <!--budgetedevent_list v2-->
+    <!--budgetedevent_list v3-->
+    {% load render_table from django_tables2 %}
+ 
+    {% if filter %}
+        <form action="" method="get" class="form form-inline">
+            {{ filter.form.as_p }}
+        </form>
+    {% endif %}
 
+    {% render_table table %}
+
+    <!--
     {% if budgetedevent_list %}
-    <h2>Recurring Event List</h2>
-    <ul>
-    {% for budgetedevent in budgetedevent_list %}
-        <li><a href="{% url 'budgetdb:details_be' budgetedevent.id %}">{{ budgetedevent.description }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No budgeted Events are available.</p>
-{% endif %}
+        <h2>Recurring Event List</h2>
+        <ul>
+        {% for budgetedevent in budgetedevent_list %}
+            <li><a href="{% url 'budgetdb:details_be' budgetedevent.id %}">{{ budgetedevent.description }}</a> - {{ budgetedevent.lastTransactionDate }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No budgeted Events are available.</p>
+    {% endif %} -->
 <div class="clearfix">
     <a class="btn btn-info top" href="{% url 'budgetdb:create_be' %}">Create new event</a>
 </div>

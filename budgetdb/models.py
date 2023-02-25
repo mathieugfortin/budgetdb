@@ -136,6 +136,21 @@ class Preference(models.Model):
     # add ordre of listing, old first/ new first
 
 
+class Friend(BaseSoftDelete, UserPermissions):
+    class Meta:
+        verbose_name = 'Invitation'
+        verbose_name_plural = 'Invitations'
+        ordering = ['email']
+
+    email = models.EmailField(max_length=254, blank=False, null=False)
+
+    def __str__(self):
+        return self.email
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:list_friend')
+
+
 class AccountBalances(models.Model):
     db_date = models.DateField(blank=True)
     account = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
@@ -185,7 +200,7 @@ class Currency(models.Model):
     class Meta:
         verbose_name = 'Currency'
         verbose_name_plural = 'Currencies'
-        ordering = ['priority']
+        ordering = ['priority', 'name']
 
     name = models.CharField(max_length=200)
     name_short = models.CharField(max_length=10)
@@ -943,7 +958,8 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
     def save(self, *args, **kwargs):
         super(BudgetedEvent, self).save(*args, **kwargs)
         self.deleteUnverifiedTransaction()
-        self.createTransactions()
+        if self.is_deleted is False:
+            self.createTransactions()
 
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns
@@ -1079,6 +1095,14 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         transactions.delete()
         self.generated_interval_start = None
         self.generated_interval_stop = None
+
+    def lastTransactionDate(self):
+        transactions = Transaction.objects.filter(budgetedevent=self.id, is_deleted=False)
+        last_transaction = transactions.order_by('-date_actual').first()
+        if last_transaction is None:
+            return "No Transaction"
+        else:
+            return last_transaction.date_actual
 
 
 class Statement (BaseSoftDelete, UserPermissions):

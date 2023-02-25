@@ -1,7 +1,7 @@
 {% load static %}
 {% block head_comment %}{% endblock %}
 <!doctype html>
-<html lang="en">
+<html lang="en-ca">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -98,6 +98,8 @@
                         <a class="dropdown-item" href="{% url 'budgetdb:list_unverified_transaction' %}">Old Unverified</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_manual_transaction' %}">Manual</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_deleted_transaction' %}">Deleted</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_anormal_be' %}">Recurrent no transaction</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_anormal2_be' %}">Recurrent no unverified</a>
                     </div>
                 </li>
   
@@ -115,12 +117,15 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" >
                         <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preferences</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:list_friend' %}">Invitations</a>
                         <a class="dropdown-item" href="{% url 'admin:logout' %}">Logout</a>
                     </div>
                 </li>
                 {% else %}
                 <li class="nav-item active">
-                    <a class="nav-link" href="{% url 'admin:login' %}?next={% url 'budgetdb:home' %}">Please Login</a>
+                    <a class="nav-link" href="{% url 'budgetdb:login' %}?next={% url 'budgetdb:home' %}">Please Login</a>
+                    <a class="nav-link" href="{% url 'budgetdb:signup' %}?next={% url 'budgetdb:home' %}">or register</a>
+                    
                 </li>                
                 {% endif %}
         </ul>

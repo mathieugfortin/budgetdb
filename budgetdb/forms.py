@@ -1,6 +1,6 @@
 from django import forms
 from django.shortcuts import get_object_or_404
-from .models import User, Preference
+from .models import User, Preference, Friend
 from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement
 from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
@@ -96,7 +96,7 @@ class AccountForm(forms.ModelForm):
         self.fields["account_host"].queryset = AccountHost.view_objects.all()
         self.fields["account_parent"].queryset = Account.view_objects.all()
         user = get_current_user()
-        self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
+        self.fields['currency'].queryset = Preference.objects.get(user=user).currencies
         self.helper.layout = Layout(
             Div(
                 Div('name', css_class='form-group col-md-4  '),
@@ -157,6 +157,26 @@ class AccountHostForm(forms.ModelForm):
                 css_class='row'
             ),
         )
+
+
+class FriendForm(forms.ModelForm):
+    class Meta:
+        model = Friend
+        fields = (
+            'email',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'FriendForm'
+        self.helper.layout = Layout(
+            Div(
+                Div('email', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+        )
+
 
 
 class VendorForm(forms.ModelForm):
@@ -383,6 +403,7 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
             'account_destination',
             'budget_only',
             'isrecurring',
+            'is_deleted',
             'repeat_interval_days',
             'repeat_interval_weeks',
             'repeat_interval_months',
@@ -480,6 +501,7 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
                 Div(
                     Div('budget_only', css_class='form-group col-md-4  '),
                     Div('ismanual', css_class='form-group col-md-4  '),
+                    Div('is_deleted', css_class='form-group col-md-4  '),
                     Field('isrecurring', css_class='form-group col-md-4  ', type="hidden"),
                     # css_class='row'
                 ),
@@ -493,10 +515,10 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
                     Div('repeat_interval_weeks', css_class='form-group col-md-2  '),
                     Div('repeat_interval_months', css_class='form-group col-md-2  '),
                     Div('repeat_interval_years', css_class='form-group col-md-2  '),
-                    Field('repeat_weekday_mask', css_class='form-group col-md-2  ', type="hidden"),
-                    Field('repeat_months_mask', css_class='form-group col-md-2  ', type="hidden"),
-                    Field('repeat_dayofmonth_mask', css_class='form-group col-md-2  ', type="hidden"),
-                    Field('repeat_weekofmonth_mask', css_class='form-group col-md-2  ', type="hidden"),
+                    Field('repeat_weekday_mask', type="hidden"),
+                    Field('repeat_months_mask', type="hidden"),
+                    Field('repeat_dayofmonth_mask', type="hidden"),
+                    Field('repeat_weekofmonth_mask', type="hidden"),
                     css_class='row'
                 ),
                 Div(
@@ -546,6 +568,7 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
                     Field('repeat_interval_months', css_class='form-group col-md-2  ', type="hidden"),
                     Field('repeat_interval_years', css_class='form-group col-md-2  ', type="hidden"),
                     Field('isrecurring', css_class='form-group col-md-4  ', type="hidden"),
+                    Field('is_deleted', css_class='form-group col-md-4  ', type="hidden"),
                     Field('repeat_start', css_class='form-group col-md-4  ', type="hidden"),
                     Field('repeat_stop', css_class='form-group col-md-4  ', type="hidden"),
                     Field('repeat_weekday_mask', css_class='form-group col-md-2  ', type="hidden"),
@@ -560,7 +583,15 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
                     css_class='row'
                 ),
                 Div(
-                    HTML("<h3><i class='fas fa-exclamation-triangle'></i>This event is part of a Joint Transaction.</h3> <h3>If you want to modify the recurrence, do it through the joint transaction</h3>"),
+                    HTML("<h3><i class='fas fa-exclamation-triangle'></i>This event is part of a Joint Transaction.</h3> <h3>If you want to modify the recurrence timing, do it through the joint transaction</h3>"),
+                    css_class='row'
+                ),
+                HTML("<h4>Recurrence mask</h4>"),
+                Div(
+                    Div('daysOfWeek', css_class='form-group col-md-2  '),
+                    Div('weeksOfMonth', css_class='form-group col-md-2  '),
+                    Div('monthsOfYear', css_class='form-group col-md-2  '),
+                    Div('daysOfMonth', css_class='form-group col-md-2  '),
                     css_class='row'
                 ),
             )
@@ -747,9 +778,9 @@ class TransactionFormFull(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         user = get_current_user()
-
+        preference = Preference.objects.get(user=user.id)
         self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
+        self.fields['currency'].queryset = preference.currencies
 
         if 'cat1' in self.data:
             try:
@@ -765,8 +796,8 @@ class TransactionFormFull(forms.ModelForm):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
-            self.fields['currency'].initial = Preference.objects.get(pk=user.id).currency_prefered
-            self.fields['currency'].data = Preference.objects.get(pk=user.id).currency_prefered
+            self.fields['currency'].initial = preference.currency_prefered
+            self.fields['currency'].data = preference.currency_prefered
 
         # doublon? self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
         self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
@@ -922,6 +953,8 @@ class PreferenceForm(forms.ModelForm):
                 format=('%Y-%m-%d'),
                 attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
             ),
+            'currencies': forms.CheckboxSelectMultiple(
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -935,7 +968,13 @@ class PreferenceForm(forms.ModelForm):
             ),
             Div(
                 Div('min_interval_slider', css_class='form-group col-md-4  '),
-                Div('min_interval_slider', css_class='form-group col-md-4  '),
+                Div('max_interval_slider', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div(
+                Div('currencies', css_class='form-group col-md-4  '),
+                Div('currency_prefered', css_class='form-group col-md-4  '),
+                Field('user', type="hidden"),
                 css_class='row'
             ),
         )
@@ -1128,7 +1167,7 @@ class TransactionModalForm(BSModalModelForm):
         if audit_view is False:
             self.helper.layout.extend([
                 Div(
-                    # Div(PrependedText('amount_actual', '$', css_class='form-group col-3')),
+                    # Div(PrependedText('amount_actual', '$', css_class='form-group col-3 input-group-sm')),
                     Div('amount_actual', css_class='form-group col-4'),
                     Div('currency', css_class='form-group col-4'),
                     Div('amount_actual_foreign_currency', css_class='form-group col-4  '),
@@ -1172,7 +1211,7 @@ class TransactionModalForm(BSModalModelForm):
         else:
             self.helper.layout.extend([
                 Div(
-                    Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6    ')),
+                    Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6', input_size="input-group-sm")),
                     Field('account_source', type='hidden'),
                     Field('currency', type='hidden'),
                     Field('audit', type='hidden'),

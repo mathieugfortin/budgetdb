@@ -20,14 +20,15 @@ STATIC_ROOT = public_root('static')
 STATIC_URL = env.str('STATIC_URL', default='/static/')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-LOGIN_URL = reverse_lazy('admin:login')
+LOGIN_URL = reverse_lazy('budgetdb:login')
 LOGOUT_REDIRECT_URL = reverse_lazy('budgetdb:home')
 
 
 SECRET_KEY = env.str('SECRET_KEY')
 
 ALLOWED_HOSTS = [
-    env.str('APP_HOST')
+    env.str('APP_HOST1'),
+    env.str('APP_HOST2'),
 ]
 
 # Application definition
@@ -47,13 +48,16 @@ INSTALLED_APPS = [
     # 'debug_toolbar',
     'chartjs',
     'bootstrap_modal_forms',
-    'dal',
-    'dal_select2',
+    # 'dal',
+    # 'dal_select2',
+    'django_tables2',
+    'django_filters',
 ]
 
 AUTH_USER_MODEL = 'budgetdb.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+DJANGO_TABLES2_TEMPLATE = 'django_tables2/bootstrap5.html'
 CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
                         'https://code-server.patatemagique.biz',
                         'http://code-server.patatemagique.biz:880',
@@ -135,8 +139,8 @@ INTERNAL_IPS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 LANGUAGES = (
-    ('en', _('English')),
-    ('fr', _('Francais')),
+    ('en-ca', _('English')),
+    ('fr-ca', _('Francais')),
 )
 
 LANGUAGE_CODE = 'en-CA'

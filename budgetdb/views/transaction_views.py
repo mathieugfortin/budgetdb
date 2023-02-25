@@ -27,7 +27,7 @@ from crum import get_current_user
 # Transactions
 
 
-class TransactionDetailView(LoginRequiredMixin, MyDetailView):
+class TransactionDetailView(MyDetailView):
     model = Transaction
     template_name = 'budgetdb/transaction_detail.html'
 
@@ -547,7 +547,6 @@ class TransactionListView(LoginRequiredMixin, ListView):
 
 
 class TransactionList2View(LoginRequiredMixin, ListView):
-    # Patate rebuild this without calendar to gain speed
     model = Transaction
     context_object_name = 'calendar_list'
     template_name = 'budgetdb/transaction_list2.html'
@@ -569,13 +568,6 @@ class TransactionList2View(LoginRequiredMixin, ListView):
 
         qs = Transaction.view_objects.filter(date_actual__gt=begin, date_actual__lte=end, is_deleted=False).order_by('date_actual', 'audit')
         return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context['now_month'] = date.today().month
-        context['now_year'] = date.today().year
-        return context
 
 
 class TransactionUnverifiedListView(LoginRequiredMixin, ListView):

@@ -7,19 +7,19 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, FormView
 from django.views.generic.base import RedirectView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth import login
 from dal import autocomplete
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from budgetdb.models import Preference, User
+from budgetdb.models import Preference, User, Friend
 from budgetdb.models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatType, Statement, Vendor
 from budgetdb.models import MyCalendar, AccountPresentation, CatSums
 from budgetdb.models import BudgetedEvent, Transaction, JoinedTransactions
 from budgetdb.utils import Calendar
-from budgetdb.forms import UserSignUpForm, PreferenceForm
+from budgetdb.forms import UserSignUpForm, PreferenceForm, FriendForm
 from budgetdb.forms import AccountForm, AccountCategoryForm, AccountHostForm, Cat1Form, Cat2Form, CatTypeForm, StatementForm, VendorForm
 from decimal import *
 from crispy_forms.helper import FormHelper
@@ -42,19 +42,7 @@ COLORS = [
 ]
 
 
-class AjaxTemplateMixin(object):
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(self, 'ajax_template_name'):
-            split = self.template_name.split('.html')
-            split[-1] = '_inner'
-            split.append('.html')
-            self.ajax_template_name = ''.join(split)
-        if request.is_ajax():
-            self.template_name = self.ajax_template_name
-        return super(AjaxTemplateMixin, self).dispatch(request, *args, **kwargs)
-
-
-class MyUpdateView(UserPassesTestMixin, UpdateView):
+class MyUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'budgetdb/generic_form.html'
     task = 'Update'
 
@@ -81,7 +69,7 @@ class MyUpdateView(UserPassesTestMixin, UpdateView):
         return form
 
 
-class MyCreateView(CreateView):
+class MyCreateView(LoginRequiredMixin, CreateView):
     template_name = 'budgetdb/generic_form.html'
     task = 'Create'
 
@@ -100,7 +88,7 @@ class MyCreateView(CreateView):
         return form
 
 
-class MyDetailView(UserPassesTestMixin, DetailView):
+class MyDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
         return view_object.can_view()
@@ -112,6 +100,11 @@ class MyDetailView(UserPassesTestMixin, DetailView):
         my_object = super().get_object(queryset=queryset)
         my_object.editable = my_object.can_edit()
         return my_object
+
+
+class MyListView(LoginRequiredMixin, ListView):
+    def get_queryset(self):
+        return self.model.view_objects.filter(is_deleted=False)
 
 
 def next_color(color_list=COLORS):
@@ -153,6 +146,8 @@ def TransactionReceiptToggleJSON(request):
 
 
 def PreferenceGetJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=204)
     preference = Preference.objects.get(user=request.user.id)
     transactions = Transaction.objects.filter(is_deleted=False).order_by("date_actual")
 
@@ -191,6 +186,8 @@ def GetAccountViewListJSON(request):
 
 
 def GetAccountDetailedViewListJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=204)
     queryset = Account.view_objects.filter(is_deleted=False)
     queryset = queryset.order_by("account_host", "name")
 
@@ -199,7 +196,7 @@ def GetAccountDetailedViewListJSON(request):
     for entry in queryset:
         namestring = entry.account_host.name
         if entry.owner != get_current_user():
-            namestring = namestring + " - " + entry.owner.username
+            namestring = namestring + " - " + entry.owner.username.capitalize()
         namestring = namestring + " - " + entry.name
         array.append([{"pk": entry.pk}, {"name": namestring}])
 
@@ -207,6 +204,8 @@ def GetAccountDetailedViewListJSON(request):
 
 
 def GetAccountCatViewListJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=204)
     queryset = AccountCategory.view_objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
@@ -219,6 +218,8 @@ def GetAccountCatViewListJSON(request):
 
 
 def GetAccountHostViewListJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=204)
     queryset = AccountHost.view_objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
@@ -255,6 +256,8 @@ def GetCat1ListJSON(request):
 
 
 def GetCatTypeListJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=204)
     queryset = CatType.objects.filter(is_deleted=False)
     queryset = queryset.order_by("name")
 
@@ -481,9 +484,9 @@ def timeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
 
     if accountcategoryID is None or accountcategoryID == 'None':
-        accounts = Account.view_objects.filter(is_deleted=False).order_by('name')
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host', 'name')
     else:
-        accounts = Account.view_objects.filter(is_deleted=False, account_categories=accountcategoryID).order_by('name')
+        accounts = Account.view_objects.filter(is_deleted=False, account_categories=accountcategoryID).order_by('account_host', 'name')
 
     preference = get_object_or_404(Preference, user=request.user.id)
     begin = preference.start_interval
@@ -619,76 +622,19 @@ class timeline2(TemplateView):
 
         accountcategoryID = self.request.GET.get('ac', None)
 
-        accountcategory = get_object_or_404(AccountCategory, pk=accountcategoryID)
-        if not accountcategory.can_view():
-            raise PermissionDenied
-
-        context['accountcategory'] = accountcategory
+        if accountcategoryID is not None:
+            accountcategory = get_object_or_404(AccountCategory, pk=accountcategoryID)
+            if not accountcategory.can_view():
+                raise PermissionDenied
+            context['accountcategory'] = accountcategory
+        else:
+            context['accountcategory'] = None
 
         accountcategories = AccountCategory.view_objects.filter(is_deleted=False)
         context['accountcategories'] = accountcategories
 
         context['ac'] = accountcategoryID
         return context
-
-###################################################################################################################
-# Autocomplete
-
-
-class AutocompleteAccount(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Account.objects.none()
-
-        qs = Account.view_objects.filter(is_deleted=False)
-
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-
-        return qs
-
-
-class AutocompleteCat1(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Cat1.objects.none()
-
-        qs = Cat1.view_objects.filter(is_deleted=False)
-
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-
-        return qs
-
-
-class AutocompleteCat2(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Cat2.objects.none()
-
-        qs = Cat2.view_objects.filter(is_deleted=False)
-        category = self.forwarded.get('cat1', None)
-
-        if category:
-            qs = qs.filter(cat1=category)
-
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-
-        return qs
-
-
-class AutocompleteVendor(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Vendor.objects.none()
-
-        qs = Vendor.view_objects.filter(is_deleted=False)
-
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-
-        return qs
 
 
 class ObjectMaxRedirect(RedirectView):
@@ -717,23 +663,47 @@ class ObjectMaxRedirect(RedirectView):
 
 class AccountListViewSimple(LoginRequiredMixin, ListView):
     model = Account
-    context_object_name = 'account_list'
-    template_name = 'budgetdb/account_list_simple.html'
+    # context_object_name = 'account_list'
+    # template_name = 'budgetdb/account_list_simple.html'
 
     def get_queryset(self):
         accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
-        # accounts = Account.view_objects.filter(is_deleted=False).order_by('name').order_by('account_host__name', 'name')
-        for account in accounts:
-            account.my_categories = AccountCategory.view_objects.filter(accounts=account)
         return accounts
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        decorated = []
+        for account in self.object_list:
+            account.my_categories = AccountCategory.view_objects.filter(accounts=account)
+            decorated.append(account)
+        context['decorated'] = decorated
+        return context
 
-class AccountDetailView(LoginRequiredMixin, MyDetailView):
+
+class AccountDetailView(MyDetailView):
     model = Account
-    template_name = 'budgetdb/account_detail.html'
 
 
-class AccountYearReportDetailView(LoginRequiredMixin, MyDetailView):
+class AccountSummaryView(LoginRequiredMixin, ListView):
+    model = Account
+    template_name = 'budgetdb/account_list_summary.html'
+
+    def get_queryset(self):
+        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
+        accounts = accounts.exclude(date_closed__lt=datetime.today())
+        return accounts
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        decorated = []
+        for account in self.object_list:
+            account.balance = account.balance_by_EOD(datetime.today())
+            decorated.append(account)
+        context['decorated'] = decorated
+        return context
+
+
+class AccountYearReportDetailView(MyDetailView):
     model = Account
     template_name = 'budgetdb/account_yearreportview.html'
 
@@ -751,7 +721,7 @@ class AccountYearReportDetailView(LoginRequiredMixin, MyDetailView):
         return context
 
 
-class AccountCatYearReportDetailView(LoginRequiredMixin, MyDetailView):
+class AccountCatYearReportDetailView(MyDetailView):
     model = AccountCategory
     template_name = 'budgetdb/account_yearreportview.html'
 
@@ -767,12 +737,12 @@ class AccountCatYearReportDetailView(LoginRequiredMixin, MyDetailView):
         return context
 
 
-class AccountUpdateView(LoginRequiredMixin, MyUpdateView):
+class AccountUpdateView(MyUpdateView):
     model = Account
     form_class = AccountForm
 
 
-class AccountCreateView(LoginRequiredMixin, MyCreateView):
+class AccountCreateView(MyCreateView):
     model = Account
     form_class = AccountForm
 
@@ -795,7 +765,7 @@ class AccountCatListView(LoginRequiredMixin, ListView):
         return AccountCategory.view_objects.filter(is_deleted=False).order_by('name')
 
 
-class AccountCatDetailView(LoginRequiredMixin, MyDetailView):
+class AccountCatDetailView(MyDetailView):
     model = AccountCategory
 
     def get_object(self, queryset=None):
@@ -805,12 +775,12 @@ class AccountCatDetailView(LoginRequiredMixin, MyDetailView):
         return category
 
 
-class AccountCatUpdateView(LoginRequiredMixin, MyUpdateView):
+class AccountCatUpdateView(MyUpdateView):
     model = AccountCategory
     form_class = AccountCategoryForm
 
 
-class AccountCatCreateView(LoginRequiredMixin, MyCreateView):
+class AccountCatCreateView(MyCreateView):
     model = AccountCategory
     form_class = AccountCategoryForm
 
@@ -828,18 +798,18 @@ class AccountHostListView(LoginRequiredMixin, ListView):
         return qs
 
 
-class AccountHostDetailView(LoginRequiredMixin, MyDetailView):
+class AccountHostDetailView(MyDetailView):
     model = AccountHost
     context_object_name = 'accounthost'
     template_name = 'budgetdb/accounthost_detail.html'
 
 
-class AccountHostUpdateView(LoginRequiredMixin, MyUpdateView):
+class AccountHostUpdateView(MyUpdateView):
     model = AccountHost
     form_class = AccountHostForm
 
 
-class AccountHostCreateView(LoginRequiredMixin, MyCreateView):
+class AccountHostCreateView(MyCreateView):
     model = AccountHost
     form_class = AccountHostForm
 
@@ -855,17 +825,24 @@ class Cat1ListView(LoginRequiredMixin, ListView):
         return Cat1.view_objects.filter(is_deleted=False).order_by('name')
 
 
-class Cat1DetailView(LoginRequiredMixin, MyDetailView):
+class Cat1DetailView(MyDetailView):
     model = Cat1
     template_name = 'budgetdb/cat1_detail.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cat1 = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        cat2s = Cat2.view_objects.filter(cat1=cat1, is_deleted=False)
+        context['cat2s'] = cat2s
+        return context
 
-class Cat1UpdateView(LoginRequiredMixin, MyUpdateView):
+
+class Cat1UpdateView(MyUpdateView):
     model = Cat1
     form_class = Cat1Form
 
 
-class Cat1CreateView(LoginRequiredMixin, MyCreateView):
+class Cat1CreateView(MyCreateView):
     model = Cat1
     form_class = Cat1Form
 
@@ -882,17 +859,17 @@ class Cat2ListView(LoginRequiredMixin, ListView):
         return cat2s
 
 
-class Cat2DetailView(LoginRequiredMixin, MyDetailView):
+class Cat2DetailView(MyDetailView):
     model = Cat2
     template_name = 'budgetdb/cat2_detail.html'
 
 
-class Cat2UpdateView(LoginRequiredMixin, MyUpdateView):
+class Cat2UpdateView(MyUpdateView):
     model = Cat2
     form_class = Cat2Form
 
 
-class Cat2CreateView(LoginRequiredMixin, MyCreateView):
+class Cat2CreateView(MyCreateView):
     model = Cat2
     form_class = Cat2Form
 
@@ -917,19 +894,33 @@ class CatTypeListView(LoginRequiredMixin, ListView):
         return CatType.view_objects.filter(is_deleted=False).order_by('name')
 
 
-class CatTypeDetailView(LoginRequiredMixin, MyDetailView):
+class CatTypeDetailView(MyDetailView):
     model = CatType
     template_name = 'budgetdb/cattype_detail.html'
 
 
-class CatTypeUpdateView(LoginRequiredMixin, MyUpdateView):
+class CatTypeUpdateView(MyUpdateView):
     model = CatType
     form_class = CatTypeForm
 
 
-class CatTypeCreateView(LoginRequiredMixin, MyCreateView):
+class CatTypeCreateView(MyCreateView):
     model = CatType
     form_class = CatTypeForm
+
+
+###################################################################################################################
+# Friend
+
+
+class FriendListView(MyListView):
+    model = Friend
+
+
+class FriendCreateView(MyCreateView):
+    model = Friend
+    form_class = FriendForm
+
 
 ###################################################################################################################
 # Vendor
@@ -943,17 +934,17 @@ class VendorListView(LoginRequiredMixin, ListView):
         return Vendor.view_objects.filter(is_deleted=False).order_by('name')
 
 
-class VendorDetailView(LoginRequiredMixin, MyUpdateView):
+class VendorDetailView(MyDetailView):
     model = Vendor
     template_name = 'budgetdb/vendor_detail.html'
 
 
-class VendorUpdateView(LoginRequiredMixin, MyUpdateView):
+class VendorUpdateView(MyUpdateView):
     model = Vendor
     form_class = VendorForm
 
 
-class VendorCreateView(LoginRequiredMixin, MyCreateView):
+class VendorCreateView(MyCreateView):
     model = Vendor
     form_class = VendorForm
 
@@ -969,7 +960,7 @@ class StatementListView(LoginRequiredMixin, ListView):
         return Statement.view_objects.filter(is_deleted=False).order_by('account', 'statement_date')
 
 
-class StatementDetailView(LoginRequiredMixin, MyDetailView):
+class StatementDetailView(MyDetailView):
     model = Statement
     template_name = 'budgetdb/statement_detail.html'
 
@@ -1035,26 +1026,6 @@ class IndexView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Cat1.objects.order_by('name')
-
-
-class AccountSummaryView(LoginRequiredMixin, ListView):
-    model = Account
-    # context_object_name = 'account_list'
-    template_name = 'budgetdb/account_list_detailed.html'
-
-    def get_queryset(self):
-        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
-        accounts = accounts.exclude(date_closed__lt=datetime.today())
-        return accounts
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        decorated = []
-        for account in self.object_list:
-            account.balance = account.balance_by_EOD(datetime.today())
-            decorated.append(account)
-        context['decorated'] = decorated
-        return context
 
 
 class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
@@ -1154,8 +1125,8 @@ class UserLoginView(LoginView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        # julie = User.objects.get(username='Julie')
-        # julie.set_password('letmein')
+        # julie = User.objects.get(username='julie')
+        # julie.set_password('etpatatietpatata')
         # julie.save()
         form.helper = FormHelper()
         form.helper.form_method = 'POST'
@@ -1164,6 +1135,7 @@ class UserLoginView(LoginView):
 
 
 class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
+
     model = Preference
     form_class = PreferenceForm
 
@@ -1185,8 +1157,8 @@ class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
             preference.save()
         return preference
 
-    def form_valid(self, form):
-        return super().form_valid(form)
+    def get_success_url(self):
+        return reverse('budgetdb:home')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
