@@ -230,7 +230,18 @@ class AccountPresentation(BaseSoftDelete):
 
 
 class AccountReport():
-    def __init__(self, accountname=None, accountid=None, isaccountparent=True, year=None, month=None, deposits=None, withdrawals=None, dividends=None, balance_end=None, rate=None, interests=None):
+    def __init__(self,
+                 accountname=None,
+                 accountid=None,
+                 isaccountparent=True,
+                 year=None,
+                 month=None,
+                 deposits=None,
+                 withdrawals=None,
+                 dividends=None,
+                 balance_end=None,
+                 rate=None,
+                 interests=None):
         self.year = year
         self.month = month
         self.deposits = Decimal(0.00) if deposits is None else deposits
@@ -778,8 +789,8 @@ class Cat2(BaseSoftDelete, UserPermissions):
 
 class Vendor(BaseSoftDelete, UserPermissions):
     class Meta:
-        verbose_name = 'Account audit point'
-        verbose_name_plural = 'Account audit points'
+        verbose_name = 'Vendor'
+        verbose_name_plural = 'Vendors'
         ordering = ['name']
 
     name = models.CharField(max_length=200)

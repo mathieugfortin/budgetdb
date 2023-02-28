@@ -38,7 +38,7 @@
 <div class="clearfix">
     <a class="btn btn-info left" href="{% url 'budgetdb:update_transaction' transaction.id %}"> Modify </a>
     {% if transaction.budgetedevent == None %} 
-    <a class="btn btn-info left" href="{% url 'budgetdb:create_be_from_t' transaction.id %}"> Create a recurring pattern </a>
+    <a class="btn btn-info left" href="{% url 'budgetdb:create_budgetedevent_from_t' transaction.id %}"> Create a recurring pattern </a>
     {% endif %}
 </div>
 

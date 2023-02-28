@@ -1,11 +1,12 @@
 {% extends 'budgetdb/base.html' %}
+{% block head_comment %}<!--budgetedevent_form v3.0 template-->{% endblock %}
+
 {% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}Recurring Transaction Form{% endblock %}
 
 {% block content %}
-  <!--budgetedevent_form v3.0-->
   <h2>Recurring Event Form</h2>
   {% if context.form_invalid %}
     <div class="alert alert-danger" role="alert">

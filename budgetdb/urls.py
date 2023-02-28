@@ -84,6 +84,7 @@ urlpatterns = [
     path('budgetedEvent/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='BudgetedEvent'),
          name='budgetedevent_max_redirect'),
 
+    ##########################################################################################################
     # Account
     path('account/ListJSON', views.GetAccountViewListJSON,
          name='account_list_view_json'),
@@ -195,9 +196,9 @@ urlpatterns = [
     path('budgetedEvent/<int:pk>/', views.BudgetedEventDetailView.as_view(),
          name='details_be'),
     path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
-         name='create_be'),
+         name='create_budgetedevent'),
     path('budgetedEvent/createfromt/<int:transaction_id>/', views.BudgetedEventCreateFromTransaction.as_view(),
-         name='create_be_from_t'),
+         name='create_budgetedevent_from_t'),
     # path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
     #      name='submit_be'),
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
@@ -247,9 +248,7 @@ urlpatterns = [
     #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),
          name='calendar_transaction'),
-    path('transaction/list/', views.TransactionListView.as_view(),
-         name='list_transaction'),
-    path('transaction/list2/', views.TransactionList2View.as_view(),
+    path('transaction/list2/', views.TransactionListView.as_view(),
          name='list_transaction2'),
     path('transaction/unverified_list/', views.TransactionUnverifiedListView.as_view(),
          name='list_unverified_transaction'),

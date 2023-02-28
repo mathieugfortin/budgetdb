@@ -178,7 +178,6 @@ class FriendForm(forms.ModelForm):
         )
 
 
-
 class VendorForm(forms.ModelForm):
     class Meta:
         model = Vendor
@@ -186,6 +185,7 @@ class VendorForm(forms.ModelForm):
             'name',
             'users_admin',
             'users_view',
+            'is_deleted',
         )
 
     def __init__(self, *args, **kwargs):
@@ -200,6 +200,10 @@ class VendorForm(forms.ModelForm):
         self.helper.layout = Layout(
             Div(
                 Div('name', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
@@ -221,6 +225,7 @@ class StatementForm(forms.ModelForm):
                 'statement_due_date',
                 'comment',
                 'payment_transaction',
+                'is_deleted',
                 'users_admin',
                 'users_view',
             )
@@ -271,6 +276,10 @@ class StatementForm(forms.ModelForm):
                 css_class='row'
             ),
             Div(
+                Div('is_deleted', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Div(
                 Div('users_admin', css_class='form-group col-md-4  '),
                 Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
@@ -285,6 +294,7 @@ class CatTypeForm(forms.ModelForm):
             'name',
             'users_admin',
             'users_view',
+            'is_deleted',
         )
 
     def __init__(self, *args, **kwargs):
@@ -301,6 +311,10 @@ class CatTypeForm(forms.ModelForm):
                 Div('name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),           
             Div(
                 Div('users_admin', css_class='form-group col-md-4  '),
                 Div('users_view', css_class='form-group col-md-4  '),
@@ -604,6 +618,7 @@ class Cat1Form(forms.ModelForm):
             'name',
             'catbudget',
             'cattype',
+            'is_deleted',
             'users_admin',
             'users_view',
         )
@@ -627,6 +642,10 @@ class Cat1Form(forms.ModelForm):
             Div(
                 Div('cattype', css_class='form-group col-md-4  '),
                 Div('catbudget', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(

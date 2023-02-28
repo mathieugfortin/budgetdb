@@ -15,7 +15,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from decimal import *
 from budgetdb.utils import Calendar
-from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView
+from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
+from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from django.utils.safestring import mark_safe
 from django.forms import formset_factory
 from django import forms
@@ -133,7 +134,7 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
 def load_payment_transaction(request):
     account_id = request.GET.get('account')
     transactions = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
-    return render(request, 'budgetdb/payment_transaction_dropdown_list.html', {'transactions': transactions})
+    return render(request, 'budgetdb/get_payment_transaction_dropdown_list.html', {'transactions': transactions})
 
 
 class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
@@ -329,13 +330,12 @@ class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, UserPassesTe
 # JoinedTransactions
 
 
-class JoinedTransactionListView(LoginRequiredMixin, ListView):
+class JoinedTransactionListView(MyListView):
     model = JoinedTransactions
-    context_object_name = 'joined_transactions_list'
-    template_name = 'budgetdb/joinedtransactions__list.html'
+    table_class = JoinedTransactionsListTable
 
     def get_queryset(self):
-        return JoinedTransactions.view_objects.filter(is_deleted=False).order_by('name')
+        return self.model.view_objects.filter(is_deleted=False).order_by('name')
 
 
 class JoinedTransactionsConfigDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -515,41 +515,9 @@ def saveTransaction(request, transaction_id):
 
 
 class TransactionListView(LoginRequiredMixin, ListView):
-    # Patate rebuild this without calendar to gain speed
     model = Transaction
     context_object_name = 'calendar_list'
-    template_name = 'budgetdb/calendarview_list.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        month = self.request.GET.get('month', None)
-        year = self.request.GET.get('year', None)
-
-        # use today's date for the calendar
-        if year is None:
-            d = date.today()
-        else:
-            d = date(int(year), int(month), 1)
-
-        # Instantiate our calendar class with today's year and date
-        cal = Calendar(d.year, d.month)
-
-        # Call the formatmonth method, which returns our calendar as a table
-        html_cal = cal.formatmonthlist(withyear=True)
-        context['calendar'] = mark_safe(html_cal)
-        context['prev_month'] = (d + relativedelta(months=-1)).month
-        context['prev_year'] = (d + relativedelta(months=-1)).year
-        context['next_month'] = (d + relativedelta(months=+1)).month
-        context['next_year'] = (d + relativedelta(months=+1)).year
-        context['now_month'] = date.today().month
-        context['now_year'] = date.today().year
-        return context
-
-
-class TransactionList2View(LoginRequiredMixin, ListView):
-    model = Transaction
-    context_object_name = 'calendar_list'
-    template_name = 'budgetdb/transaction_list2.html'
+    template_name = 'budgetdb/transaction_list_dynamic_filter.html'
 
     def get_queryset(self):
         preference = Preference.objects.get(user=self.request.user.id)
@@ -570,52 +538,36 @@ class TransactionList2View(LoginRequiredMixin, ListView):
         return qs
 
 
-class TransactionUnverifiedListView(LoginRequiredMixin, ListView):
+###################################################################################################################
+# checks
+
+class TransactionUnverifiedListView(MyListView):
     model = Transaction
-    template_name = 'budgetdb/transaction_list.html'
-    context_object_name = 'transaction_list'
+    table_class = TransactionListTable
+    title = 'Past Unverified Transactions'
 
     def get_queryset(self):
-        today = date.today()
-        transactions = Transaction.view_objects.filter(is_deleted=0, verified=0, audit=0, date_actual__lt=today).order_by('date_actual')
-        return transactions
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Past Unverified Transactions'
-        return context
+        return self.model.view_objects.filter(is_deleted=0, verified=0, audit=0, date_actual__lt=date.today()).order_by('date_actual')
 
 
-class TransactionManualListView(LoginRequiredMixin, ListView):
+class TransactionManualListView(MyListView):
     model = Transaction
-    template_name = 'budgetdb/transaction_list.html'
-    context_object_name = 'transaction_list'
+    table_class = TransactionListTable
+    title = 'Upcoming Manual Transactions'
 
     def get_queryset(self):
         inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
-        transactions = Transaction.view_objects.filter(is_deleted=0, verified=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
-        return transactions
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Upcoming Manual Transactions'
-        return context
+        return self.model.view_objects.filter(is_deleted=0, verified=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
 
 
-class TransactionDeletedListView(LoginRequiredMixin, ListView):
+class TransactionDeletedListView(MyListView):
     model = Transaction
-    template_name = 'budgetdb/transaction_list.html'
-    context_object_name = 'transaction_list'
+    table_class = TransactionListTable
+    title = 'Deleted Transactions'
 
     def get_queryset(self):
         inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
-        transactions = Transaction.view_objects.filter(is_deleted=1, date_actual__lt=inamonth).order_by('-date_actual')
-        return transactions
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Deleted Transactions'
-        return context
+        return self.model.view_objects.filter(is_deleted=1, date_actual__lt=inamonth).order_by('-date_actual')
 
 
 class TransactionCalendarView(LoginRequiredMixin, ListView):

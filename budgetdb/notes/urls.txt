@@ -95,9 +95,9 @@ output of: python manage.py show_urls
 /en-ca/budgetdb/ajax/load-payment-transaction/  budgetdb.views.transaction_views.load_payment_transaction       budgetdb:ajax_load_payment_transaction
 /en-ca/budgetdb/budgetedEvent/  budgetdb.views.budgetedevent_views.budgetedEventsListView       budgetdb:list_be
 /en-ca/budgetdb/budgetedEvent/<int:pk>/ budgetdb.views.budgetedevent_views.BudgetedEventDetailView      budgetdb:details_be
-/en-ca/budgetdb/budgetedEvent/create/   budgetdb.views.budgetedevent_views.BudgetedEventCreate  budgetdb:create_be
+/en-ca/budgetdb/budgetedEvent/create/   budgetdb.views.budgetedevent_views.BudgetedEventCreate  budgetdb:create_budgetedevent
 /en-ca/budgetdb/budgetedEvent/create/submit/    budgetdb.views.budgetedevent_views.BudgetedEventSubmit  budgetdb:submit_be
-/en-ca/budgetdb/budgetedEvent/createfromt/<int:transaction_id>/ budgetdb.views.budgetedevent_views.BudgetedEventCreateFromTransaction   budgetdb:create_be_from_t
+/en-ca/budgetdb/budgetedEvent/createfromt/<int:transaction_id>/ budgetdb.views.budgetedevent_views.BudgetedEventCreateFromTransaction   budgetdb:create_budgetedevent_from_t
 /en-ca/budgetdb/budgetedEvent/max_redirect/<int:pk>/    budgetdb.views.views.ObjectMaxRedirect  budgetdb:budgetedevent_max_redirect
 /en-ca/budgetdb/budgetedEvent/update/<int:pk>/  budgetdb.views.budgetedevent_views.BudgetedEventUpdate  budgetdb:update_be
 /en-ca/budgetdb/calendar/       budgetdb.views.transaction_views.TransactionCalendarView        budgetdb:calendar_transaction
@@ -153,7 +153,7 @@ output of: python manage.py show_urls
 /en-ca/budgetdb/transaction/delete/<int:pk>/    budgetdb.views.transaction_views.TransactionDelete      budgetdb:delete_transaction
 /en-ca/budgetdb/transaction/deleted_list/       budgetdb.views.transaction_views.TransactionDeletedListView     budgetdb:list_deleted_transaction
 /en-ca/budgetdb/transaction/list/       budgetdb.views.transaction_views.TransactionListView    budgetdb:list_transaction
-/en-ca/budgetdb/transaction/list2/      budgetdb.views.transaction_views.TransactionList2View   budgetdb:list_transaction2
+/en-ca/budgetdb/transaction/list2/      budgetdb.views.transaction_views.TransactionListView   budgetdb:list_transaction2
 /en-ca/budgetdb/transaction/manual_list/        budgetdb.views.transaction_views.TransactionManualListView      budgetdb:list_manual_transaction
 /en-ca/budgetdb/transaction/max_redirect/<int:pk>/      budgetdb.views.views.ObjectMaxRedirect  budgetdb:transaction_max_redirect
 /en-ca/budgetdb/transaction/togglereceiptJSON   budgetdb.views.views.TransactionReceiptToggleJSON       budgetdb:togglereceipttransaction_json

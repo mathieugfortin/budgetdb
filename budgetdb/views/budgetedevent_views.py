@@ -6,6 +6,7 @@ from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Acco
 from budgetdb.tables import BudgetedEventListTable
 from budgetdb.forms import BudgetedEventForm
 from budgetdb.filters import BudgetedEventFilter
+from budgetdb.views import MyListView
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
@@ -18,14 +19,15 @@ from django_filters.views import FilterView
 
 
 # class budgetedEventsListView(LoginRequiredMixin, ListView):
-class budgetedEventsListView(LoginRequiredMixin, SingleTableMixin, FilterView):
+# class budgetedEventsListView(LoginRequiredMixin, SingleTableMixin, FilterView):
+class budgetedEventsListView(MyListView):
     model = BudgetedEvent
     table_class = BudgetedEventListTable
-    filterset_class = BudgetedEventFilter
-    template_name = "budgetdb/budgetedevent_list.html"
+    # filterset_class = BudgetedEventFilter
+    # template_name = "budgetdb/budgetedevent_list.html"
 
     def get_queryset(self):
-        return BudgetedEvent.view_objects.filter(is_deleted=False).order_by('description')
+        return self.model.view_objects.filter(is_deleted=False).order_by('description')
 
 
 class budgetedEventsAnormalListView(LoginRequiredMixin, SingleTableMixin, FilterView):
