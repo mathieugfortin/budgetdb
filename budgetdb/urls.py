@@ -50,6 +50,10 @@ urlpatterns = [
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
          name='setinterval_json'),
 
+    # chart JS
+    path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
+    path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),
+
     # User
     path('user/signup/', views.UserSignupView.as_view(),
          name='signup'),
@@ -106,6 +110,8 @@ urlpatterns = [
     # Account Transactions List View
     path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
+    path('account/listactivity2/<int:pk>/', views.AccountTransactionListView2.as_view(),
+         name='list_account_activity2'),
     path('account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
     path('account/listactivity/<int:pk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
@@ -117,6 +123,7 @@ urlpatterns = [
     path('account/listactivity/add/<int:pk>/', views.TransactionCreateModal.as_view(),
          name='create_transaction_from_date_account_modal'),
 
+    ##########################################################################################################
     # AccountCategory
     path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
     path('accountcat/<int:pk>/', views.AccountCatDetailView.as_view(),
@@ -130,6 +137,7 @@ urlpatterns = [
     path('accountcat/yearreport/<int:pk>/<yyyy:year>/', views.AccountCatYearReportDetailView.as_view(),
          name='year_report_accountcategory'),
 
+    ##########################################################################################################
     # Account_Host
     path('accountHost/ListJSON', views.GetAccountHostViewListJSON, name='account_host_list_json'),
     path('accountHost/<int:pk>/', views.AccountHostDetailView.as_view(),
@@ -141,51 +149,8 @@ urlpatterns = [
     path('accountHost/', views.AccountHostListView.as_view(),
          name='list_accounthost'),
 
-    # chart JS
-    path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
-    path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),
 
-    # Cat1
-    path('cat1/PieChartJSON', views.GetCat1TotalPieChartData, name='cat1_piechart_json'),
-    path('cat1/BarChartJSON', views.GetCat1TotalBarChartData, name='cat1_barchart_json'),
-    path('cat1/ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
-    path('cat1/', views.Cat1ListView.as_view(),
-         name='list_cat1'),
-    path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
-         name='details_cat1'),
-    path('cat1/add/', views.Cat1CreateView.as_view(),
-         name='create_cat1'),
-    path('cat1/update/<int:pk>/', views.Cat1UpdateView.as_view(),
-         name='update_cat1'),
-
-    # Cat2
-    path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
-    path('cat2/BarChartJSON', views.GetCat2TotalBarChartData, name='cat2_barchart_json'),
-    path('cat2/', views.Cat2ListView.as_view(),
-         name='list_cat2'),
-    path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
-         name='details_cat2'),
-    path('cat2/add/<int:cat1_id>', views.Cat2CreateView.as_view(),
-         name='create_cat2'),
-    path('cat2/update/<int:pk>/', views.Cat2UpdateView.as_view(),
-         name='update_cat2'),
-    path('ajax/load-cat2/', views.load_cat2,
-         name='ajax_load_cat2'),
-
-    # CatType
-    path('cattype/ListJSON', views.GetCatTypeListJSON, name='cattype_list_json'),
-    path('cattype/pie-chart/<int:cat_type_pk>', views.CatTotalPieChart.as_view(), name='cattype_pie'),
-    path('cattype/bar-chart/<int:cat_type_pk>', views.CatTotalBarChart.as_view(), name='cattype_bar'),
-
-    path('cattype/', views.CatTypeListView.as_view(),
-         name='list_cattype'),
-    path('cattype/<int:pk>/', views.CatTypeDetailView.as_view(),
-         name='details_cattype'),
-    path('cattype/add/', views.CatTypeCreateView.as_view(),
-         name='create_cattype'),
-    path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),
-         name='update_cattype'),
-
+    ##########################################################################################################
     # BudgetedEvent
     path('budgetedEvent/', views.budgetedEventsListView.as_view(),
          name='list_be'),
@@ -204,10 +169,56 @@ urlpatterns = [
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
          name='update_be'),
 
+    ##########################################################################################################
+    # Cat1
+    path('cat1/PieChartJSON', views.GetCat1TotalPieChartData, name='cat1_piechart_json'),
+    path('cat1/BarChartJSON', views.GetCat1TotalBarChartData, name='cat1_barchart_json'),
+    path('cat1/ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
+    path('cat1/', views.Cat1ListView.as_view(),
+         name='list_cat1'),
+    path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
+         name='details_cat1'),
+    path('cat1/add/', views.Cat1CreateView.as_view(),
+         name='create_cat1'),
+    path('cat1/update/<int:pk>/', views.Cat1UpdateView.as_view(),
+         name='update_cat1'),
+
+    ##########################################################################################################
+    # Cat2
+    path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
+    path('cat2/BarChartJSON', views.GetCat2TotalBarChartData, name='cat2_barchart_json'),
+    path('cat2/', views.Cat2ListView.as_view(),
+         name='list_cat2'),
+    path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
+         name='details_cat2'),
+    path('cat2/add/<int:cat1_id>', views.Cat2CreateView.as_view(),
+         name='create_cat2'),
+    path('cat2/update/<int:pk>/', views.Cat2UpdateView.as_view(),
+         name='update_cat2'),
+    path('ajax/load-cat2/', views.load_cat2,
+         name='ajax_load_cat2'),
+
+    ##########################################################################################################
+    # CatType
+    path('cattype/ListJSON', views.GetCatTypeListJSON, name='cattype_list_json'),
+    path('cattype/pie-chart/<int:cat_type_pk>', views.CatTotalPieChart.as_view(), name='cattype_pie'),
+    path('cattype/bar-chart/<int:cat_type_pk>', views.CatTotalBarChart.as_view(), name='cattype_bar'),
+
+    path('cattype/', views.CatTypeListView.as_view(),
+         name='list_cattype'),
+    path('cattype/<int:pk>/', views.CatTypeDetailView.as_view(),
+         name='details_cattype'),
+    path('cattype/add/', views.CatTypeCreateView.as_view(),
+         name='create_cattype'),
+    path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),
+         name='update_cattype'),
+
+    ##########################################################################################################
     # Preferences
     path('preferences/update/', views.PreferencesUpdateView.as_view(),
          name='update_preferences'),
 
+    ##########################################################################################################
     # Statement
     path('statement/', views.StatementListView.as_view(),
          name='list_statement'),
@@ -218,6 +229,7 @@ urlpatterns = [
     path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
 
+    ##########################################################################################################
     # Transaction
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
@@ -259,6 +271,7 @@ urlpatterns = [
     path('ajax/load-payment-transaction/', views.load_payment_transaction,
          name='ajax_load_payment_transaction'),
 
+    ##########################################################################################################
     # Joined Transactions
     path('joinedtransactions/list/', views.JoinedTransactionListView.as_view(),
          name='list_joinedtransactions'),
@@ -275,6 +288,7 @@ urlpatterns = [
     path('joinedtransactions/update/<int:pk>/', views.JoinedTransactionsConfigUpdateView.as_view(),
          name='update_joinedtransactionsconfig'),
 
+    ##########################################################################################################
     # Vendor
     path('vendorListJSON', views.GetVendorListJSON, name='vendor_list_json'),
     path('vendor/', views.VendorListView.as_view(),

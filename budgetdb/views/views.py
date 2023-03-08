@@ -61,28 +61,40 @@ def PreferenceSetIntervalJSON(request):
 
 
 def TransactionVerifyToggleJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     transaction_ID = request.POST.get("transaction_id", None)
     if transaction_ID:
-        transaction = Transaction.objects.get(pk=transaction_ID)
-        transaction.verified = not transaction.verified
+        transaction = get_object_or_404(Transaction, pk=transaction_ID)
+    else:
+        return HttpResponse(status=404)
+    if transaction.can_edit() is False:
+        return HttpResponse(status=401)
+    transaction.verified = not transaction.verified
     transaction.save()
     return HttpResponse(status=200)
 
 
 def TransactionReceiptToggleJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     transaction_ID = request.POST.get("transaction_id", None)
     if transaction_ID:
-        transaction = Transaction.objects.get(pk=transaction_ID)
-        transaction.receipt = not transaction.receipt
+        transaction = get_object_or_404(Transaction, pk=transaction_ID)
+    else:
+        return HttpResponse(status=404)
+    if transaction.can_edit() is False:
+        return HttpResponse(status=401)
+    transaction.receipt = not transaction.receipt
     transaction.save()
     return HttpResponse(status=200)
 
 
 def PreferenceGetJSON(request):
     if request.user.is_authenticated is False:
-        return JsonResponse({}, status=204)
+        return JsonResponse({}, status=401)
     preference = Preference.objects.get(user=request.user.id)
-    transactions = Transaction.objects.filter(is_deleted=False).order_by("date_actual")
+    transactions = Transaction.view_objects.all().order_by("date_actual")
 
     if (preference.min_interval_slider is None):
         start_slider = transactions.first().date_actual
@@ -107,11 +119,11 @@ def PreferenceGetJSON(request):
 
 
 def GetAccountViewListJSON(request):
-    queryset = Account.view_objects.filter(is_deleted=False)
-    queryset = queryset.order_by("name")
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    queryset = Account.view_objects.all().order_by("name")
 
     array = []
-
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
 
@@ -120,12 +132,10 @@ def GetAccountViewListJSON(request):
 
 def GetAccountDetailedViewListJSON(request):
     if request.user.is_authenticated is False:
-        return JsonResponse({}, status=204)
-    queryset = Account.view_objects.filter(is_deleted=False)
-    queryset = queryset.order_by("account_host", "name")
+        return JsonResponse({}, status=401)
+    queryset = Account.view_objects.all().order_by("account_host", "name")
 
     array = []
-
     for entry in queryset:
         namestring = entry.account_host.name
         if entry.owner != get_current_user():
@@ -138,12 +148,10 @@ def GetAccountDetailedViewListJSON(request):
 
 def GetAccountCatViewListJSON(request):
     if request.user.is_authenticated is False:
-        return JsonResponse({}, status=204)
-    queryset = AccountCategory.view_objects.filter(is_deleted=False)
-    queryset = queryset.order_by("name")
+        return JsonResponse({}, status=401)
+    queryset = AccountCategory.view_objects.all().order_by("name")
 
     array = []
-
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
 
@@ -152,12 +160,10 @@ def GetAccountCatViewListJSON(request):
 
 def GetAccountHostViewListJSON(request):
     if request.user.is_authenticated is False:
-        return JsonResponse({}, status=204)
-    queryset = AccountHost.view_objects.filter(is_deleted=False)
-    queryset = queryset.order_by("name")
-
+        return JsonResponse({}, status=401)
+    queryset = AccountHost.view_objects.all().order_by("name")
+    
     array = []
-
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
 
@@ -165,11 +171,11 @@ def GetAccountHostViewListJSON(request):
 
 
 def GetVendorListJSON(request):
-    queryset = Vendor.objects.filter(is_deleted=False)
-    queryset = queryset.order_by("name")
-
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    queryset = Vendor.view_objects.all().order_by("name")
+    
     array = []
-
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
 
@@ -177,11 +183,11 @@ def GetVendorListJSON(request):
 
 
 def GetCat1ListJSON(request):
-    queryset = Cat1.objects.filter(is_deleted=False)
-    queryset = queryset.order_by("name")
-
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    queryset = Cat1.view_objects.all().order_by("name")
+    
     array = []
-
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
 
@@ -190,12 +196,10 @@ def GetCat1ListJSON(request):
 
 def GetCatTypeListJSON(request):
     if request.user.is_authenticated is False:
-        return JsonResponse({}, status=204)
-    queryset = CatType.objects.filter(is_deleted=False)
-    queryset = queryset.order_by("name")
-
+        return JsonResponse({}, status=401)
+    queryset = CatType.view_objects.all().order_by("name")
+    
     array = []
-
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
 
@@ -203,10 +207,12 @@ def GetCatTypeListJSON(request):
 
 
 def GetCat1TotalPieChartData(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     begin = request.GET.get('begin', None)
     end = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.objects.get(pk=cat_type_pk)
+    cattype = CatType.view_objects.get(pk=cat_type_pk)
     colors = next_color()
     color_list = []
 
@@ -243,13 +249,14 @@ def GetCat1TotalPieChartData(request):
 
 
 def GetCat2TotalPieChartData(request):
-
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     begin = request.GET.get('begin', None)
     end = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.objects.get(pk=cat_type_pk)
+    cattype = CatType.view_objects.get(pk=cat_type_pk)
     cat1_pk = request.GET.get('cat1', None)
-    cat1 = Cat1.objects.get(pk=cat1_pk)
+    cat1 = Cat1.view_objects.get(pk=cat1_pk)
     colors = next_color()
     color_list = []
     labels = []  # categories
@@ -282,11 +289,13 @@ def GetCat2TotalPieChartData(request):
 
 
 def GetCat1TotalBarChartData(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     beginstr = request.GET.get('begin', None)
     endstr = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.objects.get(pk=cat_type_pk)
-    cats = Cat1.objects.filter(is_deleted=False)
+    cattype = CatType.view_objects.get(pk=cat_type_pk)
+    cats = Cat1.view_objects.all()
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
@@ -339,14 +348,16 @@ def GetCat1TotalBarChartData(request):
 
 
 def GetCat2TotalBarChartData(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     beginstr = request.GET.get('begin', None)
     endstr = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.objects.get(pk=cat_type_pk)
+    cattype = CatType.view_objects.get(pk=cat_type_pk)
     cat1_pk = request.GET.get('cat1', None)
-    cat1 = Cat1.objects.get(pk=cat1_pk)
+    cat1 = Cat1.view_objects.get(pk=cat1_pk)
 
-    cats = Cat2.objects.filter(cat1=cat1, is_deleted=False)
+    cats = Cat2.view_objects.filter(cat1=cat1)
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
@@ -408,18 +419,22 @@ def GetCat2TotalBarChartData(request):
 
 
 def load_cat2(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     cat1_id = request.GET.get('cat1')
     cat2s = Cat2.admin_objects.filter(cat1=cat1_id).order_by('name')
     return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
 
 
 def timeline2JSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
     accountcategoryID = request.GET.get('ac', None)
 
     if accountcategoryID is None or accountcategoryID == 'None':
-        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host', 'name')
+        accounts = Account.view_objects.all().order_by('account_host', 'name')
     else:
-        accounts = Account.view_objects.filter(is_deleted=False, account_categories=accountcategoryID).order_by('account_host', 'name')
+        accounts = Account.view_objects.filter(account_categories=accountcategoryID).order_by('account_host', 'name')
 
     preference = get_object_or_404(Preference, user=request.user.id)
     begin = preference.start_interval
@@ -496,7 +511,7 @@ class CatTotalPieChart(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cat_type_pk = self.kwargs.get('cat_type_pk')
-        cattype = CatType.objects.get(pk=cat_type_pk)
+        cattype = CatType.view_objects.get(pk=cat_type_pk)
 
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
@@ -525,7 +540,7 @@ class CatTotalBarChart(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cat_type_pk = self.kwargs.get('cat_type_pk')
-        cattype = CatType.objects.get(pk=cat_type_pk)
+        cattype = CatType.view_objects.get(pk=cat_type_pk)
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
         preference = Preference.objects.get(user=self.request.user.id)
@@ -563,7 +578,7 @@ class timeline2(TemplateView):
         else:
             context['accountcategory'] = None
 
-        accountcategories = AccountCategory.view_objects.filter(is_deleted=False)
+        accountcategories = AccountCategory.view_objects.all()
         context['accountcategories'] = accountcategories
 
         context['ac'] = accountcategoryID
@@ -583,7 +598,10 @@ class ObjectMaxRedirect(RedirectView):
         pk = kwargs.get('pk')
         model_name = args[0].model
         model = apps.get_model('budgetdb', model_name)
-        redirect_object = get_object_or_404(model, pk=pk)
+        try:
+            redirect_object = model.view_objects.get(pk=pk)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
         viewname = 'budgetdb:'
         if redirect_object.can_edit():
             viewname = viewname + 'update_' + model_name.lower()
@@ -599,7 +617,10 @@ class MyUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     task = 'Update'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        try:
+            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -642,7 +663,10 @@ class MyCreateView(LoginRequiredMixin, CreateView):
 
 class MyDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        try:
+            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
         return view_object.can_view()
 
     def handle_no_permission(self):
@@ -683,7 +707,7 @@ class AccountListViewSimple(MyListView):
     table_class = AccountListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
+        return self.model.view_objects.all().order_by('account_host__name', 'name')
 
 
 class AccountDetailView(MyDetailView):
@@ -695,7 +719,7 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
     template_name = 'budgetdb/account_list_summary.html'
 
     def get_queryset(self):
-        accounts = Account.view_objects.filter(is_deleted=False).order_by('account_host__name', 'name')
+        accounts = Account.view_objects.all().order_by('account_host__name', 'name')
         accounts = accounts.exclude(date_closed__lt=datetime.today())
         return accounts
 
@@ -717,7 +741,7 @@ class AccountYearReportDetailView(MyDetailView):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs.get('pk')
         year = self.kwargs.get('year')
-        # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
+        # context['account_list'] = Account.objects.all().order_by('name')
         context['pk'] = pk
         context['year'] = year
         context['nyear'] = year + 1
@@ -735,7 +759,7 @@ class AccountCatYearReportDetailView(MyDetailView):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs.get('pk')
         year = self.kwargs.get('year')
-        # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
+        # context['account_list'] = Account.objects.all().order_by('name')
         context['pk'] = pk
         context['year'] = year
         context['account_name'] = Account.objects.get(id=pk).name
@@ -768,7 +792,7 @@ class AccountCatListView(MyListView):
     table_class = AccountCategoryListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('name')
+        return self.model.view_objects.all().order_by('name')
 
 
 class AccountCatDetailView(MyDetailView):
@@ -800,7 +824,7 @@ class AccountHostListView(MyListView):
     table_class = AccountHostListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('name')
+        return self.model.view_objects.all().order_by('name')
 
 
 class AccountHostDetailView(MyDetailView):
@@ -827,7 +851,7 @@ class Cat1ListView(MyListView):
     table_class = Cat1ListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('name')
+        return self.model.view_objects.all().order_by('name')
 
 
 class Cat1DetailView(MyDetailView):
@@ -837,7 +861,7 @@ class Cat1DetailView(MyDetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cat1 = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
-        cat2s = Cat2.view_objects.filter(cat1=cat1, is_deleted=False)
+        cat2s = Cat2.view_objects.filter(cat1=cat1)
         context['cat2s'] = cat2s
         return context
 
@@ -861,7 +885,7 @@ class Cat2ListView(MyListView):
     create = False
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('cat1', 'name')
+        return self.model.view_objects.all().order_by('cat1', 'name')
 
 
 class Cat2DetailView(MyDetailView):
@@ -896,7 +920,7 @@ class CatTypeListView(MyListView):
     table_class = CatTypeListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('name')
+        return self.model.view_objects.all().order_by('name')
 
 
 class CatTypeDetailView(MyDetailView):
@@ -924,7 +948,7 @@ class FriendListView(MyListView):
     table_class = FriendListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('email')
+        return self.model.view_objects.all().order_by('email')
 
 
 class FriendCreateView(MyCreateView):
@@ -941,7 +965,7 @@ class VendorListView(MyListView):
     table_class = VendorListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('name')
+        return self.model.view_objects.all().order_by('name')
 
 
 class VendorDetailView(MyDetailView):
@@ -967,7 +991,7 @@ class StatementListView(MyListView):
     table_class = StatementListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('-statement_date', 'account')
+        return self.model.view_objects.all().order_by('-statement_date', 'account')
 
 
 class StatementDetailView(MyDetailView):
@@ -977,15 +1001,14 @@ class StatementDetailView(MyDetailView):
     def get_object(self, queryset=None):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
-        statement.included_transactions = Transaction.objects.filter(is_deleted=False, statement=statement).order_by('date_actual')
+        statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
         transactions_sum = 0
         for transaction in statement.included_transactions:
             transactions_sum += transaction.amount_actual
         statement.transactions_sum = transactions_sum
         statement.error = transactions_sum - statement.balance
         min_date = statement.statement_date - relativedelta(months=2)
-        statement.possible_transactions = Transaction.view_objects.filter(is_deleted=False,
-                                                                          account_source=statement.account,
+        statement.possible_transactions = Transaction.view_objects.filter(account_source=statement.account,
                                                                           date_actual__lte=statement.statement_date,
                                                                           date_actual__gt=min_date,
                                                                           statement__isnull=True,
@@ -1030,12 +1053,8 @@ class StatementCreateView(LoginRequiredMixin, CreateView):
 ###################################################################################################################
 
 
-class IndexView(LoginRequiredMixin, ListView):
+class IndexView(LoginRequiredMixin, TemplateView):
     template_name = 'budgetdb/index.html'
-    context_object_name = 'categories_list'
-
-    def get_queryset(self):
-        return Cat1.objects.order_by('name')
 
 
 class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
@@ -1065,10 +1084,58 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
         if end < begin:
             end = begin + relativedelta(months=1)
 
-        # events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', 'audit')
-        # account = Account.view_objects.get(id=pk)
-        # accounts = account | account.account_children.filter(is_deleted=False)
-        # events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
+        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
+        return events
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        preference = Preference.objects.get(user=self.request.user.id)
+        year = preference.end_interval.year
+        decorated = []
+        for transaction in self.object_list:
+            transaction.show_currency = False
+            if transaction.account_destination is not None:
+                if transaction.account_destination.currency != transaction.currency:
+                    transaction.show_currency = True
+            if transaction.account_source is not None:
+                if transaction.account_source.currency != transaction.currency:
+                    transaction.show_currency = True
+            decorated.append(transaction)
+        context['pk'] = pk
+        context['year'] = year
+        context['decorated'] = decorated
+        context['account_name'] = Account.objects.get(id=pk).name
+        return context
+
+
+class AccountTransactionListView2(UserPassesTestMixin, MyListView):
+    model = Account
+    table_class = AccountActivityListTable
+    # template_name = 'budgetdb/AccountTransactionListView.html'
+
+    def test_func(self):
+        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'), is_deleted=False)
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_queryset(self):
+        pk = self.kwargs.get('pk')
+        preference = Preference.objects.get(user=self.request.user.id)
+        begin = preference.start_interval
+        end = preference.end_interval
+
+        beginstr = self.request.GET.get('begin', None)
+        endstr = self.request.GET.get('end', None)
+        if beginstr is not None:
+            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+            end = begin + relativedelta(months=1)
+        if endstr is not None:
+            end = datetime.strptime(endstr, "%Y-%m-%d").date()
+        if end < begin:
+            end = begin + relativedelta(months=1)
 
         events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
         return events
@@ -1078,7 +1145,6 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
         pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
         year = preference.end_interval.year
-        # context['account_list'] = Account.objects.filter(is_deleted=False).order_by('name')
         decorated = []
         for transaction in self.object_list:
             transaction.show_currency = False
@@ -1154,7 +1220,7 @@ class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
         try:
             preference = Preference.objects.get(user=user)
         except Preference.DoesNotExist:
-            transactions = Transaction.objects.filter(is_deleted=False).order_by("date_actual")
+            transactions = Transaction.view_objects.all().order_by("date_actual")
             start = transactions.first().date_actual
             stop = transactions.last().date_actual
             preference = Preference.objects.create(

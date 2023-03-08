@@ -1,7 +1,6 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.shortcuts import get_object_or_404
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
 from budgetdb.tables import BudgetedEventListTable
 from budgetdb.forms import BudgetedEventForm
@@ -18,7 +17,6 @@ from django_tables2 import SingleTableView, SingleTableMixin
 from django_filters.views import FilterView
 
 
-# class budgetedEventsListView(LoginRequiredMixin, ListView):
 # class budgetedEventsListView(LoginRequiredMixin, SingleTableMixin, FilterView):
 class budgetedEventsListView(MyListView):
     model = BudgetedEvent
@@ -27,7 +25,7 @@ class budgetedEventsListView(MyListView):
     # template_name = "budgetdb/budgetedevent_list.html"
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('description')
+        return self.model.view_objects.all().order_by('description')
 
 
 class budgetedEventsAnormalListView(LoginRequiredMixin, SingleTableMixin, FilterView):
@@ -37,12 +35,7 @@ class budgetedEventsAnormalListView(LoginRequiredMixin, SingleTableMixin, Filter
     template_name = "budgetdb/budgetedevent_list.html"
 
     def get_queryset(self):
-        # transactions = Transaction.objects.filter(budgetedevent=self.id, is_deleted=False)
-        # last_transaction = transactions.order_by('-date_actual').first()
-        # if last_transaction is None:
-        a = 2
-        # return BudgetedEvent.view_objects.filter(is_deleted=False, transaction=None).order_by('description')
-        return BudgetedEvent.view_objects.filter(is_deleted=False, transaction=None).order_by('description')
+        return BudgetedEvent.view_objects.filter(transaction=None).order_by('description')
 
 
 class budgetedEventsAnormal2ListView(LoginRequiredMixin, SingleTableMixin, FilterView):
@@ -52,13 +45,8 @@ class budgetedEventsAnormal2ListView(LoginRequiredMixin, SingleTableMixin, Filte
     template_name = "budgetdb/budgetedevent_list.html"
 
     def get_queryset(self):
-        # transactions = Transaction.objects.filter(budgetedevent=self.id, is_deleted=False)
-        # last_transaction = transactions.order_by('-date_actual').first()
-        # if last_transaction is None:
-        a = 2
-        # return BudgetedEvent.view_objects.filter(is_deleted=False, transaction=None).order_by('description')
-        with_unverified = BudgetedEvent.view_objects.filter(is_deleted=False, transaction__verified=False).distinct()
-        without_unverified = BudgetedEvent.view_objects.filter(is_deleted=False, repeat_stop__gt=date.today()).exclude(id__in=with_unverified)
+        with_unverified = BudgetedEvent.view_objects.filter(transaction__verified=False).distinct()
+        without_unverified = BudgetedEvent.view_objects.filter(repeat_stop__gt=date.today()).exclude(id__in=with_unverified)
         return without_unverified
 
 
@@ -66,7 +54,10 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     model = BudgetedEvent
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        try:
+            view_object = BudgetedEvent.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
         return view_object.can_view()
 
     def handle_no_permission(self):
@@ -75,7 +66,7 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
-        budgetedEvent = BudgetedEvent.objects.get(pk=self.kwargs.get('pk'))
+        budgetedEvent = BudgetedEvent.view_objects.get(pk=self.kwargs.get('pk'))
         editable = budgetedEvent.can_edit()
         dayWeekMapBin = budgetedEvent.repeat_weekday_mask
         weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -125,8 +116,14 @@ class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     form_class = BudgetedEventForm
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        try:
+            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
         return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def form_valid(self, form):
         context = self.get_context_data()
@@ -149,9 +146,6 @@ class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             form.instance.repeat_weekofmonth_mask += int(i)
 
         return super().form_valid(form)
-
-    def handle_no_permission(self):
-        raise PermissionDenied
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -220,7 +214,10 @@ class BudgetedEventCreateFromTransaction(LoginRequiredMixin, UserPassesTestMixin
         )
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        try:
+            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -230,7 +227,7 @@ class BudgetedEventCreateFromTransaction(LoginRequiredMixin, UserPassesTestMixin
         form = super().get_form(form_class)
         form.helper = FormHelper()
         transaction_id = self.kwargs.get('transaction_id')
-        transaction = Transaction.objects.get(id=transaction_id)
+        transaction = Transaction.admin_objects.get(id=transaction_id)
         form.initial['description'] = transaction.description
         form.initial['amount_planned'] = transaction.amount_actual
         form.initial['cat1'] = transaction.cat1

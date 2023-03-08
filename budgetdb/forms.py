@@ -82,7 +82,8 @@ class AccountForm(forms.ModelForm):
             'users_admin',
             'users_view',
             'date_open',
-            'date_closed'
+            'date_closed',
+            'is_deleted',
             )
 
     def __init__(self, *args, **kwargs):
@@ -121,6 +122,10 @@ class AccountForm(forms.ModelForm):
                 css_class='row'
             ),
             Div(
+                Div('is_deleted', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div(
                 Div('users_admin', css_class='form-group col-md-4  '),
                 Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
@@ -135,6 +140,7 @@ class AccountHostForm(forms.ModelForm):
             'name',
             'users_admin',
             'users_view',
+            'is_deleted',
         )
 
     def __init__(self, *args, **kwargs):
@@ -149,6 +155,10 @@ class AccountHostForm(forms.ModelForm):
         self.helper.layout = Layout(
             Div(
                 Div('name', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
@@ -331,6 +341,7 @@ class AccountCategoryForm(forms.ModelForm):
             'users_admin',
             'users_view',
             'accounts',
+            'is_deleted',
         )
 
     def __init__(self, *args, **kwargs):
@@ -356,6 +367,9 @@ class AccountCategoryForm(forms.ModelForm):
                 Div('users_admin', css_class='form-group col-md-4  '),
                 Div('users_view', css_class='form-group col-md-4  '),
                 css_class='row'
+            ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-10  '),
             ),
         )
 
@@ -440,26 +454,26 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
         friends_ids = get_current_user().friends.values('id')
         self.helper = FormHelper()
         self.helper.form_id = 'BudgetedEventForm'
-        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
         if 'cat1' in self.data:
             try:
                 cat1 = int(self.data.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         elif 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
 
-        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
+        self.fields['account_source'].queryset = Account.admin_objects.all()
+        self.fields['account_destination'].queryset = Account.admin_objects.all()
+        self.fields['vendor'].queryset = Vendor.admin_objects.all()
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
@@ -626,8 +640,8 @@ class Cat1Form(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         friends_ids = get_current_user().friends.values('id')
-        self.fields['cattype'].queryset = CatType.admin_objects.filter(is_deleted=False)
-        self.fields['catbudget'].queryset = CatBudget.admin_objects.filter(is_deleted=False)
+        self.fields['cattype'].queryset = CatType.admin_objects.all()
+        self.fields['catbudget'].queryset = CatBudget.admin_objects.all()
         self.helper = FormHelper()
         self.helper.form_id = 'Cat1Form'
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
@@ -664,6 +678,7 @@ class Cat2Form(forms.ModelForm):
             'catbudget',
             'cattype',
             'cat1',
+            'is_deleted',
             'users_admin',
             'users_view',
         )
@@ -676,8 +691,8 @@ class Cat2Form(forms.ModelForm):
             cat1 = get_object_or_404(Cat1, pk=cat1_id)
             if cat1.can_edit():
                 self.fields['cat1'].initial = cat1
-        self.fields['cattype'].queryset = CatType.admin_objects.filter(is_deleted=False)
-        self.fields['catbudget'].queryset = CatBudget.admin_objects.filter(is_deleted=False)
+        self.fields['cattype'].queryset = CatType.admin_objects.all()
+        self.fields['catbudget'].queryset = CatBudget.admin_objects.all()
         self.helper = FormHelper()
         self.helper.form_id = 'Cat1Form'
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
@@ -693,6 +708,10 @@ class Cat2Form(forms.ModelForm):
             Div(
                 Div('cattype', css_class='form-group col-md-4  '),
                 Div('catbudget', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
@@ -794,43 +813,61 @@ class TransactionFormFull(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        audit_view = kwargs.pop('audit', False)
+        task = kwargs.pop('task', 'Update')
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
-        user = get_current_user()
-        preference = Preference.objects.get(user=user.id)
-        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        self.fields['currency'].queryset = preference.currencies
+        if len(self.data) != 0:
+            # form is bound, just set the querysets that may have changed
+            cat1 = int(self.data.get('cat1'))
+            self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
+            return
+        else:
+            # form is unbound, build it
+            preference = Preference.objects.get(user=user.id)
+            self.fields['cat1'].queryset = Cat1.admin_objects.all()
+            currency_symbol = preference.currency_prefered.symbol
+            self.fields['currency'].initial = preference.currency_prefered
+            self.fields['currency'].data = preference.currency_prefered
 
-        if 'cat1' in self.data:
-            try:
-                cat1 = int(self.data.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
-            except (ValueError, TypeError):
-                self.fields['cat2'].queryset = Cat2.objects.none()
-        elif 'cat1' in self.initial:
+        if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
-            self.fields['currency'].initial = preference.currency_prefered
-            self.fields['currency'].data = preference.currency_prefered
 
-        # doublon? self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
-        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
-        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.filter(is_deleted=False)
+        self.fields['account_source'].queryset = Account.admin_objects.All()
+        self.fields['account_destination'].queryset = Account.admin_objects.All()
+        self.fields['statement'].queryset = Statement.admin_objects.All()
+        self.fields['vendor'].queryset = Vendor.admin_objects.All()
+        self.fields['currency'].queryset = preference.currencies
+        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.All()
 
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Amount"
 
+        allowRecurringPatternUpdate = True
+        if kwargs['instance'] is not None:
+            if kwargs['instance'].transactions is not None:
+                if kwargs['instance'].transactions.first() is not None:
+                    allowRecurringPatternUpdate = False
+            if kwargs['instance'].budgetedevent is not None:
+                if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
+                    allowRecurringPatternUpdate = False
+            if kwargs['instance'].audit is True:
+                audit_view = True
+
         self.helper.layout = Layout(
             Field('description'),
+            Div(
+                Div('date_actual', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
             Div(
                 Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6    ')),
                 Div('amount_actual_foreign_currency', css_class='form-group col-md-4  '),
@@ -840,11 +877,6 @@ class TransactionFormFull(forms.ModelForm):
             Div( 
                 Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6   mr-0  ')),
                 Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6  ')),
-                css_class='row'
-            ),
-            Div(
-                Div('date_actual', css_class='form-group col-md-4  '),
-                # Div('date_planned', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
@@ -876,6 +908,13 @@ class TransactionFormFull(forms.ModelForm):
                 css_class='row'
             ),
         )
+        self.helper.layout.extend([
+            Field('comment'),
+            Div(
+                HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary" >{task}</button>'),
+                HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
+            ),
+        ])
 
 
 class TransactionAuditFormFull(forms.ModelForm):
@@ -919,9 +958,9 @@ class TransactionAuditFormFull(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
 
-        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
-        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
+        self.fields['account_source'].queryset = Account.admin_objects.all()
+        self.fields['statement'].queryset = Statement.admin_objects.all()
+        self.fields['vendor'].queryset = Vendor.admin_objects.all()
 
         self.fields['amount_actual'].label = f"Audited Value"
         self.fields['date_actual'].label = f"Audited Date"
@@ -1032,15 +1071,15 @@ class TransactionFormShort(forms.ModelForm):
         if 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
-        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.filter(is_deleted=False)
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
+        self.fields['account_source'].queryset = Account.admin_objects.all()
+        self.fields['account_destination'].queryset = Account.admin_objects.all()
+        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
         self.helper = FormHelper()
         self.helper.form_show_labels = False
@@ -1099,7 +1138,6 @@ class TransactionModalForm(BSModalModelForm):
             # 'date_planned',
             'cat1',
             'cat2',
-            'currency',
             'account_source',
             'account_destination',
             'statement',
@@ -1132,39 +1170,38 @@ class TransactionModalForm(BSModalModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        currency_symbol = ''
-        if audit_view is True:
-            self.fields['amount_actual'].widget.attrs.update({'autofocus': True})
-        else:
-            self.fields['description'].widget.attrs.update({'autofocus': True})
+        preference = Preference.objects.get(user=user.id)
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
+        currency_symbol = preference.currency_prefered.symbol
+
         if 'cat1' in self.data:
             try:
                 cat1 = int(self.data.get('cat1'))
-                # currency_symbol = self.data.get('cat1')
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         elif 'cat1' in self.initial:
             try:
                 cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1, is_deleted=False)
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
         else:
             self.fields['cat2'].queryset = Cat2.objects.none()
+            self.fields['currency'].initial = preference.currency_prefered
+            self.fields['currency'].data = preference.currency_prefered
 
-        # doublon? self.fields['cat1'].queryset = Cat1.admin_objects.filter(is_deleted=False)
-        self.fields['account_source'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['account_destination'].queryset = Account.admin_objects.filter(is_deleted=False)
-        self.fields['statement'].queryset = Statement.admin_objects.filter(is_deleted=False)
-        self.fields['vendor'].queryset = Vendor.admin_objects.filter(is_deleted=False)
+        self.fields['account_source'].queryset = Account.admin_objects.all()
+        self.fields['account_destination'].queryset = Account.admin_objects.all()
+        self.fields['statement'].queryset = Statement.admin_objects.all()
+        self.fields['vendor'].queryset = Vendor.admin_objects.all()
         self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
-        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.filter(is_deleted=False)
+        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
         self.fields['cat1'].label = "Category"
         self.fields['cat2'].label = "Sub-Category"
         self.fields['amount_actual'].label = "Amount"
+
         allowRecurringPatternUpdate = True
         if kwargs['instance'] is not None:
             if kwargs['instance'].transactions is not None:

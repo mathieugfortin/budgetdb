@@ -1,0 +1,28 @@
+<script>
+var currency = "{{currency}}";
+ 
+ $('#id_currency').change(function(){
+     if($(this).val() == currency) {
+         $('#div_id_amount_actual_foreign_currency').addClass('visually-hidden');
+     } else {
+         $('#div_id_amount_actual_foreign_currency').removeClass('visually-hidden');
+     }
+ })
+ 
+ $( document ).ready(function() {
+     
+     if($('#id_currency').val() == currency) {
+         $('#div_id_amount_actual_foreign_currency').addClass('visually-hidden');
+     } else {
+         $('#div_id_amount_actual_foreign_currency').removeClass('visually-hidden');
+     }
+     if($('#id_cat2').val() != 28) {
+         $('#div_id_Fuel_L').addClass('visually-hidden');
+         $('#div_id_Fuel_price').addClass('visually-hidden');
+     } else {
+         $('#div_id_Fuel_L').removeClass('visually-hidden');
+         $('#div_id_Fuel_price').removeClass('visually-hidden');
+     }
+ })
+ 
+</script>

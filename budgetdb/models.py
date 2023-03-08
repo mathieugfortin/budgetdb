@@ -21,6 +21,7 @@ class ViewerManager(models.Manager):
     def get_queryset(self):
         user = get_current_user()
         qs = super().get_queryset()
+        qs = qs.filter(is_deleted=False)
         owned = qs.filter(owner=user)
         admins = qs.filter(users_admin=user)
         viewers = qs.filter(users_view=user)
@@ -28,10 +29,44 @@ class ViewerManager(models.Manager):
         return qs
 
 
+class ViewerDeletedManager(models.Manager):
+    def get_queryset(self):
+        user = get_current_user()
+        qs = super().get_queryset()
+        qs = qs.filter(is_deleted=True)
+        owned = qs.filter(owner=user)
+        admins = qs.filter(users_admin=user)
+        viewers = qs.filter(users_view=user)
+        qs = owned | admins | viewers
+        return qs
+
+
+class AdminManager(models.Manager):
+    def get_queryset(self):
+        user = get_current_user()
+        qs = super().get_queryset()
+        owned = qs.filter(owner=user)
+        admins = qs.filter(users_admin=user)
+        return owned | admins
+
+
 class TransactionViewerManager(models.Manager):
     def get_queryset(self):
         user = get_current_user()
         qs = super().get_queryset()
+        qs = qs.filter(is_deleted=False)
+        view_accounts = Account.view_objects.all()
+        ok_source = qs.filter(account_source__in=view_accounts)
+        ok_dest = qs.filter(account_destination__in=view_accounts)
+        qs = ok_source | ok_dest
+        return qs
+
+
+class TransactionDeletedViewerManager(models.Manager):
+    def get_queryset(self):
+        user = get_current_user()
+        qs = super().get_queryset()
+        qs = qs.filter(is_deleted=True)
         view_accounts = Account.view_objects.all()
         ok_source = qs.filter(account_source__in=view_accounts)
         ok_dest = qs.filter(account_destination__in=view_accounts)
@@ -43,20 +78,12 @@ class TransactionAdminManager(models.Manager):
     def get_queryset(self):
         user = get_current_user()
         qs = super().get_queryset()
-        view_accounts = Account.admin_objects.all()
-        ok_source = qs.filter(account_source__in=view_accounts)
-        ok_dest = qs.filter(account_destination__in=view_accounts)
+        qs = qs.filter(is_deleted=False)
+        admin_accounts = Account.admin_objects.all()
+        ok_source = qs.filter(account_source__in=admin_accounts)
+        ok_dest = qs.filter(account_destination__in=admin_accounts)
         qs = ok_source | ok_dest
         return qs
-
-
-class AdminManager(models.Manager):
-    def get_queryset(self):
-        user = get_current_user()
-        qs = super().get_queryset()
-        owned = qs.filter(owner=user)
-        admins = qs.filter(users_admin=user)
-        return owned | admins
 
 
 class UserPermissions(models.Model):
@@ -71,6 +98,7 @@ class UserPermissions(models.Model):
     users_view = models.ManyToManyField("User", related_name='users_view_access_%(app_label)s_%(class)s', blank=True)
     objects = models.Manager()  # The default manager.
     view_objects = ViewerManager()
+    view_deleted_objects = ViewerDeletedManager()
     admin_objects = AdminManager()
 
     def save(self, *args, **kwargs):
@@ -298,7 +326,7 @@ class Account(BaseSoftDelete, UserPermissions):
 
     def balance_by_EOD(self, dateCheck):
 
-        audit_today = Transaction.objects.filter(account_source_id=self.id, date_actual=dateCheck, audit=True, is_deleted=False).order_by('-date_actual')[:1]
+        audit_today = Transaction.view_objects.filter(account_source_id=self.id, date_actual=dateCheck, audit=True).order_by('-date_actual')[:1]
         if audit_today.count() == 1:
             return audit_today.first().amount_actual
 
@@ -310,13 +338,13 @@ class Account(BaseSoftDelete, UserPermissions):
                 balance += children.balance_by_EOD(dateCheck)
             return balance
 
-        closestAudit = Transaction.objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True, is_deleted=False).order_by('-date_actual')[:1]
+        closestAudit = Transaction.view_objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
         if closestAudit.count() == 0:
             balance = Decimal(0.00)
-            events = Transaction.objects.filter(date_actual__lte=dateCheck, is_deleted=False)
+            events = Transaction.view_objects.filter(date_actual__lte=dateCheck)
         else:
             balance = Decimal(closestAudit.first().amount_actual)
-            events = Transaction.objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck, is_deleted=False)
+            events = Transaction.view_objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck)
 
         events = events.filter(account_source_id=self.id) | events.filter(account_destination_id=self.id)
 
@@ -393,9 +421,9 @@ class Account(BaseSoftDelete, UserPermissions):
             end_date = start_date + relativedelta(day=+31)
 
         balance_end = self.balance_by_EOD(end_date)
-        transactions = Transaction.objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False,)
-        deposits = transactions.filter(account_destination=self, audit=False, is_deleted=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
-        withdrawals = transactions.filter(account_source=self, audit=False, is_deleted=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
+        transactions = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False,)
+        deposits = transactions.filter(account_destination=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
+        withdrawals = transactions.filter(account_source=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
         if withdrawals is None:
             withdrawals = Decimal(0)
         if deposits is None:
@@ -420,7 +448,7 @@ class Account(BaseSoftDelete, UserPermissions):
         return reportmonth
 
     def build_report_with_balance(self, start_date, end_date):
-        events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', 'audit')
+        events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', '-verified', 'audit')
         childrens = self.account_children.filter(is_deleted=False)
         account_list = Account.objects.filter(id=self.id, is_deleted=False) | childrens
         events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
@@ -809,6 +837,7 @@ class Transaction(BaseSoftDelete):
 
     objects = models.Manager()  # The default manager.
     view_objects = TransactionViewerManager()
+    view_deleted_objects = TransactionDeletedViewerManager
     admin_objects = TransactionAdminManager()
 
     created_date = models.DateTimeField(auto_now_add=True)
@@ -873,32 +902,32 @@ class Transaction(BaseSoftDelete):
         return reverse('budgetdb:details_transaction', kwargs={'pk': self.pk})
 
     def save(self, *args, **kwargs):
-        if self._state.adding and self.budgetedevent is not None and self.date_planned is not None:
-            if Transaction.objects.filter(budgetedevent=self.budgetedevent, date_planned=self.date_planned).exists():
-                # don't save a duplicate
-                pass
-            else:
-                super(Transaction, self).save(*args, **kwargs)
-        else:
+        # if self._state.adding and self.budgetedevent is not None and self.date_planned is not None:
+        #    if Transaction.objects.filter(budgetedevent=self.budgetedevent, date_planned=self.date_planned).exists():
+                 # don't save a duplicate
+        #        return
+        if self.can_edit() is True:    
             super(Transaction, self).save(*args, **kwargs)
+        else:
+            return
 
     def can_edit(self):
         if self.account_destination:
-            if self.account_destination.can_edit():
-                return True
+            if self.account_destination.can_edit() is False:
+                return False
         if self.account_source:
-            if self.account_source.can_edit():
-                return True
-        return False
+            if self.account_source.can_edit() is False:
+                return False
+        return True
 
     def can_view(self):
         if self.account_destination:
-            if self.account_destination.can_view():
-                return True
+            if self.account_destination.can_view() is False:
+                return False
         if self.account_source:
-            if self.account_source.can_view():
-                return True
-        return False
+            if self.account_source.can_view() is False:
+                return False
+        return True
 
 
 class BudgetedEvent(BaseSoftDelete, UserPermissions):
@@ -1041,7 +1070,7 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         else:
             return True
 
-    def listPotentialTransactionDates(self, n=20, begin_interval=datetime.today().date(), interval_length_months=12):
+    def listPotentialTransactionDates(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
         calendar = MyCalendar.objects.filter(db_date__gte=begin_interval, db_date__lte=begin_interval+relativedelta(months=interval_length_months))
         event_date_list = []
         i = n
@@ -1054,14 +1083,14 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         return event_date_list
 
     def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
+        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
     def listPreviousTransaction(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
+        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id)
         transactions = transactions.filter(date_actual__lt=begin_interval)
         end_date = begin_interval - relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__gt=end_date).order_by('-date_actual')[:n]
@@ -1077,6 +1106,8 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
             return
 
         for date in transaction_dates:
+            if Transaction.objects.filter(budgetedevent=self, date_planned=date).exists():
+                continue
             new_transaction = Transaction.objects.create(date_planned=date,
                                                          date_actual=date,
                                                          amount_actual=self.amount_planned,
@@ -1102,13 +1133,13 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         # don't delete if it's verified in a statement
         # don't delete if it's verified with a receipt
         # don't delete if it's flagged as deleted
-        transactions = Transaction.objects.filter(budgetedevent=self.id, verified=False, is_deleted=False, receipt=False)
+        transactions = Transaction.view_objects.filter(budgetedevent=self.id, verified=False, receipt=False)
         transactions.delete()
         self.generated_interval_start = None
         self.generated_interval_stop = None
 
     def lastTransactionDate(self):
-        transactions = Transaction.objects.filter(budgetedevent=self.id, is_deleted=False)
+        transactions = Transaction.view_objects.filter(budgetedevent=self.id)
         last_transaction = transactions.order_by('-date_actual').first()
         if last_transaction is None:
             return "No Transaction"
@@ -1233,14 +1264,14 @@ class Recurring(models.Model):
             return True
 
     def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
+        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id, is_deleted=False)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
-    def listPreviousTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.objects.filter(budgetedevent_id=self.id, is_deleted=False)
+    def listPreviousTransaction(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id, is_deleted=False)
         transactions = transactions.filter(date_actual__lte=begin_interval)
         end_date = begin_interval + relativedelta(months=-interval_length_months)
         transactions = transactions.filter(date_actual__gt=end_date).order_by('date_actual')[:n]

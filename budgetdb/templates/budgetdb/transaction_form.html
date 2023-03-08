@@ -17,45 +17,6 @@
   {% crispy form %}
 {% endblock %}
 {% block script %}
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-
-<script>
-
-(function($) {
-    $('#add-form').click(function() {
-        var index = $('#id_inline_test_models-TOTAL_FORMS').val()
-        var newTable = $('#id_inline_test_models-__prefix__-DELETE').parents('table').clone()
-        newTable.find(':input').each(function() {
-            for (attr of ['name', 'id'])
-                $(this).attr(
-                    attr,
-                    $(this).attr(attr).replace('__prefix__', index)
-                )
-        })
-        newTable.insertBefore($(this))
-        $('#id_inline_test_models-TOTAL_FORMS').val(
-            parseInt($('#id_inline_test_models-TOTAL_FORMS').val()) + 1
-        )
-        newTable.slideDown()
-    })
-})($)
-
-
-
-$("#id_cat1").change(function () {
-      var url = "{% url 'budgetdb:ajax_load_cat2' %}";
-      var cat1Id = $(this).val(); 
-
-      $.ajax({                       // initialize an AJAX request
-        url: url,                 
-        data: {
-          'cat1': cat1Id       
-        },
-        success: function (data) {   
-          $("#id_cat2").html(data);  
-        }
-      });
-
-    });
-</script>
+    {% include "budgetdb/js_cat1-cat2.html" %}
+    {% include "budgetdb/js_currency.html" %}
 {% endblock %}

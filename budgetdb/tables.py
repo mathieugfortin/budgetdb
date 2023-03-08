@@ -69,6 +69,69 @@ class AccountListTable(MySharingColumns, tables.Table):
         return format_html(categories)
 
 
+class AccountActivityListTable(tables.Table):
+    addtransaction = tables.Column(verbose_name='add', orderable=False, empty_values=())
+    date_actual = tables.Column(verbose_name='Date')
+    recurencelinks = tables.Column(verbose_name='Recurrence', orderable=False, empty_values=())
+    amount_actual = tables.Column(verbose_name='Amount')
+    verified = tables.Column(verbose_name='verified')
+    amount_actual = tables.Column(verbose_name='receipt')
+    addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=())
+    account_id = 35
+
+    class Meta:
+        model = Account
+        fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks", "cat1", "cat2", "amount_actual", "verified", "receipt", "balance", "addaudit")
+        attrs = {"class": "table table-hover"}
+        # per_page = 30
+
+    def __init__(self, *args, **kwargs):
+        a = 3
+        super().__init__(*args, **kwargs)
+        a = 5
+
+    def get_context_data(self, **kwargs):
+        a = 2
+        context = super().get_context_data(**kwargs)
+        
+        a = 2
+        return context
+
+    def render_description(self, value, record):
+
+        # <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' pk event.id %}" >
+        #    {{ event.description }}
+        # </button>
+        
+        # {% if event.show_currency == True %}
+        #    <button  type="button" class="btn btn-info btn-sm">
+        #        {{ event.amount_actual_foreign_currency }}
+        #        {{ event.currency.name_short }}
+        #    </button>
+        # {% endif %}
+        # {% if event.joinedtransaction != None %} 
+        #    <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_planned|date:'Y-m-d' event.date_actual|date:'Y-m-d'%}"> <i class="fas fa-object-group"></i></a>
+        # {% endif %}
+        # {% if event.account_destination and event.account_destination.name != account_name%}
+        #    <a href="{% url 'budgetdb:list_account_activity' event.account_destination.id %}" class="btn btn-info btn-sm" role="button"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </a>
+        # {% elif event.account_source and event.account_source.name != account_name %}
+        #    <a href="{% url 'budgetdb:list_account_activity' event.account_source.id %}"  class="btn btn-info btn-sm" role="button">     <i class="fas fa-arrow-left"></i> {{event.account_source}}</a>
+        # {% endif %}
+
+        return (f'<button  type="button" class="update-transaction btn btn-secondary btn-sm" ' 
+                           f'data-form-url="{{% url "budgetdb:account_listview_update_transaction_modal" pk {record.id} %}}">' 
+                           f'{record.description}'
+                           f'</button>'
+                           )
+
+        return format_html(f'<a href="{reverse("budgetdb:account_max_redirect", kwargs={"pk": record.id})}">'
+                           f'{record.description}'
+                           f'</a>'
+                           )
+
+
+
+
 class AccountCategoryListTable(MySharingColumns, tables.Table):
     class Meta:
         model = AccountCategory

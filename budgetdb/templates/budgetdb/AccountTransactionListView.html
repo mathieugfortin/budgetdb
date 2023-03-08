@@ -245,27 +245,7 @@ tr.VERIFIED button.verify::before {
     });
 </script>
 
-
-
-    <script>
-        function toggleverifyT(transaction_id){
-            data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
-            $.post('{% url "budgetdb:toggleverifytransaction_json" %}', data );
-            modifiedtr=document.getElementById('T'+transaction_id)
-            modifiedtr.classList.toggle('UNVERIFIED');
-            modifiedtr.classList.toggle('VERIFIED');
-        }
-    
-        function togglereceiptT(transaction_id){
-            data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
-            $.post('{% url "budgetdb:togglereceipttransaction_json" %}', data );
-            modifiedButton=document.getElementById('R'+transaction_id)
-            modifiedtr=document.getElementById('T'+transaction_id)
-            modifiedButton.classList.toggle('RECEIPT');
-            modifiedButton.classList.toggle('NORECEIPT');
-            modifiedtr.classList.toggle('RECEIPT');
-            modifiedtr.classList.toggle('NORECEIPT');
-        }
-    </script>
+{% include "budgetdb/js_toggle_verify.html" %}
+{% include "budgetdb/js_toggle_receipt.html" %}
 
 {% endblock %}

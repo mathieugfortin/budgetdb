@@ -1,6 +1,6 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
 from budgetdb.models import JoinedTransactions
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull, TransactionModalForm, JoinedTransactionConfigForm
@@ -40,7 +40,10 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     task = 'Update'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        try:
+            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -63,7 +66,10 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
     task = 'Update'
 
     def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'))
+        try:
+            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied   
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -85,10 +91,14 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
 
 
 def TransactionDelete(request, pk):
-    object = get_object_or_404(Transaction, pk=pk)
-    if object.can_edit():
+    model = Transaction
+    try:
+        delete_object = model.view_objects.get(pk=self.kwargs.get('pk'))
+    except ObjectDoesNotExist:
+        raise PermissionDenied
+    if delete_object.can_edit():
         if request.method == 'POST':
-            object.soft_delete()
+            delete_object.soft_delete()
     else:
         raise PermissionDenied
     return redirect('/')
@@ -99,15 +109,29 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
     template_name = 'budgetdb/transaction_form.html'
     form_class = TransactionFormFull
     task = 'Create'
+    user = None
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        self.user = get_current_user()
+        context = super().get_context_data(**kwargs)
+        preference = get_object_or_404(Preference, id=self.user.id)
+        context['currency'] = preference.currency_prefered.id
+        return context
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="javascript:history.back();"))
-        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
         return form
+
+    def get_success_url(self):
+        return reverse('budgetdb:details_transaction', kwargs={'pk': self.object.id})
 
 
 class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
@@ -120,10 +144,10 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
         form_date = self.kwargs.get('date')
         if form_date is None:
             form_date = datetime.now().strftime("%Y-%m-%d")
-        account_id = self.kwargs.get('account_pk')
-        account = get_object_or_404(Account, id=account_id)
-        if account.can_edit() is False:
-            raise PermissionDenied
+        try:
+            account = Account.admin_objects.get(pk=self.kwargs.get('account_pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied           
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.helper.form_method = 'POST'
@@ -145,11 +169,11 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
     user = None
 
     def test_func(self):
-        view_object = get_object_or_404(Account, pk=self.kwargs.get('pk'))
-        return view_object.can_edit()
-
-    def handle_no_permission(self):
-        raise PermissionDenied
+        try:
+            admin_object = Account.admin_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        return True
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -335,7 +359,7 @@ class JoinedTransactionListView(MyListView):
     table_class = JoinedTransactionsListTable
 
     def get_queryset(self):
-        return self.model.view_objects.filter(is_deleted=False).order_by('name')
+        return self.model.view_objects.all().order_by('name')
 
 
 class JoinedTransactionsConfigDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -382,13 +406,13 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, UserPassesTestMixin, Deta
         pk = self.kwargs.get('pk')
         date = self.kwargs.get('date')
         joinedtransactions = context.get('joinedtransactions')
-        transactions = joinedtransactions.transactions.all()
+        transactions = joinedtransactions.transactions.filter(is_deleted=False)
         transactionPlannedDate = datetime.strptime(date, "%Y-%m-%d").date()
         firstbudgetedevent = joinedtransactions.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         for budgetedevent in joinedtransactions.budgetedevents.filter(is_deleted=False):
-            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_planned=transactionPlannedDate)
+            transactions = transactions | Transaction.view_objects.filter(budgetedevent=budgetedevent, date_planned=transactionPlannedDate)
         transactions = transactions.order_by('joined_order')
         transactionActualDate = transactions.first().date_actual.strftime("%Y-%m-%d")
         context['joinedtransactions'] = joinedtransactions
@@ -454,7 +478,7 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         for budgetedevent in joinedtransactions.budgetedevents.filter(is_deleted=False):
-            transactions = transactions | Transaction.objects.filter(budgetedevent=budgetedevent, date_planned=transactionPlannedDate)
+            transactions = transactions | Transaction.view_objects.filter(budgetedevent=budgetedevent, date_planned=transactionPlannedDate)
         transactions = transactions.order_by('joined_order')
         transactionActualDate = transactions.first().date_actual.strftime("%Y-%m-%d")
         transactionsHelper = FormHelper()
@@ -534,7 +558,7 @@ class TransactionListView(LoginRequiredMixin, ListView):
         if end < begin:
             end = begin + relativedelta(months=1)
 
-        qs = Transaction.view_objects.filter(date_actual__gt=begin, date_actual__lte=end, is_deleted=False).order_by('date_actual', 'audit')
+        qs = Transaction.view_objects.filter(date_actual__gt=begin, date_actual__lte=end).order_by('date_actual', 'audit')
         return qs
 
 
@@ -567,7 +591,7 @@ class TransactionDeletedListView(MyListView):
 
     def get_queryset(self):
         inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
-        return self.model.view_objects.filter(is_deleted=1, date_actual__lt=inamonth).order_by('-date_actual')
+        return self.model.view_deleted_objects.filter(date_actual__lt=inamonth).order_by('-date_actual')
 
 
 class TransactionCalendarView(LoginRequiredMixin, ListView):
