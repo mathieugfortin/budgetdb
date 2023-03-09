@@ -215,7 +215,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         preference = get_object_or_404(Preference, id=self.user.id)
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
-        form.initial['currency'] = preference.currency_prefered
+        form.initial['currency'] = preference.currency_prefered.id
         form.initial['amount_actual_foreign_currency'] = Decimal(0)
         form.initial['audit'] = False
         form.helper.form_method = 'POST'
@@ -315,7 +315,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         preference = get_object_or_404(Preference, id=self.user.id)
-        context['currency'] = preference.currency_prefered
+        context['currency'] = preference.currency_prefered.id
         return context
 
     def get_success_url(self):

@@ -1061,9 +1061,9 @@ class TransactionModalForm(BSModalModelForm):
                 Div(
                     # Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6', input_size="input-group-sm")),
                     Field('account_source', type='hidden'),
-                    Field('currency', type='hidden'),
+                    # Field('currency', type='hidden'),
                     Field('audit', type='hidden'),
-                    Field('amount_actual_foreign_currency', type='hidden'),
+                    # Field('amount_actual_foreign_currency', type='hidden'),
                     Div('is_deleted', css_class='form-group col-md-4   '),
                     css_class='row'
                 ),
@@ -1228,9 +1228,9 @@ class TransactionFormFull(forms.ModelForm):
                 Div(
                     # Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6', input_size="input-group-sm")),
                     Field('account_source', type='hidden'),
-                    Field('currency', type='hidden'),
+                    # Field('currency', type='hidden'),
                     Field('audit', type='hidden'),
-                    Field('amount_actual_foreign_currency', type='hidden'),
+                    # Field('amount_actual_foreign_currency', type='hidden'),
                     Div('is_deleted', css_class='form-group col-md-4   '),
                     css_class='row'
                 ),
