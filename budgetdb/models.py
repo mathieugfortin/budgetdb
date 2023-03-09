@@ -12,6 +12,14 @@ from django.contrib.auth.models import AbstractUser, Group
 from crum import get_current_user
 
 
+class MyMeta(models.Model):
+    class Meta:
+        abstract = True
+
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+
+
 class User(AbstractUser):
     invited = models.ManyToManyField("User", related_name='invited_users')
     friends = models.ManyToManyField("User", related_name='friends_users')
@@ -239,14 +247,12 @@ class Currency(models.Model):
         return self.name
 
 
-class AccountPresentation(BaseSoftDelete):
+class AccountPresentation(MyMeta, BaseSoftDelete):
     class Meta:
         managed = False
         db_table = 'budgetdb_account_presentation'
 
     id = models.BigIntegerField(primary_key=True)
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
     account_host = models.ForeignKey(AccountHost, on_delete=models.DO_NOTHING)
     account_parent = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
     name = models.CharField(max_length=200)
@@ -299,14 +305,12 @@ class AccountReport():
         self.rate = (self.interests / (self.balance_end - self.interests))*Decimal(100)
 
 
-class Account(BaseSoftDelete, UserPermissions):
+class Account(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Account'
         verbose_name_plural = 'Accounts'
         ordering = ['account_host__name', 'name']
 
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
     date_open = models.DateField('date opened', blank=True, null=True)
     date_closed = models.DateField('date closed', blank=True, null=True)
     account_host = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
@@ -540,15 +544,13 @@ class Account(BaseSoftDelete, UserPermissions):
         return dailybalances
 
 
-class AccountCategory(BaseSoftDelete, UserPermissions):
+class AccountCategory(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Account Category'
         verbose_name_plural = 'Account Categories'
         ordering = ['name']
 
     accounts = models.ManyToManyField(Account, related_name='account_categories')
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=200)
 
     def __str__(self):
@@ -653,14 +655,6 @@ class CatSums(models.Model):
         cat1_totals = CatSums.objects.raw(sqlst)
 
         return cat1_totals
-
-
-class MyBoolMap(models.IntegerField):
-    def db_type(self, connection):
-        return 'integer'
-
-    def rel_db_type(self, connection):
-        return 'integer'
 
 
 class MyCalendar(models.Model):
@@ -799,8 +793,8 @@ class Cat1(BaseSoftDelete, UserPermissions):
 
 class Cat2(BaseSoftDelete, UserPermissions):
     class Meta:
-        verbose_name = 'Sub Category'
-        verbose_name_plural = 'Sub Categories'
+        verbose_name = 'Sub-Category'
+        verbose_name_plural = 'Sub-Categories'
         ordering = ['name']
 
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE)
@@ -830,86 +824,36 @@ class Vendor(BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_vendor')
 
 
-class Transaction(BaseSoftDelete):
+class BaseEvent(models.Model):
     class Meta:
-        verbose_name = 'Transaction'
-        verbose_name_plural = 'Transactions'
-
-    objects = models.Manager()  # The default manager.
-    view_objects = TransactionViewerManager()
-    view_deleted_objects = TransactionDeletedViewerManager
-    admin_objects = TransactionAdminManager()
-
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
-
-    budgetedevent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True,
-                                      null=True)
-    date_planned = models.DateField('planned date', blank=True, null=True)
-    # date_planned only populated if linked to a budgeted_event
-    # will break if repetition pattern of BE changes... so BE can't change if it has attached Ts
-    date_actual = models.DateField('date of the transaction')
-    joined_order = models.IntegerField('position in a joined transaction', blank=True,
-                                       null=True)
+        abstract = True
+    account_source = models.ForeignKey(Account, on_delete=models.CASCADE,
+                                       blank=True, null=True, related_name='%(class)s_account_source')
+    account_destination = models.ForeignKey(
+        Account, on_delete=models.CASCADE, related_name='%(class)s_account_destination', blank=True, null=True
+    )
     amount_planned = models.DecimalField(
         'planned amount', decimal_places=2, max_digits=10, blank=True, null=True
     )
-    amount_actual = models.DecimalField(
-        'transaction amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
-    )
+
     currency = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, blank=False, null=False)
-    amount_actual_foreign_currency = models.DecimalField(
+    amount_planned_foreign_currency = models.DecimalField(
         'original amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
     )
-    Fuel_L = models.DecimalField(
-        'Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True
-    )
-    Fuel_price = models.DecimalField(
-        'Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True
-    )
-
     description = models.CharField('Description', max_length=200)
-    comment = models.CharField('optional comment', max_length=200, blank=True, null=True)
+    comment = models.CharField('Comment', max_length=200, blank=True, null=True)
+    ismanual = models.BooleanField('Manual Intervention?', default=False)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
-    cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True)
-    cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True)
-    ismanual = models.BooleanField('Is this an event that require manual intervention?', default=False)
-    account_source = models.ForeignKey(
-        Account, on_delete=models.CASCADE, related_name='t_account_source', blank=True, null=True
-    )
-    account_destination = models.ForeignKey(
-        Account, on_delete=models.CASCADE, related_name='t_account_destination', blank=True, null=True
-    )
-    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
-    verified = models.BooleanField('Verified in a statement', default=False)
-    audit = models.BooleanField(
-        'Audit',
-        default=False,
-        )
-    receipt = models.BooleanField(
-        'Checked with receipt',
-        default=False,
-        )
     budget_only = models.BooleanField(
-        'counts as 0 after today, only exists to simulate future expenses',
+        'Budget only, counts as 0 after today',
         default=False,
-        )
-
-    def __str__(self):
-        return f'{self.description} - {self.date_actual}'
-
-    def get_absolute_url(self):
-        return reverse('budgetdb:details_transaction', kwargs={'pk': self.pk})
-
-    def save(self, *args, **kwargs):
-        # if self._state.adding and self.budgetedevent is not None and self.date_planned is not None:
-        #    if Transaction.objects.filter(budgetedevent=self.budgetedevent, date_planned=self.date_planned).exists():
-                 # don't save a duplicate
-        #        return
-        if self.can_edit() is True:    
-            super(Transaction, self).save(*args, **kwargs)
-        else:
-            return
+    )
+    joined_order = models.IntegerField('position in a joined transaction', blank=True,
+                                       null=True)
+    cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True,
+                             verbose_name='Category', related_name='%(class)s_category')
+    cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True,
+                             verbose_name='Sub-Category', related_name='%(class)s_subcategory')
 
     def can_edit(self):
         if self.account_destination:
@@ -930,46 +874,53 @@ class Transaction(BaseSoftDelete):
         return True
 
 
-class BudgetedEvent(BaseSoftDelete, UserPermissions):
-    # description of budgeted events
+class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     class Meta:
-        verbose_name = 'Budgeted Event'
-        verbose_name_plural = 'Budgeted Events'
+        verbose_name = 'Transaction'
+        verbose_name_plural = 'Transactions'
 
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
-    generated_interval_start = models.DateTimeField('begining of the generated events interval', blank=True, null=True)
-    generated_interval_stop = models.DateTimeField('end of the generated events interval', blank=True, null=True)
-    amount_planned = models.DecimalField('Budgeted amount', decimal_places=2, max_digits=10,
-                                         blank=True, null=True)
-    percent_planned = models.DecimalField('percent of another event.  say 10% of pay goes to RRSP',
-                                          decimal_places=2, max_digits=10, blank=True, null=True)
-    budgetedevent_percent_ref = models.ForeignKey('self', on_delete=models.CASCADE, blank=True,
-                                                  null=True)
-    account_source = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='b_account_source',
-                                       blank=True, null=True)
-    account_destination = models.ForeignKey(Account, on_delete=models.CASCADE,
-                                            related_name='b_account_destination',
-                                            blank=True, null=True)
-    cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE,
-                             verbose_name='Category')
-    cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE,
-                             verbose_name='Subcategory')
-    description = models.CharField(max_length=200, default='Description')
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
-    budget_only = models.BooleanField('only for budgeting, no actual expense planned', default=False)  # is this useful?
-    isrecurring = models.BooleanField('Is this a recurring event?', default=True)
-    ismanual = models.BooleanField('Is this an event that require manual intervention?', default=False)
+    objects = models.Manager()  # The default manager.
+    view_objects = TransactionViewerManager()
+    view_deleted_objects = TransactionDeletedViewerManager
+    admin_objects = TransactionAdminManager()
+
+    budgetedevent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True, null=True)
+    date_planned = models.DateField('planned date', blank=True, null=True)
+    date_actual = models.DateField('date of the transaction')
+    amount_actual = models.DecimalField('Amount', decimal_places=2, max_digits=10, default=Decimal('0.00'))
+    amount_actual_foreign_currency = models.DecimalField('original amount', decimal_places=2, max_digits=10, default=Decimal('0.00'))
+    Fuel_L = models.DecimalField('Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True)
+    Fuel_price = models.DecimalField('Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True)
+    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
+    verified = models.BooleanField('Verified in a statement', default=False)
+    audit = models.BooleanField('Audit', default=False)
+    receipt = models.BooleanField('Checked with receipt', default=False)
+
+    def __str__(self):
+        return f'{self.description} - {self.date_actual}'
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_transaction', kwargs={'pk': self.pk})
+
+    def save(self, *args, **kwargs):
+        if self.can_edit() is True:    
+            super(Transaction, self).save(*args, **kwargs)
+        else:
+            return
+
+
+class BaseRecurring(models.Model):
+    class Meta:
+        abstract = True
     repeat_start = models.DateField('date of the first event')
     repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
-    nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
+    nb_iteration = models.IntegerField('number of repetitions, null if N/A', blank=True,
                                        null=True)  # is this implementable on complex patterns?
-    joined_order = models.IntegerField('position in a joined transaction', blank=True,
-                                       null=True)
-    repeat_interval_days = models.IntegerField('period in days, 0 if not applicable', default=0)
-    repeat_interval_years = models.IntegerField('period in years, 0 if not applicable', default=0)
-    repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
-    repeat_interval_weeks = models.IntegerField('period in weeks, 0 if not applicable', default=0)
+
+    repeat_interval_days = models.IntegerField('period in days, 0 if N/A', default=0)
+    repeat_interval_years = models.IntegerField('period in years, 0 if N/A', default=0)
+    repeat_interval_months = models.IntegerField('period in months, 0 if N/A', default=0)
+    repeat_interval_weeks = models.IntegerField('period in weeks, 0 if N/A', default=0)
 
     ######################################
     # binary masks are ALWAYS APPLICABLE #
@@ -988,18 +939,6 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
                                               default=127)
     # Mon=1, Tue=2,Wed=4, Thu=8, Fri=16, Sat=32, Sun=64, all=127
     # workweek=31   weekend=96
-
-    def __str__(self):
-        return self.description
-
-    def get_absolute_url(self):
-        return reverse('budgetdb:details_be', kwargs={'pk': self.pk})
-
-    def save(self, *args, **kwargs):
-        super(BudgetedEvent, self).save(*args, **kwargs)
-        self.deleteUnverifiedTransaction()
-        if self.is_deleted is False:
-            self.createTransactions()
 
     def checkDate(self, dateCheck):
         # verifies if the event happens on the dateCheck. should handle all the recurring patterns
@@ -1096,6 +1035,33 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
         transactions = transactions.filter(date_actual__gt=end_date).order_by('-date_actual')[:n]
         return transactions
 
+
+class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermissions):
+    # description of budgeted events
+    class Meta:
+        verbose_name = 'Budgeted Event'
+        verbose_name_plural = 'Budgeted Events'
+
+    generated_interval_start = models.DateTimeField('begining of the generated events interval', blank=True, null=True)
+    generated_interval_stop = models.DateTimeField('end of the generated events interval', blank=True, null=True)
+    percent_planned = models.DecimalField('percent of another event.  say 10% of pay goes to RRSP',
+                                          decimal_places=2, max_digits=10, blank=True, null=True)
+    budgetedevent_percent_ref = models.ForeignKey('self', on_delete=models.CASCADE, blank=True,
+                                                  null=True)
+    isrecurring = models.BooleanField('Is this a recurring event?', default=True)
+
+    def __str__(self):
+        return self.description
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:details_be', kwargs={'pk': self.pk})
+
+    def save(self, *args, **kwargs):
+        self.deleteUnverifiedTransaction()
+        if self.is_deleted is False:
+            self.createTransactions()
+        super(BudgetedEvent, self).save(*args, **kwargs)
+
     def createTransactions(self, n=400, begin_interval=None, interval_length_months=60):
         if begin_interval is None:
             begin_interval = self.repeat_start
@@ -1147,13 +1113,11 @@ class BudgetedEvent(BaseSoftDelete, UserPermissions):
             return last_transaction.date_actual
 
 
-class Statement (BaseSoftDelete, UserPermissions):
+class Statement (MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Statement'
         verbose_name_plural = 'Statements'
 
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='statement_account')
     balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
     minimum_payment = models.DecimalField('Minimum Payment', decimal_places=2, max_digits=10, default=Decimal('0.0000'))
@@ -1170,124 +1134,14 @@ class Statement (BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:details_statement', kwargs={'pk': self.pk})
 
 
-class Recurring(models.Model):
-    # description of budgeted events
-    class Meta:
-        verbose_name = 'Recurring'
-        verbose_name_plural = 'Recurring'
-
-    generated_interval_start = models.DateTimeField('begining of the generated events interval', blank=True, null=True)
-    generated_interval_stop = models.DateTimeField('end of the generated events interval', blank=True, null=True)
-    repeat_start = models.DateField('date of the first event')
-    repeat_stop = models.DateField('date of the last event, optional', blank=True, null=True)
-    nb_iteration = models.IntegerField('number of repetitions, null if not applicable', blank=True,
-                                       null=True)  # is this implementable on complex patterns?
-    repeat_interval_days = models.IntegerField('period in days, 0 if not applicable', default=0)
-    repeat_interval_years = models.IntegerField('period in years, 0 if not applicable', default=0)
-    repeat_interval_months = models.IntegerField('period in months, 0 if not applicable', default=0)
-    repeat_interval_weeks = models.IntegerField('period in weeks, 0 if not applicable', default=0)
-
-    repeat_months_mask = models.IntegerField(
-        'binary mask of applicable months. Always Applicable jan=1 feb=2 mar=4 ... dec=2048 ALL=4095',
-        default=4095)
-    repeat_dayofmonth_mask = models.IntegerField(
-        'binary mask of applicable month days. Always Applicable ALL=2147483647', default=2147483647
-    )
-    repeat_weekofmonth_mask = models.IntegerField('binary mask of applicable month week. Always Applicable ALL=15',
-                                                  default=63)
-
-    repeat_weekday_mask = models.IntegerField('binary mask of applicable week day. Always Applicable ALL=127',
-                                              default=127)
-    # Mon=1, Tue=2,Wed=4, Thu=8, Fri=16, Sat=32, Sun=64, all=127
-    # workweek=31   weekend=96
-
-    def checkDate(self, dateCheck):
-        # verifies if the event happens on the dateCheck. should handle all the recurring patterns
-
-        # https://stackoverflow.com/a/13565185
-        # get close to the end of the month for any day, and add 4 days 'over'
-        next_month = dateCheck.replace(day=28) + relativedelta(days=4)
-        # subtract the number of remaining 'overage' days to get last day of current month,
-        # or said programattically said, the previous day of the first of next month
-        last_day_month = next_month + relativedelta(days=-next_month.day)
-
-        # not before first event
-        if dateCheck < self.repeat_start:
-            return False
-        # same day OK
-        elif self.repeat_start == dateCheck:
-            return True
-        # applying masks
-        elif (1 << dateCheck.weekday()) & self.repeat_weekday_mask == 0:
-            return False
-        elif (1 << (dateCheck.month-1)) & self.repeat_months_mask == 0:
-            return False
-        elif (1 << (dateCheck.day-1)) & self.repeat_dayofmonth_mask == 0:
-            return False
-        elif (1 << int((dateCheck.day-1) / 7)) & self.repeat_weekofmonth_mask == 0:
-            return False
-        # not after last event
-        elif self.repeat_stop is not None \
-                and dateCheck > self.repeat_stop:
-            return False
-        # if day interval is used, check if the difference is a repeat of interval
-        elif self.repeat_interval_days != 0 \
-                and (dateCheck - self.repeat_start).days % self.repeat_interval_days != 0:
-            return False
-        # if year interval is used, check if the difference is a repeat of interval.
-        # Days and months must match
-        elif self.repeat_interval_years != 0 and \
-                ((dateCheck.day != self.repeat_start.day) or (dateCheck.month != self.repeat_start.month)
-                 or (dateCheck.year - self.repeat_start.year) % self.repeat_interval_years != 0):
-            return False
-        # if month interval is used, check if the difference is a repeat of interval.
-        # Days must match OR must be last day of the month and planned day is after
-        # *************************************************************
-        elif self.repeat_interval_months != 0 and \
-                (
-                    (
-                        dateCheck.day != self.repeat_start.day
-                        and
-                        (self.repeat_start.day < last_day_month.day
-                         or
-                         last_day_month != dateCheck)
-                    )
-                or
-                 (dateCheck.month - self.repeat_start.month) % self.repeat_interval_months != 0):
-            return False
-        # if weeks interval is used, check if the difference is a repeat of interval. Weekday must match
-        elif self.repeat_interval_weeks != 0 and \
-                (dateCheck.weekday() != self.repeat_start.weekday() or
-                 ((dateCheck - self.repeat_start).days / 7) % self.repeat_interval_weeks != 0):
-            return False
-        else:
-            return True
-
-    def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id, is_deleted=False)
-        transactions = transactions.filter(date_actual__gt=begin_interval)
-        end_date = begin_interval + relativedelta(months=interval_length_months)
-        transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
-        return transactions
-
-    def listPreviousTransaction(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id, is_deleted=False)
-        transactions = transactions.filter(date_actual__lte=begin_interval)
-        end_date = begin_interval + relativedelta(months=-interval_length_months)
-        transactions = transactions.filter(date_actual__gt=end_date).order_by('date_actual')[:n]
-        return transactions
-
-
-class JoinedTransactions(BaseSoftDelete, UserPermissions):
+class JoinedTransactions(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Joined Transactions'
         verbose_name_plural = 'Joined Transactions'
 
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=200)
     comment = models.CharField(max_length=200, blank=True, null=True)
     transactions = models.ManyToManyField(Transaction, related_name='transactions')
     budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='budgeted_events')
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)
-    recurring = models.ForeignKey(Recurring, on_delete=models.CASCADE, null=True)
+    

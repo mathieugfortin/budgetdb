@@ -1,16 +1,17 @@
+from datetime import datetime, date
+from crum import get_current_user
 from django import forms
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User, Preference, Friend
 from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement
 from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
-from django.template.loader import render_to_string
 from crispy_forms.bootstrap import AppendedText, PrependedText
-from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
-from datetime import datetime, date
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from crum import get_current_user
 from bootstrap_modal_forms.forms import BSModalModelForm
 
 
@@ -775,221 +776,6 @@ class JoinedTransactionsForm(forms.ModelForm):
         )
 
 
-class TransactionFormFull(forms.ModelForm):
-    class Meta:
-        model = Transaction
-        fields = [
-            'description',
-            'vendor',
-            'amount_actual',
-            'currency',
-            # 'date_planned',
-            'cat1',
-            'cat2',
-            'account_source',
-            'account_destination',
-            'statement',
-            'verified',
-            'receipt',
-            'Fuel_L',
-            'Fuel_price',
-            'date_actual',
-            'budgetedevent',
-            'amount_actual_foreign_currency',
-            'audit',
-            'ismanual',
-            'is_deleted',
-            'comment',
-        ]
-        widgets = {
-            'date_actual': forms.DateInput(
-                format=('%Y-%m-%d'),
-                attrs={'class': 'form-control', 'type': 'date'}
-            ),
-            'date_planned': forms.DateInput(
-                format=('%Y-%m-%d'),
-                attrs={'class': 'form-control', 'type': 'date'}
-            ),
-        }
-
-    def __init__(self, *args, **kwargs):
-        audit_view = kwargs.pop('audit', False)
-        task = kwargs.pop('task', 'Update')
-        user = kwargs.pop('user', None)
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        if len(self.data) != 0:
-            # form is bound, just set the querysets that may have changed
-            cat1 = int(self.data.get('cat1'))
-            self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
-            return
-        else:
-            # form is unbound, build it
-            preference = Preference.objects.get(user=user.id)
-            self.fields['cat1'].queryset = Cat1.admin_objects.all()
-            currency_symbol = preference.currency_prefered.symbol
-            self.fields['currency'].initial = preference.currency_prefered
-            self.fields['currency'].data = preference.currency_prefered
-
-        if 'cat1' in self.initial:
-            try:
-                cat1 = int(self.initial.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
-            except (ValueError, TypeError):
-                self.fields['cat2'].queryset = Cat2.objects.none()
-        else:
-            self.fields['cat2'].queryset = Cat2.objects.none()
-
-        self.fields['account_source'].queryset = Account.admin_objects.All()
-        self.fields['account_destination'].queryset = Account.admin_objects.All()
-        self.fields['statement'].queryset = Statement.admin_objects.All()
-        self.fields['vendor'].queryset = Vendor.admin_objects.All()
-        self.fields['currency'].queryset = preference.currencies
-        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.All()
-
-        self.fields['cat1'].label = "Category"
-        self.fields['cat2'].label = "Sub-Category"
-        self.fields['amount_actual'].label = "Amount"
-
-        allowRecurringPatternUpdate = True
-        if kwargs['instance'] is not None:
-            if kwargs['instance'].transactions is not None:
-                if kwargs['instance'].transactions.first() is not None:
-                    allowRecurringPatternUpdate = False
-            if kwargs['instance'].budgetedevent is not None:
-                if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
-                    allowRecurringPatternUpdate = False
-            if kwargs['instance'].audit is True:
-                audit_view = True
-
-        self.helper.layout = Layout(
-            Field('description'),
-            Div(
-                Div('date_actual', css_class='form-group col-md-6  '),
-                css_class='row'
-            ),
-            Div(
-                Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6    ')),
-                Div('amount_actual_foreign_currency', css_class='form-group col-md-4  '),
-                Div('currency', css_class='form-group col-md-4  '),
-                css_class='row'
-            ),
-            Div( 
-                Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6   mr-0  ')),
-                Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6  ')),
-                css_class='row'
-            ),
-            Div(
-                Div('cat1', css_class='form-group col-md-4  '),
-                Div('cat2', css_class='form-group col-md-4  '),
-                css_class='row'
-            ),
-            Div(
-                Div('account_source', css_class='form-group col-md-4  '),
-                Div('account_destination', css_class='form-group col-md-4   '),
-                css_class='row'
-            ),
-            Div(
-                Div('verified', css_class='form-group col-md-4  '),
-                Div('receipt', css_class='form-group col-md-4   '),
-                Div('is_deleted', css_class='form-group col-md-4   '),
-                css_class='row'
-            ),
-            Div(
-                Div('audit', css_class='form-group col-md-4  '),
-                Div('ismanual', css_class='form-group col-md-8   '),
-                css_class='row'
-            ),
-            Field('comment'),
-            Div(
-                Div('budgetedevent', css_class='form-group col-md-4  '),
-                Div('vendor', css_class='form-group col-md-4  '),
-                Div('statement', css_class='form-group col-md-4   '),
-                css_class='row'
-            ),
-        )
-        self.helper.layout.extend([
-            Field('comment'),
-            Div(
-                HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary" >{task}</button>'),
-                HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
-            ),
-        ])
-
-
-class TransactionAuditFormFull(forms.ModelForm):
-    class Meta:
-        model = Transaction
-        fields = [
-            'description',
-            'vendor',
-            'amount_actual',
-            'date_planned',
-            'cat1',
-            'cat2',
-            'account_source',
-            'account_destination',
-            'statement',
-            'currency',
-            'amount_actual_foreign_currency',
-            'verified',
-            'receipt',
-            'Fuel_L',
-            'Fuel_price',
-            'date_actual',
-            'budgetedevent',
-            'audit',
-            'ismanual',
-            'is_deleted',
-            'comment',
-        ]
-        widgets = {
-            'date_actual': forms.DateInput(
-                format=('%Y-%m-%d'),
-                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
-            ),
-            'date_planned': forms.DateInput(
-                format=('%Y-%m-%d'),
-                attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
-            ),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-
-        self.fields['account_source'].queryset = Account.admin_objects.all()
-        self.fields['statement'].queryset = Statement.admin_objects.all()
-        self.fields['vendor'].queryset = Vendor.admin_objects.all()
-
-        self.fields['amount_actual'].label = f"Audited Value"
-        self.fields['date_actual'].label = f"Audited Date"
-        self.fields['account_source'].label = f"Audited Account"
-        self.helper.layout = Layout(
-            Field('description'),
-            Div(
-                Div(PrependedText('amount_actual', '$', css_class='active form-group col-sm-6    ')),
-                Div('date_actual', css_class='form-group col-md-4  '),
-                css_class='row'
-            ),
-            Div(
-                Div('account_source', css_class='form-group col-md-6  '),
-                css_class='row'
-            ),
-            Div(
-                Div('is_deleted', css_class='form-group col-md-4   '),
-                css_class='row'
-            ),
-            Div(
-                Field('audit', type="hidden"),
-                Field('currency', type='hidden'),
-                Field('amount_actual_foreign_currency', type='hidden'),
-                css_class='row'
-            ),
-            Field('comment'),
-        )
-
-
 class PreferenceForm(forms.ModelForm):
     class Meta:
         model = Preference
@@ -1170,27 +956,35 @@ class TransactionModalForm(BSModalModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        if len(self.data) != 0:
+            # form is bound, no need to build the layout
+            # cat1 = int(self.data.get('cat1'))
+            # self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
+            return
+       
+        # form is unbound, build it            
         preference = Preference.objects.get(user=user.id)
-        self.fields['cat1'].queryset = Cat1.admin_objects.all()
         currency_symbol = preference.currency_prefered.symbol
-
-        if 'cat1' in self.data:
-            try:
-                cat1 = int(self.data.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
-            except (ValueError, TypeError):
-                self.fields['cat2'].queryset = Cat2.objects.none()
-        elif 'cat1' in self.initial:
+        if len(self.initial) == 0:
+            # No initial values, set defaults
+            self.fields['currency'].initial = preference.currency_prefered
+            self.fields['currency'].data = preference.currency_prefered
+            self.fields['cat2'].queryset = Cat2.objects.none()
+        else:
+            # initial values exist, set the correct dependant data
             try:
                 cat1 = int(self.initial.get('cat1'))
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
-        else:
-            self.fields['cat2'].queryset = Cat2.objects.none()
-            self.fields['currency'].initial = preference.currency_prefered
-            self.fields['currency'].data = preference.currency_prefered
+            try:
+                audit = self.initial.get('audit')
+                if audit is True:
+                    audit_view = True
+            except (ValueError, TypeError):
+                audit_view = False
 
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
         self.fields['account_source'].queryset = Account.admin_objects.all()
         self.fields['account_destination'].queryset = Account.admin_objects.all()
         self.fields['statement'].queryset = Statement.admin_objects.all()
@@ -1198,9 +992,8 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
-        self.fields['cat1'].label = "Category"
-        self.fields['cat2'].label = "Sub-Category"
-        self.fields['amount_actual'].label = "Amount"
+        # will I need to add all labels here for translations?
+        # self.fields['amount_actual'].label = "Amount"
 
         allowRecurringPatternUpdate = True
         if kwargs['instance'] is not None:
@@ -1210,8 +1003,6 @@ class TransactionModalForm(BSModalModelForm):
             if kwargs['instance'].budgetedevent is not None:
                 if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
                     allowRecurringPatternUpdate = False
-            if kwargs['instance'].audit is True:
-                audit_view = True
 
         self.helper.layout = Layout(
             Field('description'),
@@ -1219,16 +1010,16 @@ class TransactionModalForm(BSModalModelForm):
                 Div('date_actual', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
+            Div(
+                # Div(PrependedText('amount_actual', '$', css_class='form-group col-3 input-group-sm')),
+                Div('amount_actual', css_class='form-group col-4'),
+                Div('currency', css_class='form-group col-4'),
+                Div('amount_actual_foreign_currency', css_class='form-group col-4  '),
+                css_class='row'
+            ),
         )
         if audit_view is False:
             self.helper.layout.extend([
-                Div(
-                    # Div(PrependedText('amount_actual', '$', css_class='form-group col-3 input-group-sm')),
-                    Div('amount_actual', css_class='form-group col-4'),
-                    Div('currency', css_class='form-group col-4'),
-                    Div('amount_actual_foreign_currency', css_class='form-group col-4  '),
-                    css_class='row'
-                ),
                 Div(
                     # Div(AppendedText('Fuel_L', 'L', css_class='form-group col-2')),
                     # Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-2')),
@@ -1253,6 +1044,8 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row'
                 ),
                 Div(
+                    # Div('audit', css_class='form-group col-md-4  '),
+                    Field('audit', type='hidden'),
                     Div('ismanual', css_class='form-group col-md-8   '),
                     css_class='row'
                 ),
@@ -1260,14 +1053,13 @@ class TransactionModalForm(BSModalModelForm):
                     Div('budgetedevent', css_class='form-group col-md-4  '),
                     Div('vendor', css_class='form-group col-md-4  '),
                     Div('statement', css_class='form-group col-md-4   '),
-                    Field('audit', type='hidden'),
                     css_class='row'
                 ),
             ])
         else:
             self.helper.layout.extend([
                 Div(
-                    Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6', input_size="input-group-sm")),
+                    # Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6', input_size="input-group-sm")),
                     Field('account_source', type='hidden'),
                     Field('currency', type='hidden'),
                     Field('audit', type='hidden'),
@@ -1285,4 +1077,169 @@ class TransactionModalForm(BSModalModelForm):
             ),
         ])
 
-        a = 2
+
+class TransactionFormFull(forms.ModelForm):
+    class Meta:
+        model = Transaction
+        fields = [
+            'description',
+            'vendor',
+            'amount_actual',
+            'currency',
+            # 'date_planned',
+            'cat1',
+            'cat2',
+            'account_source',
+            'account_destination',
+            'statement',
+            'verified',
+            'receipt',
+            'Fuel_L',
+            'Fuel_price',
+            'date_actual',
+            'budgetedevent',
+            'amount_actual_foreign_currency',
+            'audit',
+            'ismanual',
+            'is_deleted',
+            'comment',
+        ]
+        widgets = {
+            'date_actual': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'type': 'date'}
+            ),
+            'date_planned': forms.DateInput(
+                format=('%Y-%m-%d'),
+                attrs={'class': 'form-control', 'type': 'date'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        audit_view = kwargs.pop('audit', False)
+        task = kwargs.pop('task', 'Update')
+        user = kwargs.pop('user', None)
+        if user is None:
+            raise PermissionDenied
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        if len(self.data) != 0:
+            # form is bound, no need to build the layout
+            # cat1 = int(self.data.get('cat1'))
+            # self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
+            return
+
+        # form is unbound, build it
+        preference = Preference.objects.get(user=user.id)
+        currency_symbol = preference.currency_prefered.symbol
+        if len(self.initial) == 0:
+            # No initial values, set defaults
+            self.fields['currency'].initial = preference.currency_prefered
+            self.fields['currency'].data = preference.currency_prefered
+            self.fields['cat2'].queryset = Cat2.objects.none()
+        else:
+            # initial values exist, set the correct dependant data
+            try:
+                cat1 = int(self.initial.get('cat1'))
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
+            except (ValueError, TypeError):
+                self.fields['cat2'].queryset = Cat2.objects.none()
+            try:
+                audit = self.initial.get('audit')
+                if audit is True:
+                    audit_view = True
+            except (ValueError, TypeError):
+                audit_view = False
+
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
+        self.fields['account_source'].queryset = Account.admin_objects.all()
+        self.fields['account_destination'].queryset = Account.admin_objects.all()
+        self.fields['statement'].queryset = Statement.admin_objects.all()
+        self.fields['vendor'].queryset = Vendor.admin_objects.all()
+        self.fields['currency'].queryset = preference.currencies
+        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
+
+        # will I need to add all labels here for translations?
+        # self.fields['amount_actual'].label = "Amount"
+
+        allowRecurringPatternUpdate = True
+        if kwargs['instance'] is not None:
+            if kwargs['instance'].transactions is not None:
+                if kwargs['instance'].transactions.first() is not None:
+                    allowRecurringPatternUpdate = False
+            if kwargs['instance'].budgetedevent is not None:
+                if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
+                    allowRecurringPatternUpdate = False
+
+        self.helper.layout = Layout(
+            Field('description'),
+            Div(
+                Div('date_actual', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Div(
+                # Div(PrependedText('amount_actual', '$', css_class='form-group col-3 input-group-sm')),
+                Div('amount_actual', css_class='form-group col-4'),
+                Div('currency', css_class='form-group col-4'),
+                Div('amount_actual_foreign_currency', css_class='form-group col-4  '),
+                css_class='row'
+            ),
+        )
+        if audit_view is False:
+            self.helper.layout.extend([
+                Div(
+                    # Div(AppendedText('Fuel_L', 'L', css_class='form-group col-2')),
+                    # Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-2')),
+                    Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6   mr-0  ')),
+                    Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6  ')),
+                    css_class='row'
+                ),
+                Div(
+                    Div('cat1', css_class='form-group col-md-4  '),
+                    Div('cat2', css_class='form-group col-md-4  '),
+                    css_class='row'
+                ),
+                Div(
+                    Div('account_source', css_class='form-group col-md-4  '),
+                    Div('account_destination', css_class='form-group col-md-4   '),
+                    css_class='row'
+                ),
+                Div(
+                    Div('verified', css_class='form-group col-md-4  '),
+                    Div('receipt', css_class='form-group col-md-4   '),
+                    Div('is_deleted', css_class='form-group col-md-4   '),
+                    css_class='row'
+                ),
+                Div(
+                    # Div('audit', css_class='form-group col-md-4  '),
+                    Field('audit', type='hidden'),
+                    Div('ismanual', css_class='form-group col-md-8   '),
+                    css_class='row'
+                ),
+                Div(
+                    Div('budgetedevent', css_class='form-group col-md-4  '),
+                    Div('vendor', css_class='form-group col-md-4  '),
+                    Div('statement', css_class='form-group col-md-4   '),
+                    css_class='row'
+                ),
+            ])
+        else:
+            self.helper.layout.extend([
+                Div(
+                    # Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6', input_size="input-group-sm")),
+                    Field('account_source', type='hidden'),
+                    Field('currency', type='hidden'),
+                    Field('audit', type='hidden'),
+                    Field('amount_actual_foreign_currency', type='hidden'),
+                    Div('is_deleted', css_class='form-group col-md-4   '),
+                    css_class='row'
+                ),
+            ])
+
+        self.helper.layout.extend([
+            Field('comment'),
+            Div(
+                HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary" >{task}</button>'),
+                HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
+            ),
+        ])

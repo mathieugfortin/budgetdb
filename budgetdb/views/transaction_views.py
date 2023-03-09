@@ -1,25 +1,25 @@
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, DeleteView
+from django import forms
+from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse, reverse_lazy
+from django.utils.safestring import mark_safe
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, DeleteView
+from budgetdb.utils import Calendar
+from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
+from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
 from budgetdb.models import JoinedTransactions
-from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, TransactionAuditFormFull, TransactionModalForm, JoinedTransactionConfigForm
-from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
+from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
+from budgetdb.forms import TransactionModalForm
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse, reverse_lazy
 from decimal import *
-from budgetdb.utils import Calendar
-from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
-from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
-from django.utils.safestring import mark_safe
-from django.forms import formset_factory
-from django import forms
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView
 from crum import get_current_user
 
@@ -38,6 +38,7 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     template_name = 'budgetdb/transaction_form.html'
     form_class = TransactionFormFull
     task = 'Update'
+    user = None
 
     def test_func(self):
         try:
@@ -49,13 +50,23 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     def handle_no_permission(self):
         raise PermissionDenied
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        self.user = get_current_user()
+        context = super().get_context_data(**kwargs)
+        preference = get_object_or_404(Preference, id=self.user.id)
+        context['currency'] = preference.currency_prefered.id
+        return context
+
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="javascript:history.back();"))
-        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
         return form
 
 
@@ -64,6 +75,7 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
     template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionFormFull
     task = 'Update'
+    user = None
 
     def test_func(self):
         try:
@@ -75,18 +87,16 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
     def handle_no_permission(self):
         raise PermissionDenied
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
+
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                                     onclick="javascript:window.close();"
-                                     )
-                              )
-        form.helper.add_input(Button('delete', 'Delete', css_class='btn-danger',
-                                     onclick=f'window.location.href="{reverse("budgetdb:delete_transaction", args=[self.kwargs["pk"]])}"'
-                                     )
-                              )
         return form
 
 
@@ -138,6 +148,15 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
     model = Transaction
     template_name = 'budgetdb/transaction_popup_form.html'
     form_class = TransactionFormFull
+    task = 'Create'
+    user = None
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -151,7 +170,6 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form
 
 
@@ -302,52 +320,6 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
 
     def get_success_url(self):
         return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('pk')})
-
-
-class TransactionAuditCreateViewFromDateAccount(LoginRequiredMixin, UserPassesTestMixin, CreateView):
-    model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
-    form_class = TransactionAuditFormFull
-
-    def form_invalid(self, form):
-        a = 1
-        # form.errors
-        return super().form_invalid(form)
-
-    def clean(self, value):
-        a = 1
-        return super().clean(form)
-
-    def test_func(self):
-        view_object = get_object_or_404(Account, pk=self.kwargs.get('account_pk'))
-        return view_object.can_edit()
-
-    def handle_no_permission(self):
-        raise PermissionDenied
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form_date = self.kwargs.get('date')
-        form_amount = self.kwargs.get('amount')
-        if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
-            form.initial['description'] = f'Ajustement du marché'
-        else:
-            form.initial['description'] = f'Confirmation de solde'
-            length = len(form_amount)
-            clean_amount = form_amount[:length-2] + '.' + form_amount[-2:]
-            form.initial['amount_actual'] = clean_amount
-        account_id = self.kwargs.get('account_pk')
-        account = get_object_or_404(Account, id=account_id)
-        user = get_current_user()
-        preference = get_object_or_404(Preference, id=user.id)
-        form.initial['date_actual'] = form_date
-        form.initial['account_source'] = account
-        form.initial['audit'] = True
-        form.initial['currency'] = preference.currency_prefered
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
-        return form
 
 
 ###################################################################################################################
