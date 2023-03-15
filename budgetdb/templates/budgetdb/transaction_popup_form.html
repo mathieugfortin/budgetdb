@@ -13,4 +13,11 @@
 {% block script %}
     {% include "budgetdb/js_cat1-cat2.html" %}
     {% include "budgetdb/js_currency.html" %}
+    <script type="text/javascript">
+        $('#modal').on('shown.bs.modal', function () {
+            setTimeout(function (){
+                $('#id_amount_actual').focus();
+            }, 300);
+        })
+    </script>
 {% endblock %}

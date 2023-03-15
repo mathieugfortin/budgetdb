@@ -15,6 +15,7 @@ from django.urls import reverse, reverse_lazy
 from decimal import *
 from django_tables2 import SingleTableView, SingleTableMixin
 from django_filters.views import FilterView
+from crum import get_current_user
 
 
 # class budgetedEventsListView(LoginRequiredMixin, SingleTableMixin, FilterView):
@@ -114,6 +115,8 @@ class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'budgetdb/budgetedevent_form.html'
     model = BudgetedEvent
     form_class = BudgetedEventForm
+    task = 'Update'
+    user = None
 
     def test_func(self):
         try:
@@ -156,6 +159,13 @@ class BudgetedEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
 
 
 class BudgetedEventCreate(LoginRequiredMixin, CreateView):

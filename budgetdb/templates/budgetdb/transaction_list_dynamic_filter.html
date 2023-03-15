@@ -20,7 +20,8 @@
     <th scope="col">Recurence</th>
 </tr>
 <tr>
-    <td scope="row"><input type="text" class="form-control" id="myDate" onkeyup="myFunctionDate()" placeholder="filter"></td>
+    <td scope="row">
+        <input type="text" class="form-control" id="myDate" onkeyup="myFunctionDate()" placeholder="filter"></td>
     <td><input type="text" class="form-control" id="myDesc" onkeyup="myFunctionDesc()" placeholder="filter"></td>
     <td><input type="text" class="form-control" id="myAmm" onkeyup="myFunctionAmm()" placeholder="filter"></td>
     <td><input type="text" class="form-control" id="mySource" onkeyup="myFunctionSource()" placeholder="filter"></td>
@@ -65,62 +66,69 @@
 
 
 <script>
+    var filters = [];
     function filter(input, index) {
-      var filter, table, tr, td, i, txtValue;
-      filter = input.value.toUpperCase();
-      table = document.getElementById("transactionlist");
-      tr = table.getElementsByTagName("tr");
-      for (i = 2; i < tr.length; i++) {
-        td = tr[i].getElementsByTagName("td")[index];
-        if (td) {
-          txtValue = td.textContent || td.innerText;
-          if (txtValue.toUpperCase().indexOf(filter) > -1) {
-            tr[i].style.display = "";
-          } else {
-            tr[i].style.display = "none";
-          }
-        }       
-      }
+        var filter, table, lines, fields, i, txtValue;
+        table = document.getElementById("transactionlist");
+        lines = table.getElementsByTagName("tr");
+        for (i = 2; i < lines.length; i++) {
+            fields = lines[i].getElementsByTagName("td");
+            var showline = 1
+            for (j=0; j < fields.length; j++)
+                if (filters[j]) {
+                    if (fields[j]) {
+                    txtValue = fields[j].textContent || fields[j].innerText;
+                    if (txtValue.toUpperCase().indexOf(filters[j]) < 0) {
+                        showline = 0;
+                    } 
+                }
+            }
+            if (showline == 1) {
+                lines[i].style.display = "";
+            } else {
+                lines[i].style.display = "none";
+            }
+        }
     }
 
     function myFunctionDate() {
       var input;
-      input = document.getElementById("myDate");
+      filters[0] = document.getElementById("myDate").value.toUpperCase();;
       filter(input,0)
     }
     function myFunctionDesc() {
       var input;
-      input = document.getElementById("myDesc");
+      filters[1] = document.getElementById("myDesc").value.toUpperCase();;
       filter(input,1)
     }
     function myFunctionAmm() {
       var input;
-      input = document.getElementById("myAmm");
+      filters[2] = document.getElementById("myAmm").value.toUpperCase();;
       filter(input,2)
     }
     function myFunctionSource() {
       var input;
-      input = document.getElementById("mySource");
+      filters[3] = document.getElementById("mySource").value.toUpperCase();;
       filter(input,3)
     }
     function myFunctionDest() {
       var input;
-      input = document.getElementById("myDest");
+      filters[4] = document.getElementById("myDest").value.toUpperCase();;
       filter(input,4)
     }
     function myFunctionCat1() {
       var input;
-      input = document.getElementById("myCat1");
+      filters[5] = document.getElementById("myCat1").value.toUpperCase();;
       filter(input,5)
     }
     function myFunctionCat2() {
       var input;
-      input = document.getElementById("myCat2");
+      filters[6] = document.getElementById("myCat2").value.toUpperCase();;
       filter(input,6)
     }
     function myFunctionBE() {
       var input;
-      input = document.getElementById("myBE");
+      filters[7] = document.getElementById("myBE").value.toUpperCase();;
       filter(input,7)
     }
     </script>

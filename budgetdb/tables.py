@@ -163,7 +163,7 @@ class BudgetedEventListTable(MySharingColumns, tables.Table):
 
     class Meta:
         model = BudgetedEvent
-        fields = ("description", "lastTransactionDate")
+        fields = ("description", "lastTransactionDate", "account_source", "account_destination")
         attrs = {"class": "table table-hover table-striped"}
         # per_page = 30
 

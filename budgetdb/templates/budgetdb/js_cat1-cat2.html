@@ -16,13 +16,18 @@ $("#id_cat1").change(function () {
 });
 
 $('#id_cat2').change(function(){
-    if($(this).val() != 28) {
-        $('#div_id_Fuel_L').addClass('visually-hidden');
-        $('#div_id_Fuel_price').addClass('visually-hidden');
-    } else {
-        $('#div_id_Fuel_L').removeClass('visually-hidden');
-        $('#div_id_Fuel_price').removeClass('visually-hidden');
-    }
+    if($('#id_cat2').val() != 28) {
+         $('#div_id_Fuel_L').addClass('visually-hidden');
+         $('#id_Fuel_L').attr('tabindex', '-1');
+         $('#div_id_Fuel_price').addClass('visually-hidden');  
+         $('#id_Fuel_price').attr('tabindex', '-1');
+     } else {
+         $('#div_id_Fuel_L').removeClass('visually-hidden');
+         $('#id_Fuel_L').removeAttr('tabindex')
+         $('#div_id_Fuel_price').removeClass('visually-hidden');
+         $('#id_Fuel_price').removeAttr('tabindex')
+     }
 })
+
 
 </script>

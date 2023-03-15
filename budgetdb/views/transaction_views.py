@@ -306,6 +306,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.initial['audit'] = True
+        form.initial['verified'] = True
         form.initial['currency'] = preference.currency_prefered
         form.initial['amount_actual_foreign_currency'] = Decimal(0)
 

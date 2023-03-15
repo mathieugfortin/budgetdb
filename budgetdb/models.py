@@ -1,4 +1,5 @@
 # import datetime
+from django.core.exceptions import PermissionDenied
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
@@ -1099,8 +1100,11 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         # don't delete if it's verified in a statement
         # don't delete if it's verified with a receipt
         # don't delete if it's flagged as deleted
-        transactions = Transaction.view_objects.filter(budgetedevent=self.id, verified=False, receipt=False)
-        transactions.delete()
+        if self.id is None:
+            raise PermissionDenied
+        else:
+            transactions = Transaction.view_objects.filter(budgetedevent=self.id, verified=False, receipt=False)
+            transactions.delete()
         self.generated_interval_start = None
         self.generated_interval_stop = None
 

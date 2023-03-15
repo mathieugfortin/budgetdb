@@ -422,6 +422,8 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
         fields = (
             'description',
             'amount_planned',
+            'currency',
+            'amount_planned_foreign_currency',
             'cat1',
             'cat2',
             'ismanual',
@@ -451,26 +453,32 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
         }
 
     def __init__(self, *args, **kwargs):
+        task = kwargs.pop('task', 'Update')
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         friends_ids = get_current_user().friends.values('id')
         self.helper = FormHelper()
-        self.helper.form_id = 'BudgetedEventForm'
-        self.fields['cat1'].queryset = Cat1.admin_objects.all()
-        if 'cat1' in self.data:
-            try:
-                cat1 = int(self.data.get('cat1'))
-                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
-            except (ValueError, TypeError):
-                self.fields['cat2'].queryset = Cat2.objects.none()
-        elif 'cat1' in self.initial:
+
+        if len(self.data) != 0:
+            # form is bound, no need to build the layout
+            return
+        # form is unbound, build it            
+        preference = Preference.objects.get(user=user.id)
+        currency_symbol = preference.currency_prefered.symbol
+        if len(self.initial) == 0:
+            # No initial values, set defaults
+            self.fields['currency'].initial = preference.currency_prefered
+            self.fields['currency'].data = preference.currency_prefered
+            self.fields['cat2'].queryset = Cat2.objects.none()
+        else:
+            # initial values exist, set the correct dependant data
             try:
                 cat1 = int(self.initial.get('cat1'))
                 self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             except (ValueError, TypeError):
                 self.fields['cat2'].queryset = Cat2.objects.none()
-        else:
-            self.fields['cat2'].queryset = Cat2.objects.none()
 
+        self.helper.form_id = 'BudgetedEventForm'
         self.fields['cat1'].queryset = Cat1.admin_objects.all()
         self.fields['account_source'].queryset = Account.admin_objects.all()
         self.fields['account_destination'].queryset = Account.admin_objects.all()
@@ -479,6 +487,8 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
         self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
+
         if 'repeat_weekday_mask' in self.initial:
             map = []
             for i in range(7):
@@ -518,8 +528,10 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
                     css_class='row'
                 ),
                 Div(
-                    # Div('amount_planned', css_class='form-group col-md-4  '),
-                    Div(PrependedText('amount_planned', '$', css_class='form-group col-md-4  ')),
+                    Div('amount_planned', css_class='form-group col-md-4  '),
+                    # Div(PrependedText('amount_planned', '$', css_class='form-group col-md-4  ')),
+                    Div('currency', css_class='form-group col-md-4  '),
+                    Div('amount_planned_foreign_currency', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
@@ -970,6 +982,7 @@ class TransactionModalForm(BSModalModelForm):
             self.fields['currency'].initial = preference.currency_prefered
             self.fields['currency'].data = preference.currency_prefered
             self.fields['cat2'].queryset = Cat2.objects.none()
+            self.fields['amount_actual'].initial = None
         else:
             # initial values exist, set the correct dependant data
             try:
