@@ -11,7 +11,7 @@ from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget
 from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
-from crispy_forms.bootstrap import AppendedText, PrependedText
+from crispy_forms.bootstrap import AppendedText, PrependedText, StrictButton
 from bootstrap_modal_forms.forms import BSModalModelForm
 
 
@@ -376,7 +376,7 @@ class AccountCategoryForm(forms.ModelForm):
 
 
 class RecurringBitmaps(forms.Form):
-    weekdays = [(1, 'Monday'), (2, 'Tuesday'), (4, 'Wednesday'), (8, 'Thursday'), (16, 'Friday'), (32, 'Saturday')]
+    weekdays = [(1, 'Monday'), (2, 'Tuesday'), (4, 'Wednesday'), (8, 'Thursday'), (16, 'Friday'), (32, 'Saturday'), (64, 'Sunday')]
     weeks = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5')]
     months = [(1, 'January'), (2, 'February'), (4, 'March'), (8, 'April'), (16, 'May'), (32, 'June'), (64, 'July'), (128, 'August'), (256, 'September'), (512, 'October'), (1024, 'November'), (2048, 'December')]
     days = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5'), (32, '6'), (64, '7'), (128, '8'),
@@ -385,7 +385,7 @@ class RecurringBitmaps(forms.Form):
             (2**22, '23'), (2**23, '24'), (2**24, '25'), (2**25, '26'), (2**26, '27'), (2**27, '28'), (2**28, '29'),
             (2**29, '30'), (2**30, '31')
             ]
-    daysOfWeek = forms.MultipleChoiceField(required=False, initial=[1, 2, 4, 8, 16, 32],
+    daysOfWeek = forms.MultipleChoiceField(required=False, initial=[1, 2, 4, 8, 16, 32, 64],
                                            widget=forms.CheckboxSelectMultiple,
                                            choices=weekdays,
                                            label="Days of the week"
@@ -591,6 +591,8 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
                 Div(
                     # Div('amount_planned', css_class='form-group col-md-4  '),
                     Div(PrependedText('amount_planned', '$', css_class='form-group col-sm-6    ')),
+                    Div('currency', css_class='form-group col-md-4  '),
+                    Div('amount_planned_foreign_currency', css_class='form-group col-md-4  '),
                     css_class='row'
                 ),
                 Div(
@@ -999,9 +1001,11 @@ class TransactionModalForm(BSModalModelForm):
 
         self.fields['cat1'].queryset = Cat1.admin_objects.all()
         self.fields['account_source'].queryset = Account.admin_objects.all()
+        self.fields['account_source'].label = 'Source'
         self.fields['account_destination'].queryset = Account.admin_objects.all()
+        self.fields['account_destination'].label = 'Destination'
         self.fields['statement'].queryset = Statement.admin_objects.all()
-        self.fields['vendor'].queryset = Vendor.admin_objects.all()
+        self.fields['vendor'].queryset = Vendor.view_objects.all()
         self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
@@ -1017,22 +1021,37 @@ class TransactionModalForm(BSModalModelForm):
                 if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
                     allowRecurringPatternUpdate = False
 
-        self.helper.layout = Layout(
-            Field('description'),
+        if audit_view is False:
+            self.helper.layout = Layout(
+                Field('vendor', css_class='form-group col-md-4  '),
+                Field('description'),
+            )
+        else:
+            self.helper.layout = Layout(
+                Field('description'),
+            )
+
+        self.helper.layout.extend([
             Div(
                 Div('date_actual', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
-                # Div(PrependedText('amount_actual', '$', css_class='form-group col-3 input-group-sm')),
-                Div('amount_actual', css_class='form-group col-4'),
+                Div(PrependedText('amount_actual', '$', css_class='form-group col-4 col-sm-4 ')),
+                # Div('amount_actual', css_class='form-group col-4'),
                 Div('currency', css_class='form-group col-4'),
                 Div('amount_actual_foreign_currency', css_class='form-group col-4  '),
                 css_class='row'
             ),
-        )
+        ])
+
         if audit_view is False:
             self.helper.layout.extend([
+                Div(
+                    Div('cat1', css_class='form-group col-md-4  '),
+                    Div('cat2', css_class='form-group col-md-4  '),
+                    css_class='row'
+                ),
                 Div(
                     # Div(AppendedText('Fuel_L', 'L', css_class='form-group col-2')),
                     # Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-2')),
@@ -1041,13 +1060,10 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row fuel'
                 ),
                 Div(
-                    Div('cat1', css_class='form-group col-md-4  '),
-                    Div('cat2', css_class='form-group col-md-4  '),
-                    css_class='row'
-                ),
-                Div(
-                    Div('account_source', css_class='form-group col-6  '),
-                    Div('account_destination', css_class='form-group col-6   '),
+                    Div('account_source', css_class='form-group col-5  '),
+                    #Button('flip', '', css_class='fas fa-plus my-4 col-1', onclick='alert("Neat!");'),
+                    StrictButton('<i class="fa fa-arrows-h"></i>', name='flip', type="button", css_class="btn btn-danger my-4 col-1", onclick="changeaccounts()"),
+                    Div('account_destination', css_class='form-group col-5   '),
                     css_class='row'
                 ),
                 Div(
@@ -1063,9 +1079,9 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row'
                 ),
                 Div(
-                    Div('budgetedevent', css_class='form-group col-md-4  '),
-                    Div('vendor', css_class='form-group col-md-4  '),
-                    Div('statement', css_class='form-group col-md-4   '),
+                    Div('budgetedevent', css_class='form-group col-md-5  '),
+                    # Div('vendor', css_class='form-group col-md-4  '),
+                    Div('statement', css_class='form-group col-md-6   '),
                     css_class='row'
                 ),
             ])

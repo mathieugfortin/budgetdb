@@ -106,7 +106,7 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context['dayMonthMapDic'] = dayMonthMapDic
         context['weekMonthMapDic'] = weekMonthMapDic
         
-        begin_interval = datetime.today().date() + relativedelta(months=-6)
+        begin_interval = datetime.today().date() + relativedelta(months=-13)
         context['next_transactions'] = budgetedEvent.listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context
 
@@ -172,6 +172,7 @@ class BudgetedEventCreate(LoginRequiredMixin, CreateView):
     template_name = 'budgetdb/budgetedevent_form.html'
     model = BudgetedEvent
     form_class = BudgetedEventForm
+    task = 'Create'
 
     def form_valid(self, form):
         context = self.get_context_data()
@@ -199,6 +200,13 @@ class BudgetedEventCreate(LoginRequiredMixin, CreateView):
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
 
 
 class BudgetedEventCreateFromTransaction(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -252,12 +260,6 @@ class BudgetedEventCreateFromTransaction(LoginRequiredMixin, UserPassesTestMixin
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form
-
-
-class BudgetedEventCreateView(LoginRequiredMixin, CreateView):
-    model = BudgetedEvent
-    form_class = BudgetedEventForm
-    success_url = reverse_lazy('budgetdb:list_be')
 
 
 def BudgetedEventSubmit(request):

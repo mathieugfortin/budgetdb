@@ -80,6 +80,7 @@
                     txtValue = fields[j].textContent || fields[j].innerText;
                     if (txtValue.toUpperCase().indexOf(filters[j]) < 0) {
                         showline = 0;
+                        break;
                     } 
                 }
             }

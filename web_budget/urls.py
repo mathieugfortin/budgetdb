@@ -8,7 +8,7 @@ app_name = 'web_budget'
 
 urlpatterns = i18n_patterns(
     path('budgetdb/', include('budgetdb.urls')),
-#   path('admin/', admin.site.urls, name='login'),
+#    path('admin/', admin.site.urls, name='login'),
     path('admin/logout/', admin.site.urls, name='logout'),
 #   path('__debug__/', include(debug_toolbar.urls)),
     path('favicon.ico', RedirectView.as_view(url='/budgetdb/static/budgetdb/favicon.ico')),

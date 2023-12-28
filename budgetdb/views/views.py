@@ -5,7 +5,7 @@ from django.apps import apps
 from django.forms import ModelForm
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, FormView
+from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.views.generic.base import RedirectView
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth.views import LoginView
@@ -689,7 +689,7 @@ class MyListView(LoginRequiredMixin, SingleTableView):
         if self.title != '':
             context["title"] = self.title
         else:
-            context["title"] = f'{self.model._meta.verbose_name} List'
+            context["title"] = f'{self.model._meta.verbose_name_plural} List'
         if self.create is True:
             context['add_url'] = reverse(f'budgetdb:create_{self.model._meta.model_name.lower()}')
         else:
@@ -728,6 +728,10 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
         decorated = []
         for account in self.object_list:
             account.balance = account.balance_by_EOD(datetime.today())
+            if account.owner != get_current_user():
+                account.nice_name = f'{account.account_host} - {account.owner} - {account.name}'
+            else:
+                account.nice_name = f'{account.account_host} - {account.name}'
             decorated.append(account)
         context['decorated'] = decorated
         return context

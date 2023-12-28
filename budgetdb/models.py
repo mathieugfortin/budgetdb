@@ -54,6 +54,7 @@ class AdminManager(models.Manager):
     def get_queryset(self):
         user = get_current_user()
         qs = super().get_queryset()
+        qs = qs.filter(is_deleted=False)
         owned = qs.filter(owner=user)
         admins = qs.filter(users_admin=user)
         return owned | admins
@@ -145,19 +146,19 @@ class BaseSoftDelete(models.Model):
     class Meta:
         abstract = True
 
-    def soft_delete(self, user_id=None):
+    def soft_delete(self):
         if self.is_deleted:
             return
         self.is_deleted = True
-        self.deleted_by = user_id
+        self.deleted_by = get_current_user()
         self.deleted_at = timezone.now()
         self.save()
 
-    def soft_undelete(self, user_id=None):
+    def soft_undelete(self):
         if not self.is_deleted:
             return
         self.is_deleted = False
-        self.deleted_by = None
+        self.deleted_by = get_current_user()
         self.deleted_at = None
         self.save()
 
@@ -324,7 +325,10 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
     RRSP = models.BooleanField('Account is a RRSP for canadian fiscal considerations', default=False)
 
     def __str__(self):
-        return self.account_host.name + " - " + self.name
+        if get_current_user() == self.owner:
+            return self.account_host.name + " - " + self.name
+        else:
+            return self.account_host.name + " - " + self.owner.username.capitalize() + " - " + self.name
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_account_simple')
@@ -766,6 +770,8 @@ class CatType(BaseSoftDelete, UserPermissions):
         verbose_name = 'Category Type'
         verbose_name_plural = 'Categories Type'
     name = models.CharField(max_length=200)
+    date_open = models.DateField('date opened', blank=True, null=True)
+    date_closed = models.DateField('date closed', blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -784,6 +790,8 @@ class Cat1(BaseSoftDelete, UserPermissions):
     catbudget = models.ForeignKey('CatBudget', on_delete=models.CASCADE,
                                   blank=True, null=True)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
+    date_open = models.DateField('date opened', blank=True, null=True)
+    date_closed = models.DateField('date closed', blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -839,7 +847,7 @@ class BaseEvent(models.Model):
 
     currency = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, blank=False, null=False)
     amount_planned_foreign_currency = models.DecimalField(
-        'original amount', decimal_places=2, max_digits=10, default=Decimal('0.00')
+        'original amount', decimal_places=2, max_digits=10, default=Decimal('0.00'), blank=True, null=True
     )
     description = models.CharField('Description', max_length=200)
     comment = models.CharField('Comment', max_length=200, blank=True, null=True)
@@ -882,7 +890,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
 
     objects = models.Manager()  # The default manager.
     view_objects = TransactionViewerManager()
-    view_deleted_objects = TransactionDeletedViewerManager
+    view_deleted_objects = TransactionDeletedViewerManager()
     admin_objects = TransactionAdminManager()
 
     budgetedevent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True, null=True)
@@ -1016,10 +1024,12 @@ class BaseRecurring(models.Model):
         i = n
         for day in calendar:
             if (self.checkDate(day.db_date)):
-                event_date_list.append(day.db_date)
-                i -= 1
-                if (i == 0):
-                    break
+                # skip existing transactions
+                if not Transaction.objects.filter(budgetedevent=self, date_planned=day.db_date).exists():
+                    event_date_list.append(day.db_date)
+                    i -= 1
+                    if (i == 0):
+                        break
         return event_date_list
 
     def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
@@ -1058,14 +1068,22 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         return reverse('budgetdb:details_be', kwargs={'pk': self.pk})
 
     def save(self, *args, **kwargs):
+        super(BudgetedEvent, self).save(*args, **kwargs)
         self.deleteUnverifiedTransaction()
         if self.is_deleted is False:
             self.createTransactions()
-        super(BudgetedEvent, self).save(*args, **kwargs)
 
     def createTransactions(self, n=400, begin_interval=None, interval_length_months=60):
         if begin_interval is None:
             begin_interval = self.repeat_start
+
+        # make sure we generate at least up to the end of the timeline
+        user = get_current_user()
+        preference = Preference.objects.get(user=user.id)
+        delta = begin_interval + relativedelta(months=interval_length_months) - preference.max_interval_slider
+        if delta.days < 0:
+            interval_length_months += 1 - round(delta.days / 30)
+            
         transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
         if transaction_dates:
             self.generated_interval_start = transaction_dates[0]
@@ -1074,6 +1092,7 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
 
         for date in transaction_dates:
             if Transaction.objects.filter(budgetedevent=self, date_planned=date).exists():
+                # transaction already exists
                 continue
             new_transaction = Transaction.objects.create(date_planned=date,
                                                          date_actual=date,
@@ -1100,13 +1119,12 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         # don't delete if it's verified in a statement
         # don't delete if it's verified with a receipt
         # don't delete if it's flagged as deleted
-        if self.id is None:
-            raise PermissionDenied
-        else:
+        # don't delete is self is none, it's a new BE creation
+        if self.id is not None:
             transactions = Transaction.view_objects.filter(budgetedevent=self.id, verified=False, receipt=False)
             transactions.delete()
-        self.generated_interval_start = None
-        self.generated_interval_stop = None
+            self.generated_interval_start = None
+            self.generated_interval_stop = None
 
     def lastTransactionDate(self):
         transactions = Transaction.view_objects.filter(budgetedevent=self.id)
@@ -1121,6 +1139,7 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Statement'
         verbose_name_plural = 'Statements'
+        ordering = ['-statement_date']
 
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='statement_account')
     balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.0000'))

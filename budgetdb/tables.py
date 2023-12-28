@@ -130,8 +130,6 @@ class AccountActivityListTable(tables.Table):
                            )
 
 
-
-
 class AccountCategoryListTable(MySharingColumns, tables.Table):
     class Meta:
         model = AccountCategory

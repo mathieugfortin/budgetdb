@@ -6,7 +6,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
 from budgetdb.utils import Calendar
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'crispy_forms',
+    "crispy_bootstrap5",
     'django.contrib.humanize',
     'django_extensions',
     # 'debug_toolbar',
@@ -56,7 +57,8 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL = 'budgetdb.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
 DJANGO_TABLES2_TEMPLATE = 'django_tables2/bootstrap5.html'
 CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
                         'https://code-server.patatemagique.biz',
