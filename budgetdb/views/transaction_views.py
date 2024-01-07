@@ -81,7 +81,7 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
         try:
             view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
         except ObjectDoesNotExist:
-            raise PermissionDenied   
+            raise PermissionDenied
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -166,7 +166,7 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
         try:
             account = Account.admin_objects.get(pk=self.kwargs.get('account_pk'))
         except ObjectDoesNotExist:
-            raise PermissionDenied           
+            raise PermissionDenied
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.helper.form_method = 'POST'
@@ -418,8 +418,6 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
                 transaction.instance.date_actual = form.cleaned_data.get('common_date')
                 transaction.save()
 
-        # if transactions.is_valid():
-        #    transactions.save()
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -434,8 +432,11 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         form = super().get_form(form_class)
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="window.location.href = '{}';".format(reverse('budgetdb:details_joinedtransactions', args=[self.kwargs.get('pk'),self.kwargs.get('datep')]))))
+        form.helper.add_input(Button('cancel', 'Cancel',
+                                     css_class='btn-secondary',
+                                     onclick="window.location.href = '{}';".format(reverse('budgetdb:details_joinedtransactions',
+                                                                                           args=[self.kwargs.get('pk'),
+                                                                                                 self.kwargs.get('datep')]))))
         return form
 
     def get_context_data(self, **kwargs):

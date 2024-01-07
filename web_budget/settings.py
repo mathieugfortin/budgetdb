@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
     'django.contrib.humanize',
     'django_extensions',
+    'rest_framework',
     # 'debug_toolbar',
     'chartjs',
     'bootstrap_modal_forms',

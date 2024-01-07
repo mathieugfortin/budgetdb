@@ -3,6 +3,7 @@ from django.core.exceptions import PermissionDenied
 from django import forms
 from django.apps import apps
 from django.forms import ModelForm
+from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
@@ -24,6 +25,8 @@ from crispy_forms.layout import Layout, Submit, Button
 from crum import get_current_user
 from bootstrap_modal_forms.generic import BSModalCreateView
 from django_tables2 import SingleTableView, SingleTableMixin
+import json
+from rest_framework import serializers
 
 # colors stolen from django chart js library
 COLORS = [
@@ -133,11 +136,23 @@ def GetAccountViewListJSON(request):
 def GetAccountDetailedViewListJSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
-    queryset = Account.view_objects.all().order_by("account_host", "name")
+
+    preference = Preference.objects.get(user=request.user.id)
+    queryset = Account.view_objects.all()
+    queryset = queryset.annotate(
+        favorite=Case(
+            When(favorites=preference.id, then=Value(True)),
+            default=Value(False),
+        )
+    )
+    queryset = queryset.order_by("-favorite", "account_host", "name")
 
     array = []
     for entry in queryset:
-        namestring = entry.account_host.name
+        namestring = ""
+        if entry.favorite:
+            namestring = namestring + "☆ "
+        namestring = namestring + entry.account_host.name
         if entry.owner != get_current_user():
             namestring = namestring + " - " + entry.owner.username.capitalize()
         namestring = namestring + " - " + entry.name
@@ -162,7 +177,7 @@ def GetAccountHostViewListJSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     queryset = AccountHost.view_objects.all().order_by("name")
-    
+
     array = []
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
@@ -174,7 +189,7 @@ def GetVendorListJSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     queryset = Vendor.view_objects.all().order_by("name")
-    
+
     array = []
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
@@ -186,7 +201,7 @@ def GetCat1ListJSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     queryset = Cat1.view_objects.all().order_by("name")
-    
+
     array = []
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
@@ -198,7 +213,7 @@ def GetCatTypeListJSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     queryset = CatType.view_objects.all().order_by("name")
-    
+
     array = []
     for entry in queryset:
         array.append([{"pk": entry.pk}, {"name": entry.name}])
@@ -426,6 +441,43 @@ def load_cat2(request):
     return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
 
 
+class TemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Template
+        fields = ('vendor',
+                  'description',
+                  'account_source',
+                  'account_destination',
+                  'amount_planned',
+                  'currency',
+                  'amount_planned_foreign_currency',
+                  'ismanual',
+                  'budget_only',
+                  'cat1',
+                  'cat2',
+                  )
+
+
+def get_template(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    vendor_id = request.GET.get('vendor_id')
+    template = get_object_or_404(Template, vendor=vendor_id)
+    response = TemplateSerializer(instance=template)
+    return JsonResponse(response.data, safe=False)
+
+
+def load_cat2_fuel(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    cat2_id = request.GET.get('cat2')
+    if cat2_id != '':
+        isfuel = Cat2.admin_objects.get(id=cat2_id).fuel
+        return JsonResponse({"isfuel": isfuel}, safe=False)
+    else:
+        return JsonResponse({"isfuel": False}, safe=False)
+
+
 def timeline2JSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
@@ -615,6 +667,9 @@ class ObjectMaxRedirect(RedirectView):
 class MyUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'budgetdb/generic_form.html'
     task = 'Update'
+    contains_currency = False
+    contains_cat = False
+    contains_account = False
 
     def test_func(self):
         try:
@@ -630,6 +685,9 @@ class MyUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context["object"] = self.model._meta.verbose_name
         context["task"] = self.task
+        context["contains_currency"] = self.contains_currency
+        context["contains_cat"] = self.contains_cat
+        context["contains_account"] = self.contains_account
         return context
 
     def get_form(self, form_class=None):
@@ -645,11 +703,21 @@ class MyUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 class MyCreateView(LoginRequiredMixin, CreateView):
     template_name = 'budgetdb/generic_form.html'
     task = 'Create'
+    contains_currency = False
+    contains_cat = False
+    contains_account = False
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["object"] = self.model._meta.verbose_name
         context["task"] = self.task
+        context["contains_currency"] = self.contains_currency
+        if self.contains_currency:
+            user = get_current_user()
+            preference = Preference.objects.get(user=user.id)
+            context["currency"] = preference.currency_prefered.id
+        context["contains_cat"] = self.contains_cat
+        context["contains_account"] = self.contains_account
         return context
 
     def get_form(self, form_class=None):
@@ -986,6 +1054,7 @@ class VendorCreateView(MyCreateView):
     model = Vendor
     form_class = VendorForm
 
+
 ###################################################################################################################
 # Statement
 
@@ -1052,6 +1121,39 @@ class StatementCreateView(LoginRequiredMixin, CreateView):
         form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
                               onclick="javascript:history.back();"))
         return form
+
+###################################################################################################################
+# Template
+
+
+class TemplateListView(MyListView):
+    model = Template
+    table_class = TemplateListTable
+
+    def get_queryset(self):
+        return self.model.view_objects.all().order_by('vendor')
+
+
+class TemplateDetailView(MyDetailView):
+    model = Template
+    template_name = 'budgetdb/template_detail.html'
+
+
+class TemplateUpdateView(MyUpdateView):
+    model = Template
+    form_class = TemplateForm
+    contains_currency = True
+    contains_cat = True
+    contains_account = True
+
+
+class TemplateCreateView(MyCreateView):
+    model = Template
+    form_class = TemplateForm
+    contains_currency = True
+    contains_cat = True
+    contains_account = True
+
 
 ###################################################################################################################
 ###################################################################################################################

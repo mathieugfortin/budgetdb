@@ -71,7 +71,7 @@ debug form post
         a = 1
         return super().clean(form)
 
-
+debug js: just add "debugger;" in the script where you want a breakpoint
 
 class visually-hidden
 httpx:

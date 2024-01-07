@@ -83,6 +83,8 @@ urlpatterns = [
          name='catbudget_max_redirect'),
     path('vendor/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Vendor'),
          name='vendor_max_redirect'),
+    path('template/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Template'),
+         name='template_max_redirect'),
     path('transaction/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='Transaction'),
          name='transaction_max_redirect'),
     path('budgetedEvent/max_redirect/<int:pk>/', views.ObjectMaxRedirect.as_view(model='BudgetedEvent'),
@@ -157,7 +159,9 @@ urlpatterns = [
     path('budgetedEvent/anormal', views.budgetedEventsAnormalListView.as_view(),
          name='list_anormal_be'),
     path('budgetedEvent/anormal2', views.budgetedEventsAnormal2ListView.as_view(),
-         name='list_anormal2_be'),         
+         name='list_anormal2_be'),
+    path('budgetedEvent/anormal3', views.budgetedEventsAnormal3ListView.as_view(),
+         name='list_anormal3_be'),
     path('budgetedEvent/<int:pk>/', views.BudgetedEventDetailView.as_view(),
          name='details_be'),
     path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
@@ -197,6 +201,8 @@ urlpatterns = [
          name='update_cat2'),
     path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
+    path('ajax/check-cat2-fuel/', views.load_cat2_fuel,
+         name='ajax_check_cat2_fuel'),
 
     ##########################################################################################################
     # CatType
@@ -228,6 +234,19 @@ urlpatterns = [
          name='create_statement'),
     path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
+
+    ##########################################################################################################
+    # Template
+    path('template/', views.TemplateListView.as_view(),
+         name='list_template'),
+    path('template/add/', views.TemplateCreateView.as_view(),
+         name='create_template'),
+    path('template/<int:pk>/', views.TemplateDetailView.as_view(),
+         name='details_template'),
+    path('template/update/<int:pk>/', views.TemplateUpdateView.as_view(),
+         name='update_template'),
+    path('ajax/get-template/', views.get_template,
+         name='ajax_get_template'),
 
     ##########################################################################################################
     # Transaction

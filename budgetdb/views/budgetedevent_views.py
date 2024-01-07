@@ -1,7 +1,7 @@
 from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
 from budgetdb.tables import BudgetedEventListTable
 from budgetdb.forms import BudgetedEventForm
 from budgetdb.filters import BudgetedEventFilter
@@ -29,26 +29,40 @@ class budgetedEventsListView(MyListView):
         return self.model.view_objects.all().order_by('description')
 
 
-class budgetedEventsAnormalListView(LoginRequiredMixin, SingleTableMixin, FilterView):
+class budgetedEventsAnormalListView(MyListView):
     model = BudgetedEvent
     table_class = BudgetedEventListTable
-    filterset_class = BudgetedEventFilter
-    template_name = "budgetdb/budgetedevent_list.html"
+    # filterset_class = BudgetedEventFilter
+    # template_name = "budgetdb/budgetedevent_list.html"
 
     def get_queryset(self):
         return BudgetedEvent.view_objects.filter(transaction=None).order_by('description')
 
 
-class budgetedEventsAnormal2ListView(LoginRequiredMixin, SingleTableMixin, FilterView):
+class budgetedEventsAnormal2ListView(MyListView):
     model = BudgetedEvent
     table_class = BudgetedEventListTable
-    filterset_class = BudgetedEventFilter
-    template_name = "budgetdb/budgetedevent_list.html"
+    # filterset_class = BudgetedEventFilter
+    # template_name = "budgetdb/budgetedevent_list.html"
 
     def get_queryset(self):
         with_unverified = BudgetedEvent.view_objects.filter(transaction__verified=False).distinct()
         without_unverified = BudgetedEvent.view_objects.filter(repeat_stop__gt=date.today()).exclude(id__in=with_unverified)
         return without_unverified
+
+
+class budgetedEventsAnormal3ListView(MyListView):
+    # recurring events where generated_interval_stop is before the end of the timeline
+    model = BudgetedEvent
+    table_class = BudgetedEventListTable
+    # filterset_class = BudgetedEventFilter
+    # template_name = "budgetdb/budgetedevent_list.html"
+
+    def get_queryset(self):
+        user = get_current_user()
+        preference = Preference.objects.get(user=user.id)
+        needs_generation = BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.end_interval).distinct()
+        return needs_generation
 
 
 class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -105,7 +119,6 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context['dayWeekMapDic'] = dayWeekMapDic
         context['dayMonthMapDic'] = dayMonthMapDic
         context['weekMonthMapDic'] = weekMonthMapDic
-        
         begin_interval = datetime.today().date() + relativedelta(months=-13)
         context['next_transactions'] = budgetedEvent.listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context

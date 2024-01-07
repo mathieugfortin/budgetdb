@@ -7,7 +7,7 @@ from django.template.loader import render_to_string
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User, Preference, Friend
-from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement
+from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
 from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
@@ -298,6 +298,108 @@ class StatementForm(forms.ModelForm):
         )
 
 
+class TemplateForm(forms.ModelForm):
+    class Meta:
+        model = Template
+        fields = [
+            'description',
+            'vendor',
+            'amount_planned',
+            'currency',
+            'amount_planned_foreign_currency',
+            'cat1',
+            'cat2',
+            'account_source',
+            'account_destination',
+            'ismanual',
+            'comment',
+            'users_admin',
+            'users_view',
+        ]
+
+    def __init__(self, *args, **kwargs):
+        task = kwargs.pop('task', 'Update')
+        user = get_current_user()
+        friends_ids = get_current_user().friends.values('id')
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'TemplateForm'
+
+        if len(self.data) != 0:
+            # form is bound, no need to build the layout
+            # cat1 = int(self.data.get('cat1'))
+            # self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
+            return
+
+        # form is unbound, build it
+        preference = Preference.objects.get(user=user.id)
+        currency_symbol = preference.currency_prefered.symbol
+        if len(self.initial) == 0:
+            # No initial values, set defaults
+            self.fields['currency'].initial = preference.currency_prefered
+            self.fields['currency'].data = preference.currency_prefered
+            self.fields['cat2'].queryset = Cat2.objects.none()
+            self.fields['vendor'].queryset = Vendor.admin_objects.filter(template__vendor__isnull=True)
+        else:
+            # initial values exist, set the correct dependant data
+            try:
+                cat1 = int(self.initial.get('cat1'))
+                self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
+            except (ValueError, TypeError):
+                self.fields['cat2'].queryset = Cat2.objects.none()
+            try:
+                audit = self.initial.get('audit')
+                if audit is True:
+                    audit_view = True
+            except (ValueError, TypeError):
+                audit_view = False
+            otherVendorsQS = Vendor.admin_objects.filter(template__vendor__isnull=True)
+            thisVendorsQS = Vendor.admin_objects.filter(id=self.initial.get('vendor'))
+            self.fields['vendor'].queryset = otherVendorsQS | thisVendorsQS
+
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
+        self.fields['account_source'].queryset = Account.admin_objects.all()
+        self.fields['account_destination'].queryset = Account.admin_objects.all()
+        self.fields['currency'].queryset = preference.currencies
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.helper.layout = Layout(
+            Div(
+                Div('vendor', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Field('description'),
+            Div(
+                Div('amount_planned', css_class='form-group col-4'),
+                Div('currency', css_class='form-group col-4'),
+                Div('amount_planned_foreign_currency', css_class='form-group col-4  '),
+                css_class='row'
+            ),
+            Div(
+                Div('cat1', css_class='form-group col-md-4  '),
+                Div('cat2', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div(
+                Div('account_source', css_class='form-group col-md-4  '),
+                Div('account_destination', css_class='form-group col-md-4   '),
+                css_class='row'
+            ),
+            Div(
+                Div('ismanual', css_class='form-group col-md-8   '),
+                css_class='row'
+            ),
+            Field('comment'),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+        )
+
+
 class CatTypeForm(forms.ModelForm):
     class Meta:
         model = CatType
@@ -325,7 +427,7 @@ class CatTypeForm(forms.ModelForm):
             Div(
                 Div('is_deleted', css_class='form-group col-md-6  '),
                 css_class='row'
-            ),           
+            ),
             Div(
                 Div('users_admin', css_class='form-group col-md-4  '),
                 Div('users_view', css_class='form-group col-md-4  '),
@@ -378,7 +480,8 @@ class AccountCategoryForm(forms.ModelForm):
 class RecurringBitmaps(forms.Form):
     weekdays = [(1, 'Monday'), (2, 'Tuesday'), (4, 'Wednesday'), (8, 'Thursday'), (16, 'Friday'), (32, 'Saturday'), (64, 'Sunday')]
     weeks = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5')]
-    months = [(1, 'January'), (2, 'February'), (4, 'March'), (8, 'April'), (16, 'May'), (32, 'June'), (64, 'July'), (128, 'August'), (256, 'September'), (512, 'October'), (1024, 'November'), (2048, 'December')]
+    months = [(1, 'January'), (2, 'February'), (4, 'March'), (8, 'April'), (16, 'May'), (32, 'June'), (64, 'July'),
+              (128, 'August'), (256, 'September'), (512, 'October'), (1024, 'November'), (2048, 'December')]
     days = [(1, '1'), (2, '2'), (4, '3'), (8, '4'), (16, '5'), (32, '6'), (64, '7'), (128, '8'),
             (256, '9'), (512, '10'), (1024, '11'), (2048, '12'), (4096, '13'), (8192, '14'), (2**14, '15'),
             (2**15, '16'), (2**16, '17'), (2**17, '18'), (2**18, '19'), (2**19, '20'), (2**20, '21'), (2**21, '22'),
@@ -462,7 +565,7 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
         if len(self.data) != 0:
             # form is bound, no need to build the layout
             return
-        # form is unbound, build it            
+        # form is unbound, build it
         preference = Preference.objects.get(user=user.id)
         currency_symbol = preference.currency_prefered.symbol
         if len(self.initial) == 0:
@@ -693,6 +796,7 @@ class Cat2Form(forms.ModelForm):
             'catbudget',
             'cattype',
             'cat1',
+            'fuel',
             'is_deleted',
             'users_admin',
             'users_view',
@@ -718,6 +822,10 @@ class Cat2Form(forms.ModelForm):
             Field('cat1', type="hidden"),  # feels like allowing to modify this is a bad idea...
             Div(
                 Div('name', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Div(
+                Div('fuel', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
@@ -813,11 +921,14 @@ class PreferenceForm(forms.ModelForm):
             ),
             'currencies': forms.CheckboxSelectMultiple(
             ),
+            'favorite_accounts': forms.CheckboxSelectMultiple(
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.fields['favorite_accounts'].queryset = Account.view_objects.all()
         self.helper.layout = Layout(
             Div(
                 Div('start_interval', css_class='form-group col-md-4  '),
@@ -833,6 +944,10 @@ class PreferenceForm(forms.ModelForm):
                 Div('currencies', css_class='form-group col-md-4  '),
                 Div('currency_prefered', css_class='form-group col-md-4  '),
                 Field('user', type="hidden"),
+                css_class='row'
+            ),
+            Div(
+                Div('favorite_accounts', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
         )
@@ -975,8 +1090,8 @@ class TransactionModalForm(BSModalModelForm):
             # cat1 = int(self.data.get('cat1'))
             # self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             return
-       
-        # form is unbound, build it            
+
+        # form is unbound, build it
         preference = Preference.objects.get(user=user.id)
         currency_symbol = preference.currency_prefered.symbol
         if len(self.initial) == 0:
@@ -1006,7 +1121,7 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['account_destination'].label = 'Destination'
         self.fields['statement'].queryset = Statement.admin_objects.all()
         self.fields['vendor'].queryset = Vendor.view_objects.all()
-        self.fields['currency'].queryset = Preference.objects.get(pk=user.id).currencies
+        self.fields['currency'].queryset = preference.currencies
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
         # will I need to add all labels here for translations?
@@ -1061,8 +1176,9 @@ class TransactionModalForm(BSModalModelForm):
                 ),
                 Div(
                     Div('account_source', css_class='form-group col-5  '),
-                    #Button('flip', '', css_class='fas fa-plus my-4 col-1', onclick='alert("Neat!");'),
-                    StrictButton('<i class="fa fa-arrows-h"></i>', name='flip', type="button", css_class="btn btn-danger my-4 col-1", onclick="changeaccounts()"),
+                    # Button('flip', '', css_class='fas fa-plus my-4 col-1', onclick='alert("Neat!");'),
+                    StrictButton('<i class="fa fa-arrows-h"></i>', name='flip', type="button",
+                                 css_class="btn btn-danger my-4 col-1", onclick="changeaccounts()"),
                     Div('account_destination', css_class='form-group col-5   '),
                     css_class='row'
                 ),
@@ -1152,6 +1268,7 @@ class TransactionFormFull(forms.ModelForm):
             raise PermissionDenied
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.helper.form_id = 'TransactionFormFull'
         if len(self.data) != 0:
             # form is bound, no need to build the layout
             # cat1 = int(self.data.get('cat1'))

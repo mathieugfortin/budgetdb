@@ -171,6 +171,7 @@ class Preference(models.Model):
     min_interval_slider = models.DateField(blank=True, null=True)
     currencies = models.ManyToManyField("Currency", related_name="currencies")
     currency_prefered = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, related_name="currency_prefered")
+    favorite_accounts = models.ManyToManyField("Account", related_name="favorites", blank=True)
     # add ordre of listing, old first/ new first
 
 
@@ -325,10 +326,15 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
     RRSP = models.BooleanField('Account is a RRSP for canadian fiscal considerations', default=False)
 
     def __str__(self):
-        if get_current_user() == self.owner:
-            return self.account_host.name + " - " + self.name
+        user = get_current_user()
+        preference = Preference.objects.get(user=user.id)
+        star = ""
+        if preference.favorite_accounts.filter(favorites=preference.id, id=self.id):
+            star = "★ "
+        if user == self.owner:
+            return star + self.account_host.name + " - " + self.name
         else:
-            return self.account_host.name + " - " + self.owner.username.capitalize() + " - " + self.name
+            return star + self.account_host.name + " - " + self.owner.username.capitalize() + " - " + self.name
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_account_simple')
@@ -402,7 +408,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 for month in range(13):
                     reports_totals_monthly[month].addAccountFormonth(account_report[month])
                 try:
-                    reports_totals_monthly[month].rate = 100 * (reports_totals_monthly[month].interests / (reports_totals_monthly[month].balance_end - reports_totals_monthly[month].interests))
+                    reports_totals_monthly[month].rate = 100 * (reports_totals_monthly[month].interests
+                                                                / (reports_totals_monthly[month].balance_end - reports_totals_monthly[month].interests))
                 except (InvalidOperation):
                     reports_totals_monthly[month].rate = 0
             accountsReport.append(reports_totals_monthly)
@@ -457,7 +464,9 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         return reportmonth
 
     def build_report_with_balance(self, start_date, end_date):
-        events = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False).order_by('date_actual', '-verified', 'audit')
+        events = Transaction.view_objects.filter(date_actual__gt=start_date,
+                                                 date_actual__lte=end_date,
+                                                 is_deleted=False).order_by('date_actual', '-verified', 'audit')
         childrens = self.account_children.filter(is_deleted=False)
         account_list = Account.objects.filter(id=self.id, is_deleted=False) | childrens
         events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
@@ -810,7 +819,8 @@ class Cat2(BaseSoftDelete, UserPermissions):
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     catbudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
-
+    fuel = models.BooleanField('Is this fuel?  Do we keep quantity and cost per for this subcategory', default=False)
+    
     def __str__(self):
         return self.name
 
@@ -847,7 +857,7 @@ class BaseEvent(models.Model):
 
     currency = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, blank=False, null=False)
     amount_planned_foreign_currency = models.DecimalField(
-        'original amount', decimal_places=2, max_digits=10, default=Decimal('0.00'), blank=True, null=True
+        'original amount', decimal_places=2, max_digits=10, blank=True, null=True
     )
     description = models.CharField('Description', max_length=200)
     comment = models.CharField('Comment', max_length=200, blank=True, null=True)
@@ -883,6 +893,18 @@ class BaseEvent(models.Model):
         return True
 
 
+class Template(MyMeta, BaseSoftDelete, BaseEvent, UserPermissions):
+    class Meta:
+        verbose_name = 'Template'
+        verbose_name_plural = 'Templates'
+
+    def __str__(self):
+        return f'{self.vendor} - {self.description}'
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:list_template')
+
+
 class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     class Meta:
         verbose_name = 'Transaction'
@@ -912,7 +934,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
         return reverse('budgetdb:details_transaction', kwargs={'pk': self.pk})
 
     def save(self, *args, **kwargs):
-        if self.can_edit() is True:    
+        if self.can_edit() is True:
             super(Transaction, self).save(*args, **kwargs)
         else:
             return
@@ -1072,6 +1094,7 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         self.deleteUnverifiedTransaction()
         if self.is_deleted is False:
             self.createTransactions()
+        super(BudgetedEvent, self).save(*args, **kwargs)
 
     def createTransactions(self, n=400, begin_interval=None, interval_length_months=60):
         if begin_interval is None:
@@ -1083,7 +1106,7 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         delta = begin_interval + relativedelta(months=interval_length_months) - preference.max_interval_slider
         if delta.days < 0:
             interval_length_months += 1 - round(delta.days / 30)
-            
+
         transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
         if transaction_dates:
             self.generated_interval_start = transaction_dates[0]
@@ -1167,4 +1190,3 @@ class JoinedTransactions(MyMeta, BaseSoftDelete, UserPermissions):
     transactions = models.ManyToManyField(Transaction, related_name='transactions')
     budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='budgeted_events')
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)
-    

@@ -1,33 +1,78 @@
 <script>
+// load subcategories when the category changes
 $("#id_cat1").change(function () {
     var url = "{% url 'budgetdb:ajax_load_cat2' %}";
-    var cat1Id = $(this).val();  // get the selected country ID from the HTML input
-
+    var cat1Id = $(this).val();    // get the selected cat1 ID from the HTML input
+    // debugger;
     $.ajax({                       // initialize an AJAX request
-    url: url,                    // set the url of the request (= localhost:8000/hr/ajax/load-cities/)
-    data: {
-        'cat1': cat1Id       // add the country id to the GET parameters
-    },
-    success: function (data) {   // `data` is the return of the `load_cities` view function
-        $("#id_cat2").html(data);  // replace the contents of the city input with the data that came from the server
-    }
+        url: url,                    
+        data: {
+            'cat1': cat1Id             // add the cat1 id to the GET parameters
+        },
+        success: function (data) {   
+            $("#id_cat2").html(data);  // replace the contents of the cat2 input with the data that came from the server
+        }
     });
-
 });
 
-$('#id_cat2').change(function(){
-    if($('#id_cat2').val() != 28) {
-         $('#div_id_Fuel_L').addClass('visually-hidden');
-         $('#id_Fuel_L').attr('tabindex', '-1');
-         $('#div_id_Fuel_price').addClass('visually-hidden');  
-         $('#id_Fuel_price').attr('tabindex', '-1');
-     } else {
-         $('#div_id_Fuel_L').removeClass('visually-hidden');
-         $('#id_Fuel_L').removeAttr('tabindex')
-         $('#div_id_Fuel_price').removeClass('visually-hidden');
-         $('#id_Fuel_price').removeAttr('tabindex')
-     }
-})
+function showFuel() {
+    $('#div_id_Fuel_L').removeClass('visually-hidden');
+    $('#id_Fuel_L').removeAttr('tabindex')
+    $('#div_id_Fuel_price').removeClass('visually-hidden');
+    $('#id_Fuel_price').removeAttr('tabindex')
+}
 
+function hideFuel() {
+    $('#div_id_Fuel_L').addClass('visually-hidden');
+    $('#id_Fuel_L').attr('tabindex', '-1');
+    $('#div_id_Fuel_price').addClass('visually-hidden');  
+    $('#id_Fuel_price').attr('tabindex', '-1');
+}
+
+//check if subcategory is fuel when subcategory changes
+$("#id_cat2").change(function () {
+    var url = "{% url 'budgetdb:ajax_check_cat2_fuel' %}";
+    var cat2Id = $(this).val();    // get the selected cat2 ID from the HTML input
+
+    if (cat2Id != "") {
+        $.ajax({                       // initialize an AJAX request
+            url: url,                    
+            data: {
+                'cat2': cat2Id             // add the cat2 id to the GET parameters
+            },
+            success: function (data) {   
+                if (data.isfuel) {
+                    showFuel();
+                } else {
+                    hideFuel();
+                }  
+            }
+        });
+    }
+});
+
+// check if initial subcategory is fuel
+$( document ).ready(function() {
+    var url = "{% url 'budgetdb:ajax_check_cat2_fuel' %}";
+    var cat2Id = $('#id_cat2').val();    // get the selected cat1 ID from the HTML input
+    // debugger;
+    if (cat2Id != "") {
+        $.ajax({                       // initialize an AJAX request
+            url: url,                    
+            data: {
+                'cat2': cat2Id             // add the cat2 id to the GET parameters
+            },
+            success: function (data) {   
+                if (data.isfuel) {
+                    showFuel();
+                } else {
+                    hideFuel();
+                }  
+            }
+        });
+    } else {
+        hideFuel();
+    } 
+});
 
 </script>

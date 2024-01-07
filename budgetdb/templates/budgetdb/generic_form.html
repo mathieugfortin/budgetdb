@@ -15,3 +15,17 @@
   {% crispy form %}
   <div id='form-errors'>{{ form.errors }}</div>
 {% endblock %}
+
+
+
+{% block script %}
+    {% if contains_cat == True %}
+        {% include "budgetdb/js_cat1-cat2.html" %}
+    {% endif %}    
+    {% if contains_currency == True %}
+        {% include "budgetdb/js_currency.html" %}
+    {% endif %}    
+    {% if contains_account == True %}
+        {% include "budgetdb/js_flip_accounts.html" %}
+    {% endif %}    
+{% endblock %}
