@@ -77,4 +77,3 @@ class visually-hidden
 httpx:
 https://testdriven.io/blog/django-async-views/
 https://enzircle.com/responsive-table-with-django-and-htmx
-pouet

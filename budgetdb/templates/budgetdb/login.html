@@ -7,6 +7,18 @@
 {% csrf_token %}
 
 {% block content %}
+<style>
+    .center {
+        margin: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+    </style>
+
+<div class="center">
   {% load crispy_forms_tags %}
   {% if context.form_invalid %}
     <div class="alert alert-danger" role="alert">
@@ -14,4 +26,5 @@
     </div>
   {% endif %}
   {% crispy form %}
+</div>
 {% endblock %}

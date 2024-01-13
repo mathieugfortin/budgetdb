@@ -1,5 +1,3 @@
-"""Gunicorn *development* config file"""
-
 # Django WSGI application path in pattern MODULE_NAME:VARIABLE_NAME
 wsgi_app = "web_budget.wsgi:application"
 # The granularity of Error log outputs
@@ -11,7 +9,7 @@ bind = "0.0.0.0:8005"
 # Restart workers when code changes (development only!)
 reload = True
 # Write access and error info to /var/log
-accesslog = errorlog = "/app/logs/gunicorn/access.log"
+accesslog = "/app/logs/gunicorn/access.log"
 # Error log - records Gunicorn server goings-on
 errorlog = "/app/logs/gunicorn/error.log"
 # Redirect stdout/stderr to log file
