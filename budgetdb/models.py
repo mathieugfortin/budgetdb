@@ -922,6 +922,8 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     amount_actual_foreign_currency = models.DecimalField('original amount', decimal_places=2, max_digits=10, default=Decimal('0.00'))
     Fuel_L = models.DecimalField('Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True)
     Fuel_price = models.DecimalField('Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True)
+    Unit_QTY = models.DecimalField('Number of units', decimal_places=4, max_digits=9, blank=True, null=True)
+    Unit_price = models.DecimalField('Price per unit', decimal_places=4, max_digits=9, blank=True, null=True)
     statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
     verified = models.BooleanField('Verified in a statement', default=False)
     audit = models.BooleanField('Audit', default=False)

@@ -3,8 +3,9 @@ from pathlib import Path
 import environ
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
+# import mimetypes
 
-
+# mimetypes.add_type("text/css", ".css", True)
 root = environ.Path(__file__) - 3  # get root of the project
 public_root = root.path('public/')
 env = environ.Env()
@@ -18,6 +19,7 @@ SITE_ROOT = root()
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_ROOT = public_root('static')
 STATIC_URL = env.str('STATIC_URL', default='/static/')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 LOGIN_URL = reverse_lazy('budgetdb:login')
@@ -68,6 +70,7 @@ CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
 
 MIDDLEWARE = [
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

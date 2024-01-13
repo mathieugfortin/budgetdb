@@ -471,7 +471,7 @@ def load_cat2_fuel(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     cat2_id = request.GET.get('cat2')
-    if cat2_id != '':
+    if cat2_id != '' and cat2_id is not None:
         isfuel = Cat2.admin_objects.get(id=cat2_id).fuel
         return JsonResponse({"isfuel": isfuel}, safe=False)
     else:

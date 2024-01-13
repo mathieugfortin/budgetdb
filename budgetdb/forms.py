@@ -1067,6 +1067,8 @@ class TransactionModalForm(BSModalModelForm):
             'ismanual',
             'is_deleted',
             'comment',
+            'Unit_QTY',
+            'Unit_price',
         ]
         widgets = {
             'date_actual': forms.DateInput(
@@ -1211,6 +1213,11 @@ class TransactionModalForm(BSModalModelForm):
                     # Field('amount_actual_foreign_currency', type='hidden'),
                     Div('is_deleted', css_class='form-group col-md-4   '),
                     css_class='row'
+                ),
+                Div(
+                    Div('Unit_QTY', css_class='form-group col-4'),
+                    Div('Unit_price', css_class='form-group col-4'),
+                    css_class='row fuel'
                 ),
             ])
 
