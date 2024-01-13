@@ -71,9 +71,10 @@ debug form post
         a = 1
         return super().clean(form)
 
-
+debug js: just add "debugger;" in the script where you want a breakpoint
 
 class visually-hidden
 httpx:
 https://testdriven.io/blog/django-async-views/
 https://enzircle.com/responsive-table-with-django-and-htmx
+pouet

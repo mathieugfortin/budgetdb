@@ -5,10 +5,12 @@
     "-s",
     "./budgetdb",
     "-p",
-    "*test.py"
+    "*test.py",
+    "-Wa",
   ],
   "python.testing.pytestEnabled": false,
   "python.testing.nosetestsEnabled": false,
   "python.testing.unittestEnabled": true,
   "python.linting.pycodestyleArgs": ["--max-line-length=160"],
+  "git.enableCommitSigning": true,
 }

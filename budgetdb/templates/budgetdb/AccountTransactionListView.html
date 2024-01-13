@@ -133,7 +133,7 @@ tr.VERIFIED button.verify::before {
 <table class="table table-hover table-sm ">
     <tr>
         <th id=c1>
-            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
+            <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
                 <i class="fas fa-plus"></i>
             </button>            
         </th>
@@ -148,7 +148,7 @@ tr.VERIFIED button.verify::before {
         <th id=c10>Receipt</th>
         <th id=c11>Balance</th>
         <th id=c12>
-            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
+            <button  type="button" title="Create audit for today" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
                 <i class="fas fa-plus"></i>
             </button>
         </th>
@@ -165,13 +165,18 @@ tr.VERIFIED button.verify::before {
         id=T{{event.id}}
     >
         <td>        
-            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk event.date_actual|date:'Y-m-d' %}" >
+            <button  type="button" title="Create another transaction for this day" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk event.date_actual|date:'Y-m-d' %}" >
                 <i class="fas fa-plus"></i>
             </button>
         </td>
         <td>{{ event.date_actual|date:'Y-m-d' }}</td>
         <td>{% if event.statement != None %} {{ event.statement }} {% endif %}</td>
-        <td><button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' pk event.id %}" >
+        <td>{% if event.vendor != None %} 
+                <button  type="button" class="update-transaction btn btn-outline-dark btn-sm"  >
+                    {{ event.vendor}}
+                </button>
+            {% endif %}  
+            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' pk event.id %}" >
                 {{ event.description }}
             </button>
             
@@ -182,7 +187,7 @@ tr.VERIFIED button.verify::before {
                 </button>
             {% endif %}
             {% if event.joinedtransaction != None %} 
-                <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_planned|date:'Y-m-d' event.date_actual|date:'Y-m-d'%}"> <i class="fas fa-object-group"></i></a>
+                <a href="{% url 'budgetdb:update_joinedtransactions' event.joinedtransaction.id event.date_planned|date:'Y-m-d' event.date_actual|date:'Y-m-d'%}" title="Edit the joined transactions"> <i class="fas fa-object-group"></i></a>
             {% endif %}
             {% if event.account_destination and event.account_destination.name != account_name%}
                 <a href="{% url 'budgetdb:list_account_activity' event.account_destination.id %}" class="btn btn-info btn-sm" role="button"> <i class="fas fa-arrow-right"></i> {{event.account_destination}} </a>
@@ -191,8 +196,8 @@ tr.VERIFIED button.verify::before {
             {% endif %}
         </td>
         <td>{% if event.budgetedevent_id != None %} 
-            <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-cog"></i></a>
-            <a href="{% url 'budgetdb:details_be' event.budgetedevent_id %}"> <i class="fas fa-list"></i></a>
+            <a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}" title="Edit the recurring event"> <i class="fas fa-cog"></i></a>
+            <a href="{% url 'budgetdb:details_be' event.budgetedevent_id %}" title="View recurring event details"> <i class="fas fa-list"></i></a>
             {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat1 }} {% endif %}</td>
         <td>{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>
@@ -218,7 +223,7 @@ tr.VERIFIED button.verify::before {
             {% endif %} 
         </td>
         <td>{% if event.audit == 0 %}
-            <button  type="button" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk event.date_actual|date:'Y-m-d' event.balance|slugify %}" >
+            <button  type="button" title="Confirm account balance for this day" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk event.date_actual|date:'Y-m-d' event.balance|slugify %}" >
                 <i class="fas fa-plus"></i>
             </button>
             {% else %} 
@@ -244,6 +249,7 @@ tr.VERIFIED button.verify::before {
           });
     });
 </script>
+
 
 {% include "budgetdb/js_toggle_verify.html" %}
 {% include "budgetdb/js_toggle_receipt.html" %}

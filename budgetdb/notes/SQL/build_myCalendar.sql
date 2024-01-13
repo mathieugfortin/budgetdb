@@ -30,5 +30,5 @@ DELIMITER ;
 
 TRUNCATE TABLE budgetdb_mycalendar;
 
-CALL fill_date_dimension('2004-01-01','2025-01-01');
+CALL fill_date_dimension('2004-01-01','2025-12-31');
 OPTIMIZE TABLE budgetdb_mycalendar;

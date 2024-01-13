@@ -1,0 +1,40 @@
+<script>
+    // load template data when the vendor field changes
+    $("#id_vendor").change(function () {
+        var url = "{% url 'budgetdb:ajax_get_template' %}";
+        var vendor_id = $(this).val();    // get the selected cat1 ID from the HTML input
+        debugger;
+        $.ajax({                       // initialize an AJAX request
+            url: url,                    
+            data: {
+                'vendor_id': vendor_id             // add the cat1 id to the GET parameters
+            },
+            success: function (data) {   
+                $("#id_cat1").val(data.cat1);
+                $("#id_description").val(data.description);
+                $("#id_comment").val("created from template");
+                $("#id_account_source").val(data.account_source);
+                $("#id_account_destination").val(data.account_destination);
+                $("#id_amount_planned").val(data.amount_actual);
+                $("#id_currency").val(data.currency);
+                $("#id_amount_planned_foreign_currency").val(data.amount_planned_foreign_currency);
+                $("#id_ismanual").val(data.ismanual);
+                // load cat2
+                var url = "{% url 'budgetdb:ajax_load_cat2' %}";
+                var cat1Id = data.cat1
+                var cat2Id = data.cat2
+                $.ajax({                       
+                    url: url,                    
+                    data: {
+                        'cat1': cat1Id             
+                    },
+                    success: function (data) {   
+                        $("#id_cat2").html(data);  // fill the cat2 dropdown
+                        $("#id_cat2").val(cat2Id); // set cat2
+                    }
+                });                
+            }
+        });
+    });
+
+    </script>

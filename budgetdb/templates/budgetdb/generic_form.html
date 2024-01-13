@@ -1,12 +1,12 @@
 {% extends 'budgetdb/base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load crispy_forms_field %}
 
 {% block title %}{{task}} {{object}} {% endblock %}
 
 {% block content %}
   <h2>{{object}}</h2>
-  {% load crispy_forms_tags %}
   {% if context.form_invalid %}
     <div class="alert alert-danger" role="alert">
         {{ context.form_invalid }}
@@ -14,4 +14,18 @@
   {% endif %}
   {% crispy form %}
   <div id='form-errors'>{{ form.errors }}</div>
+{% endblock %}
+
+
+
+{% block script %}
+    {% if contains_cat == True %}
+        {% include "budgetdb/js_cat1-cat2.html" %}
+    {% endif %}    
+    {% if contains_currency == True %}
+        {% include "budgetdb/js_currency.html" %}
+    {% endif %}    
+    {% if contains_account == True %}
+        {% include "budgetdb/js_flip_accounts.html" %}
+    {% endif %}    
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends 'budgetdb/basecrispy.html' %}
 {% block head_comment %}<!--Transaction_popup_form template-->{% endblock %}
 {% load static %}
+
 {% load crispy_forms_tags %}
 {% block content %}
     {% if context.form_invalid %}
@@ -13,4 +14,13 @@
 {% block script %}
     {% include "budgetdb/js_cat1-cat2.html" %}
     {% include "budgetdb/js_currency.html" %}
+    {% include "budgetdb/js_flip_accounts.html" %}
+    {% include "budgetdb/js_template_from_vendor.html" %}
+    <script type="text/javascript">
+        $('#modal').on('shown.bs.modal', function () {
+            setTimeout(function (){
+                $('#id_amount_actual').focus();
+            }, 300);
+        })
+    </script>
 {% endblock %}

@@ -1,27 +1,30 @@
 <script>
+// needs to have "currency" added to the context of the form
 var currency = "{{currency}}";
  
+function showForeignCurrency() {
+    $('div[id$=foreign_currency]').removeClass('visually-hidden');
+    $('input[id$=foreign_currency]').removeAttr('tabindex')
+}
+
+function hideForeignCurrency() {
+    $('div[id$=foreign_currency]').addClass('visually-hidden');
+    $('input[id$=foreign_currency]').attr('tabindex', '-1');
+}
+
  $('#id_currency').change(function(){
      if($(this).val() == currency) {
-         $('#div_id_amount_actual_foreign_currency').addClass('visually-hidden');
+        hideForeignCurrency()
      } else {
-         $('#div_id_amount_actual_foreign_currency').removeClass('visually-hidden');
+        showForeignCurrency()
      }
  })
  
  $( document ).ready(function() {
-     
      if($('#id_currency').val() == currency) {
-         $('#div_id_amount_actual_foreign_currency').addClass('visually-hidden');
+        hideForeignCurrency()
      } else {
-         $('#div_id_amount_actual_foreign_currency').removeClass('visually-hidden');
-     }
-     if($('#id_cat2').val() != 28) {
-         $('#div_id_Fuel_L').addClass('visually-hidden');
-         $('#div_id_Fuel_price').addClass('visually-hidden');
-     } else {
-         $('#div_id_Fuel_L').removeClass('visually-hidden');
-         $('#div_id_Fuel_price').removeClass('visually-hidden');
+        showForeignCurrency()
      }
  })
  

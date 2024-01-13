@@ -3,8 +3,9 @@ from pathlib import Path
 import environ
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
+# import mimetypes
 
-
+# mimetypes.add_type("text/css", ".css", True)
 root = environ.Path(__file__) - 3  # get root of the project
 public_root = root.path('public/')
 env = environ.Env()
@@ -18,6 +19,7 @@ SITE_ROOT = root()
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_ROOT = public_root('static')
 STATIC_URL = env.str('STATIC_URL', default='/static/')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 LOGIN_URL = reverse_lazy('budgetdb:login')
@@ -43,8 +45,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'crispy_forms',
+    "crispy_bootstrap5",
     'django.contrib.humanize',
     'django_extensions',
+    'rest_framework',
     # 'debug_toolbar',
     'chartjs',
     'bootstrap_modal_forms',
@@ -56,7 +60,8 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL = 'budgetdb.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
 DJANGO_TABLES2_TEMPLATE = 'django_tables2/bootstrap5.html'
 CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
                         'https://code-server.patatemagique.biz',
@@ -65,6 +70,7 @@ CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
 
 MIDDLEWARE = [
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -151,4 +157,4 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
