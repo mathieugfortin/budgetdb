@@ -12,4 +12,5 @@
   "python.testing.nosetestsEnabled": false,
   "python.testing.unittestEnabled": true,
   "python.linting.pycodestyleArgs": ["--max-line-length=160"],
+  "git.enableCommitSigning": true,
 }
