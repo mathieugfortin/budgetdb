@@ -1,6 +1,7 @@
 from django.urls import path, register_converter, include
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.views.generic.base import RedirectView
+from django.contrib.auth import views as auth_views
 from . import views
 
 
@@ -43,7 +44,9 @@ app_name = 'budgetdb'
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
 
-    path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('static/budgetdb/favicon.ico'))),
+    path('favicon.ico',
+         RedirectView.as_view(url=staticfiles_storage.url('static/budgetdb/favicon.ico'))
+         ),
 
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
@@ -59,6 +62,8 @@ urlpatterns = [
          name='signup'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
+    path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
+         name='logout'),
 
     path('friend/', views.FriendListView.as_view(),
          name='list_friend'),

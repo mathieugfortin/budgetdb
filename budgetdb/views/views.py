@@ -1,32 +1,39 @@
-# from django_addanother.views import CreatePopupMixin, UpdatePopupMixin
+"""budgetdb views"""
+from datetime import datetime, date
+from decimal import *
+#import json
+
 from django.core.exceptions import PermissionDenied
-from django import forms
+# from django import forms
 from django.apps import apps
-from django.forms import ModelForm
+# from django.forms import ModelForm
 from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, View, TemplateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, TemplateView, DetailView
 from django.views.generic.base import RedirectView
 from django.urls import reverse_lazy, reverse
-from django.contrib.auth.views import LoginView
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth import login
-from dal import autocomplete
-from datetime import datetime, date
+# from dal import autocomplete
+
 from dateutil.relativedelta import relativedelta
+
+
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit, Button
+from crum import get_current_user
+# from bootstrap_modal_forms.generic import BSModalCreateView
+from django_tables2 import SingleTableView # , SingleTableMixin
+
+from rest_framework import serializers
+
+
 from budgetdb.models import *
-from budgetdb.utils import Calendar
+# from budgetdb.utils import Calendar
 from budgetdb.forms import *
 from budgetdb.tables import *
-from decimal import *
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Button
-from crum import get_current_user
-from bootstrap_modal_forms.generic import BSModalCreateView
-from django_tables2 import SingleTableView, SingleTableMixin
-import json
-from rest_framework import serializers
 
 # colors stolen from django chart js library
 COLORS = [
@@ -1297,7 +1304,7 @@ class UserSignupView(CreateView):
         return form
 
 
-class UserLoginView(LoginView):
+class UserLoginView(auth_views.LoginView):
     model = User
     template_name = 'budgetdb/login.html'
 

@@ -122,7 +122,12 @@
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown" >
                         <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preferences</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_friend' %}">Invitations</a>
-                        <a class="dropdown-item" href="{% url 'admin:logout' %}">Logout</a>
+                        <a class="dropdown-item">
+                            <form id="logout-form" method="post" action="{% url 'budgetdb:logout' %}">
+                                {% csrf_token %}
+                                <button type="submit">Log out</button>
+                            </form>
+                        </a>
                     </div>
                 </li>
                 {% else %}

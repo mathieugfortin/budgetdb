@@ -170,7 +170,10 @@ class Preference(models.Model):
     max_interval_slider = models.DateField(blank=True, null=True)
     min_interval_slider = models.DateField(blank=True, null=True)
     currencies = models.ManyToManyField("Currency", related_name="currencies")
-    currency_prefered = models.ForeignKey("Currency", on_delete=models.DO_NOTHING, related_name="currency_prefered")
+    currency_prefered = models.ForeignKey("Currency",
+                                          on_delete=models.DO_NOTHING,
+                                          related_name="currency_prefered"
+                                          )
     favorite_accounts = models.ManyToManyField("Account", related_name="favorites", blank=True)
     # add ordre of listing, old first/ new first
 

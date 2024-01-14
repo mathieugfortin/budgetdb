@@ -17,4 +17,5 @@ EXPOSE 8005
 ENV DJANGO_SETTINGS_MODULE=web_budget.settings
 
 # Run app.py when the container launches
-CMD ["gunicorn", "web_budget.wsgi:application", "-c", "/app/config/gunicorn/prod.conf.py"]
+ENTRYPOINT ["gunicorn", "web_budget.wsgi:application", "-c", "/app/config/gunicorn/prod.conf.py"]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]
