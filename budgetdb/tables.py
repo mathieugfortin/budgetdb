@@ -87,7 +87,6 @@ class AccountActivityListTable(tables.Table):
         # per_page = 30
 
     def __init__(self, *args, **kwargs):
-        
         super().__init__(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
