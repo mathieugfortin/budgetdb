@@ -77,7 +77,6 @@ class AccountActivityListTable(tables.Table):
     verified = tables.Column(verbose_name='verified')
     amount_actual = tables.Column(verbose_name='receipt')
     addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=())
-    account_id = 35
 
     class Meta:
         model = Account
@@ -87,29 +86,80 @@ class AccountActivityListTable(tables.Table):
         # per_page = 30
 
     def __init__(self, *args, **kwargs):
-        a = 3
         super().__init__(*args, **kwargs)
-        a = 5
 
     def get_context_data(self, **kwargs):
-        a = 2
         context = super().get_context_data(**kwargs)
-
-        a = 2
         return context
 
     def render_description(self, value, record):
-        return (f'<button  type="button" class="update-transaction btn btn-secondary btn-sm" '
-                f'data-form-url="{{% url "budgetdb:account_listview_update_transaction_modal" pk {record.id} %}}">'
-                f'{record.description}'
-                f'</button>'
-                )
+        description_field = ''
+        account_id = self.request.resolver_match.kwargs.get('pk')
+        if record.vendor is not None:
+            description_field = description_field + (f'<button type="button" '
+                f'class="update-transaction btn btn-outline-dark btn-sm" '
+                f'{record.vendor}'
+                f'</button>')
 
-        return format_html(f'<a href="{reverse("budgetdb:account_max_redirect", kwargs={"pk": record.id})}">'
-                           f'{record.description}'
-                           f'</a>'
-                           )
+        description_field = description_field + (f'<button type="button" '
+            f'class="update-transaction btn btn-secondary btn-sm" '
+            f'data-form-url="{reverse("budgetdb:account_max_redirect", kwargs={"pk": record.id})}">'
+            f'{record.description}'
+            f'</button>')
 
+        show_currency = False
+        if record.account_destination is not None:
+            if record.account_destination.currency != record.currency:
+                show_currency = True
+        if record.account_source is not None:
+            if record.account_source.currency != record.currency:
+                show_currency = True
+        if show_currency:
+            description_field = description_field + (f'<button type="button" '
+                f'class="btn btn-info btn-sm" '
+                f'{record.amount_actual_foreign_currency} '
+                f'{record.currency.name_short} '
+                f'</button>')
+
+        try:
+            record.joinedtransaction
+        except AttributeError:
+            record.joinedtransaction = None
+        if record.joinedtransaction is not None:
+            joined_reverse = reverse("budgetdb:update_joinedtransactions",
+                                     kwargs={"pk": record.joinedtransaction.id,
+                                             "datep": record.date_planned.strftime("%Y-%m-%d"),
+                                             "datea": record.date_actual.strftime("%Y-%m-%d"),
+                                            }
+                                    )
+            description_field = description_field + (f'<a href='
+                f'"{joined_reverse}" '
+                f'title="Edit the joined transactions"> '
+                f'<i class="fas fa-object-group"></i>'
+                f'</a>')
+
+        if record.account_destination is not None and record.account_destination.id != account_id:
+            transfer_reverse = reverse("budgetdb:list_account_activity",
+                                       kwargs={"pk": record.account_destination.id,}
+                                       )
+            description_field = description_field + (f'<a href='
+                f'"{transfer_reverse}" '
+                f'class="btn btn-info btn-sm" role="button"> '
+                f'<i class="fas fa-arrow-right"></i>'
+                f'{record.account_destination}'
+                f'</a>')
+        if record.account_source is not None and record.account_source.id != account_id:
+            transfer_reverse = reverse("budgetdb:list_account_activity",
+                                       kwargs={"pk": record.account_source.id,}
+                                       )
+            description_field = description_field + (f'<a href='
+                f'"{transfer_reverse}" '
+                f'class="btn btn-info btn-sm" role="button"> '
+                f'<i class="fas fa-arrow-left"></i>'
+                f'{record.account_source}'
+                f'</a>')
+  
+        return format_html(description_field)
 
 class AccountCategoryListTable(MySharingColumns, tables.Table):
     class Meta:
