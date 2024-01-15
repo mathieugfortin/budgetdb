@@ -62,6 +62,8 @@ urlpatterns = [
          name='signup'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
+    path('user/password/update', views.UserPasswordUpdateView.as_view(),
+         name='password_update'),
     path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
          name='logout'),
 
