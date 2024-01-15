@@ -1,4 +1,3 @@
-"""budgetdb views"""
 from datetime import datetime, date
 from decimal import *
 #import json
@@ -10,12 +9,14 @@ from django.apps import apps
 from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, TemplateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, TemplateView, DetailView #, FormView
 from django.views.generic.base import RedirectView
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth import login
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import login, update_session_auth_hash
+
 # from dal import autocomplete
 
 from dateutil.relativedelta import relativedelta
@@ -1321,6 +1322,35 @@ class UserLoginView(auth_views.LoginView):
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
         return form
+
+
+class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
+    model = User
+    form_class = PasswordChangeForm
+    success_url = reverse_lazy('budgetdb:home')
+    template_name = 'budgetdb/generic_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super(auth_views.PasswordChangeView, self).get_form_kwargs()
+        kwargs['user'] = self.request.user
+        if self.request.method == 'POST':
+            kwargs['data'] = self.request.POST
+        return kwargs
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Change Password', css_class='btn-primary'))
+        return form
+
+    
+
+    def form_valid(self, form):
+        form.save()
+        update_session_auth_hash(self.request, form.user)        
+        return super(auth_views.PasswordChangeView, self).form_valid(form) 
+
 
 
 class PreferencesUpdateView(LoginRequiredMixin, UpdateView):

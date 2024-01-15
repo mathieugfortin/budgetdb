@@ -66,6 +66,7 @@ DJANGO_TABLES2_TEMPLATE = 'django_tables2/bootstrap5.html'
 CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
                         'https://code-server.patatemagique.biz',
                         'http://code-server.patatemagique.biz:880',
+                        'https://budget.patatemagique.biz',
                         ]
 
 MIDDLEWARE = [

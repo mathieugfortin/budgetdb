@@ -62,6 +62,8 @@ urlpatterns = [
          name='signup'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
+    path('user/password/update', views.UserPasswordUpdateView.as_view(),
+         name='password_update'),
     path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
          name='logout'),
 
@@ -259,7 +261,7 @@ urlpatterns = [
          name='toggleverifytransaction_json'),
     path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
          name='togglereceipttransaction_json'),
-    path('<int:pk>/saveTransaction/', views.saveTransaction,
+    path('transaction/save/<int:pk>/', views.saveTransaction,
          name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
          name='details_transaction'),
