@@ -929,6 +929,7 @@ class PreferenceForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.fields['favorite_accounts'].queryset = Account.view_objects.all()
+        self.fields['currency_prefered'].label = 'Prefered Currency'
         self.helper.layout = Layout(
             Div(
                 Div('start_interval', css_class='form-group col-md-4  '),

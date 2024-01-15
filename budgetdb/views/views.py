@@ -1,4 +1,3 @@
-"""budgetdb views"""
 from datetime import datetime, date
 from decimal import *
 #import json

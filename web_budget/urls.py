@@ -6,14 +6,7 @@ from django.views.generic.base import RedirectView
 
 app_name = 'web_budget'
 
-urlpatterns = [
-    
-]
-
 urlpatterns = i18n_patterns(
-    path('budgetdb/', include('budgetdb.urls')),
-#    path('admin/', admin.site.urls, name='login'),
-#    path('budgetdb/logout/', admin.site.urls, name='logout'),
-#   path('__debug__/', include(debug_toolbar.urls)),
+    path('', include('budgetdb.urls')),
     path('favicon.ico', RedirectView.as_view(url='/budgetdb/static/budgetdb/favicon.ico')),
 )

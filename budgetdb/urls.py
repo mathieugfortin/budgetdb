@@ -259,7 +259,7 @@ urlpatterns = [
          name='toggleverifytransaction_json'),
     path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
          name='togglereceipttransaction_json'),
-    path('<int:pk>/saveTransaction/', views.saveTransaction,
+    path('transaction/save/<int:pk>/', views.saveTransaction,
          name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
          name='details_transaction'),
