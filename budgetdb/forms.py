@@ -930,6 +930,11 @@ class PreferenceForm(forms.ModelForm):
         self.helper = FormHelper()
         self.fields['favorite_accounts'].queryset = Account.view_objects.all()
         self.fields['currency_prefered'].label = 'Prefered Currency'
+        self.fields['min_interval_slider'].label = 'Timeline Beginning'
+        self.fields['max_interval_slider'].label = 'Timeline End'
+        self.fields['start_interval'].label = 'Start of time selection'
+        self.fields['end_interval'].label = 'End of time selection'
+        
         self.helper.layout = Layout(
             Div(
                 Div('start_interval', css_class='form-group col-md-4  '),
