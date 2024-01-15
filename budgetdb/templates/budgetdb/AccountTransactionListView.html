@@ -145,11 +145,11 @@ tr.VERIFIED button.verify::before {
             <th id=c6 scope="col" class="d-none d-lg-table-cell">Category</th>
             <th id=c7 scope="col" class="d-none d-lg-table-cell">Subcategory</th>
             <th id=c8 scope="col">Amount</th>
-            <th id=c9 scope="col" class="full-label" short-label="Verif">Verif</th>
-            <th id=c10 scope="col" class="full-label" short-label="RCPT">Rcpt</th>
+            <th id=c9 scope="col" class="d-none d-sm-table-cell full-label" short-label="Verif">Verif</th>
+            <th id=c10 scope="col" class="d-none d-sm-table-cell full-label" short-label="RCPT">Rcpt</th>
             
-            <th id=c11 scope="col">Balance</th>
-            <th id=c12 scope="col">
+            <th id=c11 scope="col" class="d-none d-sm-table-cell">Balance</th>
+            <th id=c12 scope="col" class="d-none d-sm-table-cell">
                 <button  type="button" title="Create audit for today" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
                     <i class="fas fa-plus fa-s"></i>
                 </button>
@@ -205,12 +205,12 @@ tr.VERIFIED button.verify::before {
         <td class="d-none d-lg-table-cell">{% if event.audit == 0 %} {{ event.cat1 }} {% endif %}</td>
         <td class="d-none d-lg-table-cell">{% if event.audit == 0 %} {{ event.cat2 }} {% endif %}</td>
         <td money>{{ event.calc_amount }}</td>
-        <td>{% if event.audit == 0 %}
+        <td class="d-none d-sm-table-cell">{% if event.audit == 0 %}
             <button type="button" class="btn btn-default btn-sm verify" onclick="toggleverifyT({{ event.id }})">
             </button> 
             {% endif %} 
         </td>
-        <td>{% if event.audit == 0 %}
+        <td class="d-none d-sm-table-cell">{% if event.audit == 0 %}
                 {% if event.receipt == 0 %}
                 <button type="button" class="btn btn-default btn-sm receipt NORECEIPT" id=R{{event.id}} onclick="togglereceiptT({{ event.id }})">
                 </button> 
@@ -220,12 +220,12 @@ tr.VERIFIED button.verify::before {
                 {% endif %} 
             {% endif %} 
         </td>
-        <td money>
+        <td money class="d-none d-sm-table-cell">
             {% if event.audit == 0 %}
                 {{ event.balance }}
             {% endif %} 
         </td>
-        <td>{% if event.audit == 0 %}
+        <td class="d-none d-sm-table-cell">{% if event.audit == 0 %}
             <button  type="button" title="Confirm account balance for this day" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk event.date_actual|date:'Y-m-d' event.balance|slugify %}" >
                 <i class="fas fa-plus fa-s"></i>
             </button>
