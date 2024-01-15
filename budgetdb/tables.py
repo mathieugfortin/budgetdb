@@ -79,13 +79,15 @@ class AccountActivityListTable(tables.Table):
     addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=())
 
     class Meta:
-        model = Account
+        model = Transaction
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
                   "cat1", "cat2", "amount_actual", "verified", "receipt", "balance", "addaudit")
         attrs = {"class": "table table-hover"}
+        order_by = ("date_actual")
         # per_page = 30
 
     def __init__(self, *args, **kwargs):
+        
         super().__init__(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -160,6 +162,25 @@ class AccountActivityListTable(tables.Table):
                 f'</a>')
   
         return format_html(description_field)
+
+    def render_date_actual(self, value, record):
+        # strftime("%Y-%m-%d")
+        return format(value.strftime("%Y-%m-%d"))
+    
+    def render_addtransaction(self, value, record):
+        account_id = self.request.resolver_match.kwargs.get('pk')
+        add_reverse = reverse("budgetdb:create_transaction_from_date_account_modal",
+                              kwargs={"pk": account_id,
+                                      "date": record.date_planned.strftime("%Y-%m-%d"),
+                                      }
+                             )
+        return format_html(f'<button type="button" title="Create another transaction for this day"'
+                           f'class="update-transaction btn btn-secondary btn-sm" data-form-url='
+                           f'"{add_reverse}">'
+                           f'<i class="fas fa-plus" aria-hidden="true"></i>'
+                           f'</button>'
+                           )
+
 
 class AccountCategoryListTable(MySharingColumns, tables.Table):
     class Meta:
