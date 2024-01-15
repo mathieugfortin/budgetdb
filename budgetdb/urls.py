@@ -44,10 +44,6 @@ app_name = 'budgetdb'
 urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
 
-    path('favicon.ico',
-         RedirectView.as_view(url=staticfiles_storage.url('static/budgetdb/favicon.ico'))
-         ),
-
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
