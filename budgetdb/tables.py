@@ -83,7 +83,7 @@ class AccountActivityListTable(tables.Table):
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
                   "cat1", "cat2", "amount_actual", "verified", "receipt", "balance", "addaudit")
         attrs = {"class": "table table-hover"}
-        order_by = ("date_actual")
+        order_by = ("-date_actual")
         # per_page = 30
 
     def __init__(self, *args, **kwargs):
