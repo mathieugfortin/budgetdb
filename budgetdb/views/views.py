@@ -1291,7 +1291,8 @@ class UserSignupView(CreateView):
             start_interval=datetime.today().date()-relativedelta(months=6),
             end_interval=datetime.today().date()+relativedelta(months=6),
             min_interval_slider=datetime.today().date()-relativedelta(months=6),
-            max_interval_slider=datetime.today().date()+relativedelta(months=6)
+            max_interval_slider=datetime.today().date()+relativedelta(months=6),
+            currency_prefered = Currency.objects.get(name_short='CAD')
             )
         preference.save()
         login(self.request, user)
