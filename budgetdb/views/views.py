@@ -1,39 +1,32 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import *
-#import json
 
-from django.core.exceptions import PermissionDenied
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Button, Submit
+from crum import get_current_user
+from dateutil.relativedelta import relativedelta
 # from django import forms
 from django.apps import apps
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 # from django.forms import ModelForm
 from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, TemplateView, DetailView #, FormView
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.views.generic import (CreateView, DetailView,  # , FormView
+                                  ListView, TemplateView, UpdateView)
 from django.views.generic.base import RedirectView
-from django.urls import reverse_lazy, reverse
-from django.contrib.auth import views as auth_views
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import login, update_session_auth_hash
-
-# from dal import autocomplete
-
-from dateutil.relativedelta import relativedelta
-
-
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Button
-from crum import get_current_user
 # from bootstrap_modal_forms.generic import BSModalCreateView
-from django_tables2 import SingleTableView # , SingleTableMixin
-
+from django_tables2 import SingleTableView  # , SingleTableMixin
 from rest_framework import serializers
 
-
-from budgetdb.models import *
 # from budgetdb.utils import Calendar
 from budgetdb.forms import *
+from budgetdb.models import *
 from budgetdb.tables import *
 
 # colors stolen from django chart js library
