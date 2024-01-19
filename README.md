@@ -13,4 +13,13 @@ From there, if I change a few parameters, tweak my savings a bit, cut an expense
 Container needs a config file or environment variables with these variable names:
 DEBUG(defaults to False), SECRET_KEY, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME, DB_USER, APP_HOST1, APP_HOST2
 
+For email config, these are the env. variables:
+EMAIL_BACKEND, default='django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST, default='smtp.gmail.com'
+EMAIL_USE_SSL, default=False
+EMAIL_USE_TLS, default=True
+EMAIL_PORT, default=587
+EMAIL_HOST_USER, no default
+EMAIL_HOST_PASSWORD, no default
+
 need more to handle CSRF_TRUSTED_ORIGINS...
