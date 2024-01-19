@@ -11,7 +11,8 @@ from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.core.exceptions import PermissionDenied
+from django.core.mail import send_mail
 # from django.forms import ModelForm
 from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
@@ -1355,6 +1356,7 @@ class AccountTransactionListView2(UserPassesTestMixin, MyListView):
         preference = Preference.objects.get(user=self.request.user.id)
         begin = preference.start_interval
         end = preference.end_interval
+        self.title = Account.objects.get(pk=pk).name
 
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
