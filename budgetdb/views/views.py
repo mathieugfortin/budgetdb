@@ -162,7 +162,7 @@ def GetAccountDetailedViewListJSON(request):
             namestring = namestring + "☆ "
         namestring = namestring + entry.account_host.name
         if entry.owner != get_current_user():
-            namestring = namestring + " - " + entry.owner.username.capitalize()
+            namestring = namestring + " - " + entry.owner.first_name.capitalize()
         namestring = namestring + " - " + entry.name
         array.append([{"pk": entry.pk}, {"name": namestring}])
 
@@ -1291,7 +1291,8 @@ class UserSignupView(CreateView):
             start_interval=datetime.today().date()-relativedelta(months=6),
             end_interval=datetime.today().date()+relativedelta(months=6),
             min_interval_slider=datetime.today().date()-relativedelta(months=6),
-            max_interval_slider=datetime.today().date()+relativedelta(months=6)
+            max_interval_slider=datetime.today().date()+relativedelta(months=6),
+            currency_prefered = Currency.objects.get(name_short='CAD')
             )
         preference.save()
         login(self.request, user)
@@ -1315,7 +1316,7 @@ class UserLoginView(auth_views.LoginView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        # julie = User.objects.get(username='julie')
+        # julie = User.objects.get(first_name='julie')
         # julie.set_password('etpatatietpatata')
         # julie.save()
         form.helper = FormHelper()

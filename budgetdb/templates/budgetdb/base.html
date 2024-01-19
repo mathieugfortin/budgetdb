@@ -116,10 +116,10 @@
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        {{ user.get_username }}
+                        {{ user.get_short_name }}
                     </a>
                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" >
-                        <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preferences</a>
+                        <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preference</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_friend' %}">Invitations</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:password_update' %}">Change Password</a>
                         <a class="dropdown-item">
@@ -136,8 +136,10 @@
         <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
             <ul class="navbar-nav ">
                 <li class="nav-item active">
-                    <a class="nav-link" href="{% url 'budgetdb:login' %}?next={% url 'budgetdb:home' %}">Please Login</a>
-                    <a class="nav-link" href="{% url 'budgetdb:signup' %}?next={% url 'budgetdb:home' %}">or register</a>
+                    <a class="nav-link" href="{% url 'budgetdb:login' %}?next={% url 'budgetdb:home' %}">Login</a>
+                </li>
+                <li class="nav-item active">
+                        <a class="nav-link" href="{% url 'budgetdb:signup' %}?next={% url 'budgetdb:home' %}">Register</a>
                 </li>
             </ul>
         </div>
@@ -154,7 +156,8 @@
     <script src="https://kit.fontawesome.com/860aa3fdee.js" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script> 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
-
+    
+    {% if user.is_authenticated %}
 <script>
 
     var begin_interval;
@@ -247,6 +250,7 @@
 
 
     </script>
+    {% endif %}
     <script src="{% static 'js/jquery.bootstrap.modal.forms.js' %}"></script>
     <!--<script src="{% static 'js/jquery.bootstrap.modal.forms.min.js' %}"></script>-->
     {% block script %}{% endblock %}

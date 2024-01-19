@@ -9,9 +9,9 @@ from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 from django.urls import reverse
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser, Group
+from django.contrib.auth.models import AbstractUser, BaseUserManager #, Group
 from crum import get_current_user
-
+from django.utils.translation import gettext_lazy as _
 
 class MyMeta(models.Model):
     class Meta:
@@ -21,9 +21,50 @@ class MyMeta(models.Model):
     modified_date = models.DateTimeField(auto_now=True)
 
 
+class UserManager(BaseUserManager):
+    """Define a model manager for User model with no username field."""
+
+    use_in_migrations = True
+
+    def _create_user(self, email, password, **extra_fields):
+        """Create and save a User with the given email and password."""
+        if not email:
+            raise ValueError('The given email must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, email, password=None, **extra_fields):
+        """Create and save a regular User with the given email and password."""
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(email, password, **extra_fields)
+
+    def create_superuser(self, email, password, **extra_fields):
+        """Create and save a SuperUser with the given email and password."""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self._create_user(email, password, **extra_fields)
+
+
 class User(AbstractUser):
+    USERNAME_FIELD = 'email'
+    username = None
+    email = models.EmailField('email address', unique=True)
     invited = models.ManyToManyField("User", related_name='invited_users')
     friends = models.ManyToManyField("User", related_name='friends_users')
+    REQUIRED_FIELDS = ['first_name']
+
+    def __str__(self):
+        return self.email
 
 
 class ViewerManager(models.Manager):
@@ -337,7 +378,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         if user == self.owner:
             return star + self.account_host.name + " - " + self.name
         else:
-            return star + self.account_host.name + " - " + self.owner.username.capitalize() + " - " + self.name
+            return star + self.account_host.name + " - " + self.owner.first_name.capitalize() + " - " + self.name
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_account_simple')

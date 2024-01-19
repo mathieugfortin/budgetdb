@@ -18,13 +18,13 @@ from bootstrap_modal_forms.forms import BSModalModelForm
 class UserSignUpForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ('username', 'email')
+        fields = ('first_name', 'email')
 
 
 class UserChangeForm(UserChangeForm):
     class Meta:
         model = User
-        fields = ('username', 'email')
+        fields = ('first_name', 'email')
 
 
 class Formset(LayoutObject):
