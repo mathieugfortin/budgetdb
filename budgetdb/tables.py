@@ -25,9 +25,9 @@ class MySharingColumns(tables.Table):
         if nb_users == 0:
             return format_html("")
         elif nb_users == 1:
-            return format_html(f"Shared with {users.first().username.capitalize()}")
+            return format_html(f"Shared with {users.first().first_name.capitalize()}")
         elif nb_users == 2:
-            return format_html(f"Shared with {users.first().username.capitalize()} and {users.last().username.capitalize()}")
+            return format_html(f"Shared with {users.first().first_name.capitalize()} and {users.last().first_name.capitalize()}")
         else:
             return format_html(f"Shared with {nb_users} users")
 

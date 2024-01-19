@@ -135,7 +135,7 @@ tr.VERIFIED button.verify::before {
         <tr>
             <th id=c1 scope="col">
                 <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus fa-s"></i>
                 </button>            
             </th>
             <th id=c2 scope="col">Date</th>
@@ -151,7 +151,7 @@ tr.VERIFIED button.verify::before {
             <th id=c11 scope="col">Balance</th>
             <th id=c12 scope="col">
                 <button  type="button" title="Create audit for today" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus fa-s"></i>
                 </button>
             </th>
         </tr>
@@ -169,7 +169,7 @@ tr.VERIFIED button.verify::before {
     >
         <td>        
             <button  type="button" title="Create another transaction for this day" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk event.date_actual|date:'Y-m-d' %}" >
-                <i class="fas fa-plus"></i>
+                <i class="fas fa-plus fa-s"></i>
             </button>
         </td>
         <td>{{ event.date_actual|date:'Y-m-d' }}</td>
@@ -227,7 +227,7 @@ tr.VERIFIED button.verify::before {
         </td>
         <td>{% if event.audit == 0 %}
             <button  type="button" title="Confirm account balance for this day" class="update-transaction btn btn-secondary btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk event.date_actual|date:'Y-m-d' event.balance|slugify %}" >
-                <i class="fas fa-plus"></i>
+                <i class="fas fa-plus fa-s"></i>
             </button>
             {% else %} 
                 {{ event.audit_amount }}

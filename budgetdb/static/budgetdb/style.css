@@ -12,3 +12,8 @@ body {
     padding: 0;
   
   }
+
+ .navbar-nav .dropdown-menu {
+    max-height: 90vh;
+    overflow-y: auto;
+}
