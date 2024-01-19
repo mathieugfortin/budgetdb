@@ -77,3 +77,11 @@ class visually-hidden
 httpx:
 https://testdriven.io/blog/django-async-views/
 https://enzircle.com/responsive-table-with-django-and-htmx
+
+
+    "pylint.args": [
+
+        "--disable=all",
+        "--enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode",
+        "--django-settings-module=web_budget.settings",
+    ],    

@@ -172,7 +172,7 @@ class AccountActivityListTable(tables.Table):
         account_id = self.request.resolver_match.kwargs.get('pk')
         add_reverse = reverse("budgetdb:create_transaction_from_date_account_modal",
                               kwargs={"pk": account_id,
-                                      "date": record.date_planned.strftime("%Y-%m-%d"),
+                                      "date": record.date_actual.strftime("%Y-%m-%d"),
                                       }
                              )
         return format_html(f'<button type="button" title="Create another transaction for this day"'
