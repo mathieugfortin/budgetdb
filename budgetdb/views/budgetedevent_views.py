@@ -5,6 +5,7 @@ from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Acco
 from budgetdb.tables import BudgetedEventListTable
 from budgetdb.forms import BudgetedEventForm
 from budgetdb.filters import BudgetedEventFilter
+from django.views.generic.base import RedirectView
 from budgetdb.views import MyListView
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -61,7 +62,8 @@ class budgetedEventsAnormal3ListView(MyListView):
     def get_queryset(self):
         user = get_current_user()
         preference = Preference.objects.get(user=user.id)
-        needs_generation = BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.end_interval).distinct()
+        needs_generation = BudgetedEvent.view_objects.filter(generated_interval_stop__isnull=True).distinct()
+        needs_generation = needs_generation | BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.end_interval).distinct()
         return needs_generation
 
 
@@ -274,6 +276,18 @@ class BudgetedEventCreateFromTransaction(LoginRequiredMixin, UserPassesTestMixin
         form.helper.add_input(Submit('submit', 'Create', css_class='btn-primary'))
         return form
 
+
+class BudgetedEventGenerateTransactions(RedirectView):
+    permanent = False
+    
+    def get_redirect_url(*args, **kwargs):
+        pk = kwargs.get('pk')
+        try:
+            budgetedevent = BudgetedEvent.admin_objects.get(pk=pk)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        budgetedevent.save()
+        return reverse_lazy('budgetdb:details_be', kwargs={'pk': pk})
 
 def BudgetedEventSubmit(request):
     description = request.POST.get('description')

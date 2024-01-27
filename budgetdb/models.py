@@ -1171,18 +1171,24 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
             self.createTransactions()
         super(BudgetedEvent, self).save(*args, **kwargs)
 
-    def createTransactions(self, n=400, begin_interval=None, interval_length_months=60):
+    def createTransactions(self, n=400, begin_interval=None, interval_length_months=60, end_interval=None):
         if begin_interval is None:
             begin_interval = self.repeat_start
 
         # make sure we generate at least up to the end of the timeline
         user = get_current_user()
         preference = Preference.objects.get(user=user.id)
-        delta = begin_interval + relativedelta(months=interval_length_months) - preference.max_interval_slider
-        if delta.days < 0:
+        if end_interval is None:
+            end_interval = preference.max_interval_slider
+        default_end_interval = begin_interval + relativedelta(months=interval_length_months)
+        if default_end_interval < end_interval:
+            delta = default_end_interval - end_interval
             interval_length_months += 1 - round(delta.days / 30)
 
-        transaction_dates = self.listPotentialTransactionDates(n=n, begin_interval=begin_interval, interval_length_months=interval_length_months)
+        transaction_dates = self.listPotentialTransactionDates(n=n,
+                                                               begin_interval=begin_interval,
+                                                               interval_length_months=interval_length_months,
+                                                               )
         if transaction_dates:
             self.generated_interval_start = transaction_dates[0]
         else:

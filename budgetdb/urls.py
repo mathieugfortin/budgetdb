@@ -179,6 +179,8 @@ urlpatterns = [
          name='details_be'),
     path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
          name='create_budgetedevent'),
+    path('budgetedEvent/generate/<int:pk>/', views.BudgetedEventGenerateTransactions.as_view(),
+         name='generate_budgetedevent_transactions'),
     path('budgetedEvent/createfromt/<int:transaction_id>/', views.BudgetedEventCreateFromTransaction.as_view(),
          name='create_budgetedevent_from_t'),
     # path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
