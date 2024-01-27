@@ -11,12 +11,13 @@ from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 # from django.forms import ModelForm
 from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils.encoding import force_bytes, force_str
 from django.views.generic import (CreateView, DetailView,  # , FormView
                                   ListView, TemplateView, UpdateView)
 from django.views.generic.base import RedirectView
@@ -28,6 +29,7 @@ from rest_framework import serializers
 from budgetdb.forms import *
 from budgetdb.models import *
 from budgetdb.tables import *
+from budgetdb.tokens import account_activation_token
 
 # colors stolen from django chart js library
 COLORS = [
@@ -1012,22 +1014,32 @@ class CatTypeCreateView(MyCreateView):
 
 
 ###################################################################################################################
-# Friend
+# Invitation
 
 
-class FriendListView(MyListView):
-    model = Friend
+class InvitationListView(MyListView):
+    model = Invitation
     title = 'Pending Invites'
-    table_class = FriendListTable
+    table_class = InvitationListTable
 
     def get_queryset(self):
         return self.model.view_objects.all().order_by('email')
 
 
-class FriendCreateView(MyCreateView):
-    model = Friend
-    form_class = FriendForm
+class InvitationCreateView(MyCreateView):
+    model = Invitation
+    form_class = InvitationForm
 
+    def form_valid(self, form):
+        try:
+            invited = User.objects.get(email=form.cleaned_data.get('email'))
+        except ObjectDoesNotExist:
+            invited = form.save()
+
+        user = get_current_user()
+        user.invited.add(invited)
+        user.save()
+        return redirect('budgetdb:home')
 
 ###################################################################################################################
 # Vendor
@@ -1272,6 +1284,46 @@ class AccountTransactionListView2(UserPassesTestMixin, MyListView):
 ###################################################################################################################
 # User Management
 
+class UserVerifyEmailView(TemplateView):
+    template_name = 'budgetdb/email_sent.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = get_current_user()
+        user.send_verify_email()
+        return context
+
+
+class UserVerifiedEmailView(TemplateView):
+    template_name = 'budgetdb/email_confirmed.html'
+
+
+class UserVerifiedEmailBadLinkView(TemplateView):
+    template_name = 'budgetdb/email_invalid_link.html'
+
+
+class UserVerifyLinkView(RedirectView):
+    permanent = False
+    
+    def get_redirect_url(*args, **kwargs):
+        uidb64 = kwargs.get('uidb64')
+        token = kwargs.get('token')
+        user = None
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except(TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+        if user is not None and account_activation_token.check_token(user, token):
+            user.email_verified = True
+            user.save()
+            return reverse_lazy('budgetdb:email_verified')  
+        else:
+            return reverse_lazy('budgetdb:email_verified_bad_link')
+
+
+
 class UserSignupView(CreateView):
     model = User
     form_class = UserSignUpForm
@@ -1288,6 +1340,7 @@ class UserSignupView(CreateView):
             currency_prefered = Currency.objects.get(name_short='CAD')
             )
         preference.save()
+        user.send_verify_email()
         login(self.request, user)
         return redirect('budgetdb:home')
 

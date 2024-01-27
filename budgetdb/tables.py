@@ -144,7 +144,7 @@ class BudgetedEventListTable(MySharingColumns, tables.Table):
         model = BudgetedEvent
         fields = ("description", "lastTransactionDate", "account_source", "account_destination")
         attrs = {"class": "table table-hover table-striped"}
-        # per_page = 30
+        per_page = 50
 
     def render_description(self, value, record):
         return format_html('<a href="{}">{}</a>',
@@ -202,9 +202,9 @@ class CatTypeListTable(MySharingColumns, tables.Table):
                            value, record.name)
 
 
-class FriendListTable(tables.Table):
+class InvitationListTable(tables.Table):
     class Meta:
-        model = Friend
+        model = Invitation
         fields = ("email",)
         attrs = {"class": "table table-hover table-striped"}
         # per_page = 30

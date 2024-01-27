@@ -56,6 +56,14 @@ urlpatterns = [
     # User
     path('user/signup/', views.UserSignupView.as_view(),
          name='signup'),
+    path('user/verify/', views.UserVerifyEmailView.as_view(),
+         name='send_email_verification'),
+    path('user/verified/', views.UserVerifiedEmailView.as_view(),
+         name='email_verified'),
+    path('user/verified/bad', views.UserVerifiedEmailBadLinkView.as_view(),
+         name='email_verified_bad_link'),
+    path('user/verify/<uidb64>/<token>', views.UserVerifyLinkView.as_view(),
+         name='email_verification_link'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
     path('user/password/update', views.UserPasswordUpdateView.as_view(),
@@ -63,10 +71,12 @@ urlpatterns = [
     path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
          name='logout'),
 
-    path('friend/', views.FriendListView.as_view(),
-         name='list_friend'),
-    path('friend/add/', views.FriendCreateView.as_view(),
-         name='create_friend'),
+    path('invitation/', views.InvitationListView.as_view(),
+         name='list_invitation'),
+    path('invitation/add/', views.InvitationCreateView.as_view(),
+         name='create_invitation'),
+    path('invitation/accept/<token>', views.InvitationCreateView.as_view(),
+         name='create_invitation'),
 
     ##########################################################################################################
     # redirects

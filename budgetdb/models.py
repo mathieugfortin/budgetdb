@@ -1,17 +1,24 @@
-# import datetime
-from django.core.exceptions import PermissionDenied
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
+
+
+from django.core.exceptions import PermissionDenied
+from django.core.mail import EmailMessage
 from django.db import models
 from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.utils.translation import gettext_lazy as _
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager #, Group
+# from django.contrib.sites.models import Site
 from crum import get_current_user
-from django.utils.translation import gettext_lazy as _
+from django.template.loader import render_to_string
+from .tokens import account_activation_token
 
 class MyMeta(models.Model):
     class Meta:
@@ -57,14 +64,35 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name']
     username = None
     email = models.EmailField('email address', unique=True)
-    invited = models.ManyToManyField("User", related_name='invited_users')
+    invited = models.ManyToManyField("Invitation", related_name='invited')
     friends = models.ManyToManyField("User", related_name='friends_users')
-    REQUIRED_FIELDS = ['first_name']
+    email_key = models.CharField('Email Key', max_length=64, unique=True, null=True)
+    email_verified = models.BooleanField('Email Verified', default=False, null=False)
 
     def __str__(self):
         return self.email
+
+    def send_verify_email(self):
+        if not self.email_verified:
+            user = self.first_name
+            email = self.email
+            # current_site = Site.objects.get_current()
+            subject = "Verify Email"
+            message = render_to_string('budgetdb/email_validation_message.html', {
+                # 'request': request,
+                'user': user,
+                'domain': 'http://code-server.patatemagique.biz:8000/',
+                'uid':urlsafe_base64_encode(force_bytes(self.pk)),
+                'token':account_activation_token.make_token(self),
+            })
+            email = EmailMessage(
+                subject, message, to=[email]
+            )
+            email.content_subtype = 'html'
+            email.send()
 
 
 class ViewerManager(models.Manager):
@@ -219,19 +247,20 @@ class Preference(models.Model):
     # add ordre of listing, old first/ new first
 
 
-class Friend(BaseSoftDelete, UserPermissions):
+class Invitation(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Invitation'
         verbose_name_plural = 'Invitations'
         ordering = ['email']
 
     email = models.EmailField(max_length=254, blank=False, null=False)
+    email_key = models.CharField('email_key', max_length=64, unique=True)
 
     def __str__(self):
         return self.email
 
     def get_absolute_url(self):
-        return reverse('budgetdb:list_friend')
+        return reverse('budgetdb:list_invitation')
 
 
 class AccountBalances(models.Model):
