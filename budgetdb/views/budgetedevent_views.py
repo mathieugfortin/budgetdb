@@ -62,9 +62,13 @@ class budgetedEventsAnormal3ListView(MyListView):
     def get_queryset(self):
         user = get_current_user()
         preference = Preference.objects.get(user=user.id)
+        # last generated transaction not set
         needs_generation = BudgetedEvent.view_objects.filter(generated_interval_stop__isnull=True).distinct()
+        # last generation is before the end of the timeline
         needs_generation = needs_generation | BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.end_interval).distinct()
-        return needs_generation
+        # only those that haven't reached the end (repeat_stop) of the recurrence
+        not_finished = [be.id for be in needs_generation if be.isGenerateNeeded()]
+        return needs_generation.filter(id__in=not_finished)
 
 
 class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -288,6 +292,7 @@ class BudgetedEventGenerateTransactions(RedirectView):
             raise PermissionDenied
         budgetedevent.save()
         return reverse_lazy('budgetdb:details_be', kwargs={'pk': pk})
+
 
 def BudgetedEventSubmit(request):
     description = request.POST.get('description')

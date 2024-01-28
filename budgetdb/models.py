@@ -1171,6 +1171,17 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
             self.createTransactions()
         super(BudgetedEvent, self).save(*args, **kwargs)
 
+    def isGenerateNeeded(self):
+        if self.generated_interval_stop is None:
+            transaction_dates = self.listPotentialTransactionDates(n=1)
+        else:
+            transaction_dates = self.listPotentialTransactionDates(n=1, begin_interval=self.generated_interval_stop,)
+
+        if len(transaction_dates) == 0:
+            return False
+        else:    
+            return True
+
     def createTransactions(self, n=400, begin_interval=None, interval_length_months=60, end_interval=None):
         if begin_interval is None:
             begin_interval = self.repeat_start
