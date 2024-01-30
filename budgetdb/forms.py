@@ -181,6 +181,7 @@ class InvitationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_id = 'InvitationForm'
+        
         self.helper.layout = Layout(
             Div(
                 Div('email', css_class='form-group col-md-6  '),

@@ -2,8 +2,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
 
-
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.core.mail import EmailMessage
 from django.db import models
 from django.utils import timezone
@@ -67,7 +66,6 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['first_name']
     username = None
     email = models.EmailField('email address', unique=True)
-    invited = models.ManyToManyField("Invitation", related_name='invited')
     friends = models.ManyToManyField("User", related_name='friends_users')
     email_key = models.CharField('Email Key', max_length=64, unique=True, null=True)
     email_verified = models.BooleanField('Email Verified', default=False, null=False)
@@ -165,12 +163,26 @@ class TransactionAdminManager(models.Manager):
         return qs
 
 
-class UserPermissions(models.Model):
+class ClassOwner(models.Model):
     class Meta:
         abstract = True
 
     owner = models.ForeignKey("User", on_delete=models.CASCADE, blank=False, null=False,
                               related_name='object_owner_%(app_label)s_%(class)s')
+    
+    def save(self, *args, **kwargs):
+        user = get_current_user()
+        if user and not user.pk:
+            user = None
+        if not self.pk and self._state.adding:
+            self.owner = user
+        super(ClassOwner, self).save(*args, **kwargs)
+
+
+class UserPermissions(ClassOwner):
+    class Meta:
+        abstract = True
+
     # groups_admin = models.ManyToManyField(Group, related_name='g_can_mod_%(app_label)s_%(class)s', blank=True)
     # groups_view = models.ManyToManyField(Group, related_name='g_can_view_%(app_label)s_%(class)s', blank=True)
     users_admin = models.ManyToManyField("User", related_name='users_full_access_%(app_label)s_%(class)s', blank=True)
@@ -179,14 +191,6 @@ class UserPermissions(models.Model):
     view_objects = ViewerManager()
     view_deleted_objects = ViewerDeletedManager()
     admin_objects = AdminManager()
-
-    def save(self, *args, **kwargs):
-        user = get_current_user()
-        if user and not user.pk:
-            user = None
-        if not self.pk and self._state.adding:
-            self.owner = user
-        super(UserPermissions, self).save(*args, **kwargs)
 
     def can_edit(self):
         user = get_current_user()
@@ -247,14 +251,16 @@ class Preference(models.Model):
     # add ordre of listing, old first/ new first
 
 
-class Invitation(MyMeta, BaseSoftDelete, UserPermissions):
+class Invitation(MyMeta, BaseSoftDelete, ClassOwner):
     class Meta:
         verbose_name = 'Invitation'
         verbose_name_plural = 'Invitations'
         ordering = ['email']
 
     email = models.EmailField(max_length=254, blank=False, null=False)
-    email_key = models.CharField('email_key', max_length=64, unique=True)
+    accepted = models.BooleanField(default=False)
+    rejected = models.BooleanField(default=False)
+
 
     def __str__(self):
         return self.email
@@ -262,6 +268,29 @@ class Invitation(MyMeta, BaseSoftDelete, UserPermissions):
     def get_absolute_url(self):
         return reverse('budgetdb:list_invitation')
 
+    def send_invite_email(self):
+        template = 'budgetdb/email_share_message.html'
+        subject = "Budget Sharing"
+        try:
+            invited_user = User.objects.get(email=self.email)
+        except ObjectDoesNotExist:
+            template = 'budgetdb/email_invitation_message.html'
+            subject = "Budget Invitation"
+
+        email = self.email
+        # current_site = Site.objects.get_current()
+
+        message = render_to_string(template, {
+            # 'request': request,
+            'inviter': self.owner,
+            'email': self.email,
+            'domain': 'http://code-server.patatemagique.biz:8000/',
+        })
+        email = EmailMessage(
+            subject, message, to=[email]
+        )
+        email.content_subtype = 'html'
+        email.send()
 
 class AccountBalances(models.Model):
     db_date = models.DateField(blank=True)

@@ -1023,7 +1023,10 @@ class InvitationListView(MyListView):
     table_class = InvitationListTable
 
     def get_queryset(self):
-        return self.model.view_objects.all().order_by('email')
+        user = get_current_user()
+        my_invitations = self.model.objects.filter(owner=user).order_by('email')
+        received_invitations = self.model.objects.filter(email=user.email)
+        return my_invitations | received_invitations
 
 
 class InvitationCreateView(MyCreateView):
@@ -1031,14 +1034,8 @@ class InvitationCreateView(MyCreateView):
     form_class = InvitationForm
 
     def form_valid(self, form):
-        try:
-            invited = User.objects.get(email=form.cleaned_data.get('email'))
-        except ObjectDoesNotExist:
-            invited = form.save()
-
-        user = get_current_user()
-        user.invited.add(invited)
-        user.save()
+        invite = form.save()
+        invite.send_invite_email()
         return redirect('budgetdb:home')
 
 ###################################################################################################################
@@ -1323,7 +1320,6 @@ class UserVerifyLinkView(RedirectView):
             return reverse_lazy('budgetdb:email_verified_bad_link')
 
 
-
 class UserSignupView(CreateView):
     model = User
     form_class = UserSignUpForm
@@ -1347,6 +1343,9 @@ class UserSignupView(CreateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper = FormHelper()
+        email = self.kwargs.get('email')
+        if email is not None:
+            form.initial['email'] = email
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Sign Up!', css_class='btn-primary'))
         return form
@@ -1397,7 +1396,6 @@ class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
         form.save()
         update_session_auth_hash(self.request, form.user)        
         return super(auth_views.PasswordChangeView, self).form_valid(form) 
-
 
 
 class PreferencesUpdateView(LoginRequiredMixin, UpdateView):

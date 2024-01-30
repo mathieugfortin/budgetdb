@@ -56,6 +56,8 @@ urlpatterns = [
     # User
     path('user/signup/', views.UserSignupView.as_view(),
          name='signup'),
+    path('user/signup/<email>', views.UserSignupView.as_view(),
+         name='signup_with_email'),
     path('user/verify/', views.UserVerifyEmailView.as_view(),
          name='send_email_verification'),
     path('user/verified/', views.UserVerifiedEmailView.as_view(),
@@ -71,6 +73,7 @@ urlpatterns = [
     path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
          name='logout'),
 
+    #invitation
     path('invitation/', views.InvitationListView.as_view(),
          name='list_invitation'),
     path('invitation/add/', views.InvitationCreateView.as_view(),

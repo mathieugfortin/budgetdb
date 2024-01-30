@@ -203,11 +203,34 @@ class CatTypeListTable(MySharingColumns, tables.Table):
 
 
 class InvitationListTable(tables.Table):
+    status = tables.Column(verbose_name='Invitation Status', empty_values=(), orderable=False)
     class Meta:
         model = Invitation
         fields = ("email",)
         attrs = {"class": "table table-hover table-striped"}
         # per_page = 30
+    
+    def render_status(self, value, record):
+        user = get_current_user()
+        status = ''
+        if record.owner == user:
+            if record.accepted:
+                status = 'Accepted'
+            elif record.rejected:
+                status = 'Rejected'
+            else:
+                status = 'Pending'
+        else:
+            status = 'Accept Button'
+        return format_html(status)
+
+    def render_email(self, value, record):
+        user = get_current_user()
+        if record.email == user.email:
+            label = f'<a href="mailto: {record.owner.email}">From {record.owner.first_name}</a>'
+        else:
+            label = f'<a href="mailto: {record.email}">To {record.email}</a>'
+        return format_html(label)
 
 
 class JoinedTransactionsListTable(MySharingColumns, tables.Table):
