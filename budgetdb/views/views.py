@@ -1038,6 +1038,15 @@ class InvitationCreateView(MyCreateView):
         invite.send_invite_email()
         return redirect('budgetdb:home')
 
+
+class InvitationAcceptView(RedirectView):
+    pass
+
+
+class InvitationAcceptView(RedirectView):
+    pass
+
+
 ###################################################################################################################
 # Vendor
 

@@ -78,8 +78,10 @@ urlpatterns = [
          name='list_invitation'),
     path('invitation/add/', views.InvitationCreateView.as_view(),
          name='create_invitation'),
-    path('invitation/accept/<token>', views.InvitationCreateView.as_view(),
-         name='create_invitation'),
+    path('invitation/accept/<int:pk>/', views.InvitationAcceptView.as_view(),
+         name='accept_invitation'),
+    path('invitation/reject/<int:pk>/', views.InvitationRejectView.as_view(),
+         name='reject_invitation'),
 
     ##########################################################################################################
     # redirects
