@@ -213,15 +213,26 @@ class InvitationListTable(tables.Table):
     def render_status(self, value, record):
         user = get_current_user()
         status = ''
-        if record.owner == user:
-            if record.accepted:
-                status = 'Accepted'
-            elif record.rejected:
-                status = 'Rejected'
-            else:
-                status = 'Pending'
+        accept_URL = reverse('budgetdb:accept_invitation', kwargs={'pk':record.id})
+        reject_URL = reverse('budgetdb:reject_invitation', kwargs={'pk':record.id})
+        accept_button = (f'<a href="{accept_URL}" '
+                         f'class="btn btn-warning btn-sm" role="button">'
+                         f'grant access'
+                         f'</a>'
+                         )
+        reject_button = (f'<a href="{reject_URL}" '
+                         f'class="btn btn-success btn-sm" role="button">'
+                         f'block access'
+                         f'</a>'
+                         )
+        if record.accepted:
+            status = 'Accepted  ' + reject_button
+        elif record.rejected:
+            status = 'Rejected  ' + accept_button
+        elif record.owner == user:
+            status = 'Pending  ' + reject_button
         else:
-            status = 'Accept Button'
+            status = accept_button + ' ' + reject_button
         return format_html(status)
 
     def render_email(self, value, record):

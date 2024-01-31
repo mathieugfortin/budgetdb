@@ -768,6 +768,31 @@ class MyListView(LoginRequiredMixin, SingleTableView):
         context["create"] = self.create
         return context
 
+
+class MyNotificationLoggedin(LoginRequiredMixin, TemplateView):
+    template_name = 'budgetdb/notification.html'
+    notification_message = ''
+    notification_title = ''
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['notification_title'] = self.notification_title
+        context['notification_message'] = self.notification_message
+        return context
+
+
+class MyNotificationLoggedout(TemplateView):
+    template_name = 'budgetdb/notification.html'
+    notification_message = ''
+    notification_title = ''
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['notification_title'] = self.notification_title
+        context['notification_message'] = self.notification_message
+        return context
+
+
 ###################################################################################################################
 ###################################################################################################################
 # Account
@@ -1039,12 +1064,68 @@ class InvitationCreateView(MyCreateView):
         return redirect('budgetdb:home')
 
 
-class InvitationAcceptView(RedirectView):
-    pass
+class InvitationAcceptView(UserPassesTestMixin, MyNotificationLoggedin):
+    notification_message = 'Sharing enabled'
+    notification_title = 'Sharing enabled'
+    invitation = None
+    user = None
+
+    def test_func(self):
+        self.user = get_current_user()
+        try:
+            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'), email=self.user.email)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        return True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            user2 = User.objects.get(email=self.invitation.owner)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        self.user.friends.add(user2)
+        self.user.save()
+        user2.friends.add(self.user)
+        user2.save()
+        self.invitation.accepted = True
+        self.invitation.save()
+        return context
 
 
-class InvitationAcceptView(RedirectView):
-    pass
+class InvitationRejectView(UserPassesTestMixin, MyNotificationLoggedin):
+    notification_message = 'Sharing disabled'
+    notification_title = 'Sharing disabled'
+    invitation = None
+    user = None
+
+    def test_func(self):
+        self.user = get_current_user()
+        try:
+            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'), email=self.user.email)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        return True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        self.invitation.rejected = True
+        self.invitation.accepted = False
+        self.invitation.save()
+        # ************************************************************************************
+        # this needs to reject the invitation but also disable all sharing between these users
+        # ************************************************************************************
+        #try:
+        #    user2 = User.objects.get(email=self.invitation.owner)
+        #except ObjectDoesNotExist:
+        #    raise PermissionDenied
+        #self.user.friends.add(user2)
+        #self.user.save()
+        #user2.friends.add(self.user)
+        #user2.save()
+        #self.invitation.accepted = True
+        #self.invitation.save()
+        return context
 
 
 ###################################################################################################################
@@ -1290,8 +1371,9 @@ class AccountTransactionListView2(UserPassesTestMixin, MyListView):
 ###################################################################################################################
 # User Management
 
-class UserVerifyEmailView(TemplateView):
-    template_name = 'budgetdb/email_sent.html'
+class UserVerifyEmailView(MyNotificationLoggedin):
+    notification_message = 'Verification email sent'
+    notification_title = 'Verification email sent'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1300,12 +1382,14 @@ class UserVerifyEmailView(TemplateView):
         return context
 
 
-class UserVerifiedEmailView(TemplateView):
-    template_name = 'budgetdb/email_confirmed.html'
+class UserVerifiedEmailView(MyNotificationLoggedout):
+    notification_message = 'Email address verified, welcome'
+    notification_title = 'Email verified'
 
 
-class UserVerifiedEmailBadLinkView(TemplateView):
-    template_name = 'budgetdb/email_invalid_link.html'
+class UserVerifiedEmailBadLinkView(MyNotificationLoggedout):
+    notification_message = 'Verification link is invalid'
+    notification_title = 'Verification failed'
 
 
 class UserVerifyLinkView(RedirectView):

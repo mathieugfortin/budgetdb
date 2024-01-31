@@ -1,0 +1,9 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+{% block head_comment %}<!--notification template-->{% endblock %}
+{% block title %}{{notification_title}}{% endblock %}
+{% block content %}
+    <div>
+        <h1 class="display-4">{{notification_message}}</h1>
+    </div>
+{% endblock %}

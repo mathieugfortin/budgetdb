@@ -82,7 +82,7 @@ class User(AbstractUser):
             message = render_to_string('budgetdb/email_validation_message.html', {
                 # 'request': request,
                 'user': user,
-                'domain': 'http://code-server.patatemagique.biz:8000/',
+                'domain': 'https://budget.patatemagique.biz/',
                 'uid':urlsafe_base64_encode(force_bytes(self.pk)),
                 'token':account_activation_token.make_token(self),
             })
@@ -284,13 +284,14 @@ class Invitation(MyMeta, BaseSoftDelete, ClassOwner):
             # 'request': request,
             'inviter': self.owner,
             'email': self.email,
-            'domain': 'http://code-server.patatemagique.biz:8000/',
+            'domain': 'https://budget.patatemagique.biz/',
         })
         email = EmailMessage(
             subject, message, to=[email]
         )
         email.content_subtype = 'html'
         email.send()
+
 
 class AccountBalances(models.Model):
     db_date = models.DateField(blank=True)
