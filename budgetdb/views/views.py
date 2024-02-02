@@ -879,7 +879,7 @@ class AccountCreateView(MyCreateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         user = get_current_user()
-        preference = get_object_or_404(Preference, id=user.id)
+        preference = get_object_or_404(Preference, user=user)
         form.initial['currency'] = preference.currency_prefered
         return form
 
@@ -1069,27 +1069,36 @@ class InvitationAcceptView(UserPassesTestMixin, MyNotificationLoggedin):
     notification_title = 'Sharing enabled'
     invitation = None
     user = None
+    invitee = None
+    inviter = None
 
     def test_func(self):
         self.user = get_current_user()
         try:
-            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'), email=self.user.email)
+            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'))
+            self.inviter = self.invitation.owner
         except ObjectDoesNotExist:
-            raise PermissionDenied
-        return True
+            return False
+        try:
+            self.invitee = User.objects.get(email=self.invitation.email)
+        except ObjectDoesNotExist:
+            pass
+
+        if self.user == self.inviter:
+            return True
+        elif self.user == self.invitee:
+            return True
+        else:
+            return False
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            user2 = User.objects.get(email=self.invitation.owner)
-        except ObjectDoesNotExist:
-            raise PermissionDenied
-        self.user.friends.add(user2)
-        self.user.save()
-        user2.friends.add(self.user)
-        user2.save()
-        self.invitation.accepted = True
-        self.invitation.save()
+        if self.invitee is not None:
+            self.invitee.friends.add(self.inviter)
+            self.inviter.friends.add(self.invitee)
+            self.invitation.accepted = True
+            self.invitation.rejected = False
+            self.invitation.save()
         return context
 
 
@@ -1098,33 +1107,47 @@ class InvitationRejectView(UserPassesTestMixin, MyNotificationLoggedin):
     notification_title = 'Sharing disabled'
     invitation = None
     user = None
+    invitee = None
+    inviter = None
 
     def test_func(self):
         self.user = get_current_user()
         try:
-            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'), email=self.user.email)
+            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'))
+            self.inviter = self.invitation.owner
         except ObjectDoesNotExist:
-            raise PermissionDenied
-        return True
+            return False
+
+        try:
+            self.invitee = User.objects.get(email=self.invitation.email)
+        except ObjectDoesNotExist:
+            pass
+
+        if self.user == self.inviter:
+            return True
+        elif self.user == self.invitee:
+            return True
+        else:
+            return False
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
         self.invitation.rejected = True
         self.invitation.accepted = False
         self.invitation.save()
-        # ************************************************************************************
-        # this needs to reject the invitation but also disable all sharing between these users
-        # ************************************************************************************
-        #try:
-        #    user2 = User.objects.get(email=self.invitation.owner)
-        #except ObjectDoesNotExist:
-        #    raise PermissionDenied
-        #self.user.friends.add(user2)
-        #self.user.save()
-        #user2.friends.add(self.user)
-        #user2.save()
-        #self.invitation.accepted = True
-        #self.invitation.save()
+        if self.invitee is not None:
+            # remove existing rights
+            self.invitee.friends.remove(self.inviter)
+            self.inviter.friends.remove(self.invitee)
+            objects_with_rights = UserPermissions.objects.filter(users_admin__in=[self.inviter,self.invitee])
+            for myobject in objects_with_rights:
+                myobject.users_admin.remove(self.invitee)
+                myobject.users_admin.remove(self.inviter)
+            objects_with_rights = UserPermissions.objects.filter(users_view__in=[self.inviter,self.invitee])
+            for myobject in objects_with_rights:
+                myobject.users_view.remove(self.invitee)
+                myobject.users_view.remove(self.inviter)
         return context
 
 

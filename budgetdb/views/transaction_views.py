@@ -60,7 +60,7 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     def get_context_data(self, **kwargs):
         self.user = get_current_user()
         context = super().get_context_data(**kwargs)
-        preference = get_object_or_404(Preference, id=self.user.id)
+        preference = get_object_or_404(Preference, user=user)
         context['currency'] = preference.currency_prefered.id
         return context
 
@@ -131,7 +131,7 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         self.user = get_current_user()
         context = super().get_context_data(**kwargs)
-        preference = get_object_or_404(Preference, id=self.user.id)
+        preference = get_object_or_404(Preference, user=user)
         context['currency'] = preference.currency_prefered.id
         return context
 
@@ -202,7 +202,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        preference = get_object_or_404(Preference, id=self.user.id)
+        preference = get_object_or_404(Preference, user=user)
         context['currency'] = preference.currency_prefered.id
         return context
 
@@ -212,7 +212,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         if form_date is None:
             form_date = datetime.now().strftime("%Y-%m-%d")
         account = get_object_or_404(Account, id=self.kwargs.get('pk'))
-        preference = get_object_or_404(Preference, id=self.user.id)
+        preference = get_object_or_404(Preference, user=user)
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.initial['currency'] = preference.currency_prefered.id
@@ -250,7 +250,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        preference = get_object_or_404(Preference, id=self.user.id)
+        preference = get_object_or_404(Preference, user=user)
         context['currency'] = preference.currency_prefered.id
         return context
 
@@ -302,7 +302,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
             form.initial['amount_actual'] = clean_amount
         account_id = self.kwargs.get('pk')
         account = get_object_or_404(Account, id=account_id)
-        preference = get_object_or_404(Preference, id=self.user.id)
+        preference = get_object_or_404(Preference, user=user)
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = account
         form.initial['audit'] = True
@@ -315,7 +315,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        preference = get_object_or_404(Preference, id=self.user.id)
+        preference = get_object_or_404(Preference, user=user)
         context['currency'] = preference.currency_prefered.id
         return context
 
