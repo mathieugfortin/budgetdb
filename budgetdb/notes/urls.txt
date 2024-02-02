@@ -70,8 +70,8 @@ output of: python manage.py show_urls
 /en-ca/cattype/update/<int:pk>/	budgetdb.views.views.CatTypeUpdateView	budgetdb:update_cattype
 /en-ca/favicon.ico	django.views.generic.base.RedirectView
 /en-ca/favicon.ico	django.views.generic.base.RedirectView
-/en-ca/friend/	budgetdb.views.views.FriendListView	budgetdb:list_friend
-/en-ca/friend/add/	budgetdb.views.views.FriendCreateView	budgetdb:create_friend
+/en-ca/friend/	budgetdb.views.views.InvitationListView	budgetdb:list_invitation
+/en-ca/friend/add/	budgetdb.views.views.InvitationCreateView	budgetdb:create_invitation
 /en-ca/joinedtransactions/<int:pk>/	budgetdb.views.transaction_views.JoinedTransactionsConfigDetailView	budgetdb:details_joinedtransactionsconfig
 /en-ca/joinedtransactions/<int:pk>/<slug:date>/	budgetdb.views.transaction_views.JoinedTransactionsDetailView	budgetdb:details_joinedtransactions
 /en-ca/joinedtransactions/add/	budgetdb.views.transaction_views.JoinedTransactionsConfigUpdateView	budgetdb:create_joinedtransactions

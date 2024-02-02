@@ -1,40 +1,35 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import *
-#import json
 
-from django.core.exceptions import PermissionDenied
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Button, Submit
+from crum import get_current_user
+from dateutil.relativedelta import relativedelta
 # from django import forms
 from django.apps import apps
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 # from django.forms import ModelForm
 from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, TemplateView, DetailView #, FormView
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils.encoding import force_bytes, force_str
+from django.views.generic import (CreateView, DetailView,  # , FormView
+                                  ListView, TemplateView, UpdateView)
 from django.views.generic.base import RedirectView
-from django.urls import reverse_lazy, reverse
-from django.contrib.auth import views as auth_views
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import login, update_session_auth_hash
-
-# from dal import autocomplete
-
-from dateutil.relativedelta import relativedelta
-
-
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Button
-from crum import get_current_user
 # from bootstrap_modal_forms.generic import BSModalCreateView
-from django_tables2 import SingleTableView # , SingleTableMixin
-
+from django_tables2 import SingleTableView  # , SingleTableMixin
 from rest_framework import serializers
 
-
-from budgetdb.models import *
 # from budgetdb.utils import Calendar
 from budgetdb.forms import *
+from budgetdb.models import *
 from budgetdb.tables import *
+from budgetdb.tokens import account_activation_token
 
 # colors stolen from django chart js library
 COLORS = [
@@ -773,6 +768,31 @@ class MyListView(LoginRequiredMixin, SingleTableView):
         context["create"] = self.create
         return context
 
+
+class MyNotificationLoggedin(LoginRequiredMixin, TemplateView):
+    template_name = 'budgetdb/notification.html'
+    notification_message = ''
+    notification_title = ''
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['notification_title'] = self.notification_title
+        context['notification_message'] = self.notification_message
+        return context
+
+
+class MyNotificationLoggedout(TemplateView):
+    template_name = 'budgetdb/notification.html'
+    notification_message = ''
+    notification_title = ''
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['notification_title'] = self.notification_title
+        context['notification_message'] = self.notification_message
+        return context
+
+
 ###################################################################################################################
 ###################################################################################################################
 # Account
@@ -859,7 +879,7 @@ class AccountCreateView(MyCreateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         user = get_current_user()
-        preference = get_object_or_404(Preference, id=user.id)
+        preference = get_object_or_404(Preference, user=user)
         form.initial['currency'] = preference.currency_prefered
         return form
 
@@ -1019,21 +1039,116 @@ class CatTypeCreateView(MyCreateView):
 
 
 ###################################################################################################################
-# Friend
+# Invitation
 
 
-class FriendListView(MyListView):
-    model = Friend
+class InvitationListView(MyListView):
+    model = Invitation
     title = 'Pending Invites'
-    table_class = FriendListTable
+    table_class = InvitationListTable
 
     def get_queryset(self):
-        return self.model.view_objects.all().order_by('email')
+        user = get_current_user()
+        my_invitations = self.model.objects.filter(owner=user).order_by('email')
+        received_invitations = self.model.objects.filter(email=user.email)
+        return my_invitations | received_invitations
 
 
-class FriendCreateView(MyCreateView):
-    model = Friend
-    form_class = FriendForm
+class InvitationCreateView(MyCreateView):
+    model = Invitation
+    form_class = InvitationForm
+
+    def form_valid(self, form):
+        invite = form.save()
+        invite.send_invite_email()
+        return redirect('budgetdb:home')
+
+
+class InvitationAcceptView(UserPassesTestMixin, MyNotificationLoggedin):
+    notification_message = 'Sharing enabled'
+    notification_title = 'Sharing enabled'
+    invitation = None
+    user = None
+    invitee = None
+    inviter = None
+
+    def test_func(self):
+        self.user = get_current_user()
+        try:
+            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'))
+            self.inviter = self.invitation.owner
+        except ObjectDoesNotExist:
+            return False
+        try:
+            self.invitee = User.objects.get(email=self.invitation.email)
+        except ObjectDoesNotExist:
+            pass
+
+        if self.user == self.inviter:
+            return True
+        elif self.user == self.invitee:
+            return True
+        else:
+            return False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.invitee is not None:
+            self.invitee.friends.add(self.inviter)
+            self.inviter.friends.add(self.invitee)
+            self.invitation.accepted = True
+            self.invitation.rejected = False
+            self.invitation.save()
+        return context
+
+
+class InvitationRejectView(UserPassesTestMixin, MyNotificationLoggedin):
+    notification_message = 'Sharing disabled'
+    notification_title = 'Sharing disabled'
+    invitation = None
+    user = None
+    invitee = None
+    inviter = None
+
+    def test_func(self):
+        self.user = get_current_user()
+        try:
+            self.invitation = Invitation.objects.get(pk=self.kwargs.get('pk'))
+            self.inviter = self.invitation.owner
+        except ObjectDoesNotExist:
+            return False
+
+        try:
+            self.invitee = User.objects.get(email=self.invitation.email)
+        except ObjectDoesNotExist:
+            pass
+
+        if self.user == self.inviter:
+            return True
+        elif self.user == self.invitee:
+            return True
+        else:
+            return False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        self.invitation.rejected = True
+        self.invitation.accepted = False
+        self.invitation.save()
+        if self.invitee is not None:
+            # remove existing rights
+            self.invitee.friends.remove(self.inviter)
+            self.inviter.friends.remove(self.invitee)
+            objects_with_rights = UserPermissions.objects.filter(users_admin__in=[self.inviter,self.invitee])
+            for myobject in objects_with_rights:
+                myobject.users_admin.remove(self.invitee)
+                myobject.users_admin.remove(self.inviter)
+            objects_with_rights = UserPermissions.objects.filter(users_view__in=[self.inviter,self.invitee])
+            for myobject in objects_with_rights:
+                myobject.users_view.remove(self.invitee)
+                myobject.users_view.remove(self.inviter)
+        return context
 
 
 ###################################################################################################################
@@ -1279,6 +1394,48 @@ class AccountTransactionListView2(UserPassesTestMixin, MyListView):
 ###################################################################################################################
 # User Management
 
+class UserVerifyEmailView(MyNotificationLoggedin):
+    notification_message = 'Verification email sent'
+    notification_title = 'Verification email sent'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = get_current_user()
+        user.send_verify_email()
+        return context
+
+
+class UserVerifiedEmailView(MyNotificationLoggedout):
+    notification_message = 'Email address verified, welcome'
+    notification_title = 'Email verified'
+
+
+class UserVerifiedEmailBadLinkView(MyNotificationLoggedout):
+    notification_message = 'Verification link is invalid'
+    notification_title = 'Verification failed'
+
+
+class UserVerifyLinkView(RedirectView):
+    permanent = False
+    
+    def get_redirect_url(*args, **kwargs):
+        uidb64 = kwargs.get('uidb64')
+        token = kwargs.get('token')
+        user = None
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except(TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+        if user is not None and account_activation_token.check_token(user, token):
+            user.email_verified = True
+            user.save()
+            return reverse_lazy('budgetdb:email_verified')  
+        else:
+            return reverse_lazy('budgetdb:email_verified_bad_link')
+
+
 class UserSignupView(CreateView):
     model = User
     form_class = UserSignUpForm
@@ -1295,12 +1452,16 @@ class UserSignupView(CreateView):
             currency_prefered = Currency.objects.get(name_short='CAD')
             )
         preference.save()
+        user.send_verify_email()
         login(self.request, user)
         return redirect('budgetdb:home')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         form.helper = FormHelper()
+        email = self.kwargs.get('email')
+        if email is not None:
+            form.initial['email'] = email
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Sign Up!', css_class='btn-primary'))
         return form
@@ -1351,7 +1512,6 @@ class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
         form.save()
         update_session_auth_hash(self.request, form.user)        
         return super(auth_views.PasswordChangeView, self).form_valid(form) 
-
 
 
 class PreferencesUpdateView(LoginRequiredMixin, UpdateView):

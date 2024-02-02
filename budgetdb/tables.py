@@ -144,7 +144,7 @@ class BudgetedEventListTable(MySharingColumns, tables.Table):
         model = BudgetedEvent
         fields = ("description", "lastTransactionDate", "account_source", "account_destination")
         attrs = {"class": "table table-hover table-striped"}
-        # per_page = 30
+        per_page = 50
 
     def render_description(self, value, record):
         return format_html('<a href="{}">{}</a>',
@@ -202,12 +202,46 @@ class CatTypeListTable(MySharingColumns, tables.Table):
                            value, record.name)
 
 
-class FriendListTable(tables.Table):
+class InvitationListTable(tables.Table):
+    status = tables.Column(verbose_name='Invitation Status', empty_values=(), orderable=False)
     class Meta:
-        model = Friend
+        model = Invitation
         fields = ("email",)
         attrs = {"class": "table table-hover table-striped"}
         # per_page = 30
+    
+    def render_status(self, value, record):
+        user = get_current_user()
+        status = ''
+        accept_URL = reverse('budgetdb:accept_invitation', kwargs={'pk':record.id})
+        reject_URL = reverse('budgetdb:reject_invitation', kwargs={'pk':record.id})
+        accept_button = (f'<a href="{accept_URL}" '
+                         f'class="btn btn-warning btn-sm" role="button">'
+                         f'grant access'
+                         f'</a>'
+                         )
+        reject_button = (f'<a href="{reject_URL}" '
+                         f'class="btn btn-success btn-sm" role="button">'
+                         f'block access'
+                         f'</a>'
+                         )
+        if record.accepted:
+            status = 'Accepted  ' + reject_button
+        elif record.rejected:
+            status = 'Rejected  ' + accept_button
+        elif record.owner == user:
+            status = 'Pending  ' + reject_button
+        else:
+            status = accept_button + ' ' + reject_button
+        return format_html(status)
+
+    def render_email(self, value, record):
+        user = get_current_user()
+        if record.email == user.email:
+            label = f'<a href="mailto: {record.owner.email}">From {record.owner.first_name}</a>'
+        else:
+            label = f'<a href="mailto: {record.email}">To {record.email}</a>'
+        return format_html(label)
 
 
 class JoinedTransactionsListTable(MySharingColumns, tables.Table):

@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, Preference, Friend
+from .models import User, Preference, Invitation
 from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
 from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
@@ -170,9 +170,9 @@ class AccountHostForm(forms.ModelForm):
         )
 
 
-class FriendForm(forms.ModelForm):
+class InvitationForm(forms.ModelForm):
     class Meta:
-        model = Friend
+        model = Invitation
         fields = (
             'email',
         )
@@ -180,7 +180,8 @@ class FriendForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.form_id = 'FriendForm'
+        self.helper.form_id = 'InvitationForm'
+        
         self.helper.layout = Layout(
             Div(
                 Div('email', css_class='form-group col-md-6  '),

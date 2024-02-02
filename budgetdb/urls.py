@@ -56,6 +56,16 @@ urlpatterns = [
     # User
     path('user/signup/', views.UserSignupView.as_view(),
          name='signup'),
+    path('user/signup/<email>', views.UserSignupView.as_view(),
+         name='signup_with_email'),
+    path('user/verify/', views.UserVerifyEmailView.as_view(),
+         name='send_email_verification'),
+    path('user/verified/', views.UserVerifiedEmailView.as_view(),
+         name='email_verified'),
+    path('user/verified/bad', views.UserVerifiedEmailBadLinkView.as_view(),
+         name='email_verified_bad_link'),
+    path('user/verify/<uidb64>/<token>', views.UserVerifyLinkView.as_view(),
+         name='email_verification_link'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
     path('user/password/update', views.UserPasswordUpdateView.as_view(),
@@ -63,10 +73,15 @@ urlpatterns = [
     path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
          name='logout'),
 
-    path('friend/', views.FriendListView.as_view(),
-         name='list_friend'),
-    path('friend/add/', views.FriendCreateView.as_view(),
-         name='create_friend'),
+    #invitation
+    path('invitation/', views.InvitationListView.as_view(),
+         name='list_invitation'),
+    path('invitation/add/', views.InvitationCreateView.as_view(),
+         name='create_invitation'),
+    path('invitation/accept/<int:pk>/', views.InvitationAcceptView.as_view(),
+         name='accept_invitation'),
+    path('invitation/reject/<int:pk>/', views.InvitationRejectView.as_view(),
+         name='reject_invitation'),
 
     ##########################################################################################################
     # redirects
@@ -169,6 +184,8 @@ urlpatterns = [
          name='details_be'),
     path('budgetedEvent/create/', views.BudgetedEventCreate.as_view(),
          name='create_budgetedevent'),
+    path('budgetedEvent/generate/<int:pk>/', views.BudgetedEventGenerateTransactions.as_view(),
+         name='generate_budgetedevent_transactions'),
     path('budgetedEvent/createfromt/<int:transaction_id>/', views.BudgetedEventCreateFromTransaction.as_view(),
          name='create_budgetedevent_from_t'),
     # path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,

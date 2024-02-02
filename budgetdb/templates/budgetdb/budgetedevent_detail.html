@@ -150,6 +150,7 @@
     <div class="clearfix">
         {% if editable  %}
             <a class="btn btn-info left" href="{% url 'budgetdb:update_be' object.id %}"> Modify </a>
+            <a class="btn btn-info left" href="{% url 'budgetdb:generate_budgetedevent_transactions' object.id %}"> Generate transactions </a>
         {% endif %}
         <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
     </div>

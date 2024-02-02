@@ -1,0 +1,13 @@
+<div style="background-color: #c2c2c2; padding: 15px;">
+    <h2 style="margin: 0; padding: 10px; border-top-left-radius: 10px; border-top-right-radius: 10px; background-color: #5865F2; color: #ffffff;">Sharing invitation Email</h2>
+    <div style="margin: 0; padding: 15px; background-color: #ffffff;">
+        <p>Hi</p>
+        <p>{{ inviter.first_name }} would like to share budget information with you,</p>
+        <p>Please login to your budget and check the invitation under your account on the right of follow the links below</p>
+        <a href="{{ domain }}{% url 'budgetdb:list_invitation'%}" style="border: 0; color: #ffffff; background-color: #5865F2; padding: 15px; font-weight: bold; text-decoration: none; border-radius: 5px;">
+            Invitations
+        </a>
+        <p style="margin-top: 40px;">Or you can copy the link below to your browser</p>
+        <p>{{ domain }}{% url 'budgetdb:list_invitation'%}</p>
+    </div>
+</div>
