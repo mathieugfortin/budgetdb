@@ -18,11 +18,17 @@ from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+<<<<<<< HEAD
 from django.utils.encoding import force_bytes, force_str
 from django.views.generic import (CreateView, DetailView,  # , FormView
                                   ListView, TemplateView, UpdateView)
 from django.views.generic.base import RedirectView
 # from bootstrap_modal_forms.generic import BSModalCreateView
+=======
+from django.views.generic import (CreateView, DetailView,  # , FormView
+                                  ListView, TemplateView, UpdateView)
+from django.views.generic.base import RedirectView
+>>>>>>> c2cdec16f0289b19a01c9c851d339626beaadc76
 from django_tables2 import SingleTableView  # , SingleTableMixin
 from rest_framework import serializers
 
@@ -31,6 +37,7 @@ from budgetdb.forms import *
 from budgetdb.models import *
 from budgetdb.tables import *
 from budgetdb.tokens import account_activation_token
+
 
 # colors stolen from django chart js library
 COLORS = [
