@@ -555,7 +555,7 @@ class TransactionManualListView(MyListView):
 
     def get_queryset(self):
         inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
-        return self.model.view_objects.filter(is_deleted=0, verified=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
+        return self.model.view_objects.filter(is_deleted=0, verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
 
 
 class TransactionDeletedListView(MyListView):
