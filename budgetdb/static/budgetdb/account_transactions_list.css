@@ -1,0 +1,47 @@
+  
+  /* Table column formatting */
+  
+    td.min {
+        width: 1%;
+        white-space: nowrap;
+    }
+  /* List formatting, color by transaction caracteristics */
+  
+  tr.AUDIT {
+    background-color: rgb(147, 154, 185)
+  }
+  tr.UNVERIFIED.BUDGET {
+    background-color: rgb(78, 167, 240)
+  }
+  tr.UNVERIFIED {
+    background-color: rgb(252, 221, 156)
+  }
+  tr.UNVERIFIED.MANUAL.NORECEIPT {
+    background-color: rgb(233, 111, 90)
+  }
+  tr.UNVERIFIED.RECEIPT {
+    background-color: rgb(177, 219, 230)
+  }
+  
+  /* check buttons by verified and receipt status */  
+
+   span.NORECEIPT::before {
+     font-family: "Material Symbols Outlined";
+     content: "\e835";
+   }
+   span.RECEIPT::before {
+     font-family: "Material Symbols Outlined";
+     content: "\e834";
+   }
+
+   span.UNVERIFIED::before {
+    font-family: "Material Symbols Outlined";
+    content: "\e835";
+  }
+  span.VERIFIED::before {
+    font-family: "Material Symbols Outlined";
+    content: "\e834";
+  }
+  
+
+   

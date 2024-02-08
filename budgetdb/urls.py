@@ -128,15 +128,15 @@ urlpatterns = [
          name='update_account'),
 
     # Account Transactions List View
+    path('account/listactivityOLD/<int:pk>/', views.AccountTransactionListViewOLD.as_view(),
+         name='list_account_activity2'),
     path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
-    path('account/listactivity2/<int:pk>/', views.AccountTransactionListView2.as_view(),
-         name='list_account_activity2'),
     path('account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
     path('account/listactivity/<int:pk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
          name='list_account_activity_create_audit_from_account'),
-    path('account/listactivity/<int:pk>/audit_add/<slug:date>/<slug:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+    path('account/listactivity/<int:pk>/audit_add/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
          name='list_account_activity_create_audit_from_account'),
     path('account/listactivity/add/<int:pk>/<slug:date>/', views.TransactionCreateModal.as_view(),
          name='create_transaction_from_date_account_modal'),

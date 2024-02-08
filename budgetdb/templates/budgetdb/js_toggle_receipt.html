@@ -3,9 +3,9 @@
         data = {'transaction_id': transaction_id, 'csrfmiddlewaretoken': '{{csrf_token}}'}
         $.post('{% url "budgetdb:togglereceipttransaction_json" %}', data );
         modifiedButton=document.getElementById('R'+transaction_id)
-        modifiedtr=document.getElementById('T'+transaction_id)
         modifiedButton.classList.toggle('RECEIPT');
         modifiedButton.classList.toggle('NORECEIPT');
+        modifiedtr=document.getElementById('T'+transaction_id)
         modifiedtr.classList.toggle('RECEIPT');
         modifiedtr.classList.toggle('NORECEIPT');
     }

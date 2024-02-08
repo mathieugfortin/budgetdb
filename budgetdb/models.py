@@ -560,6 +560,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         balance = Decimal(self.balance_by_EOD(start_date))
         for event in events:
             amount = Decimal(0.00)
+            event.account_view_id = self.pk
             if event.audit is True:
                 balance = event.amount_actual
                 if childrens.count() > 0:
@@ -578,7 +579,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 balance = balance + amount
                 event.calc_amount = str(amount) + "$"
                 # event.viewname = f'{event._meta.app_label}:details_transaction'
-            event.balance = str(balance) + "$"
+            event.balance = balance
+            event.save()
             # checking if the event is part of a joinedTransaction
             if event.transactions.first() is not None:
                 event.joinedtransaction = event.transactions.first()
@@ -1023,6 +1025,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     verified = models.BooleanField('Verified in a statement', default=False)
     audit = models.BooleanField('Audit', default=False)
     receipt = models.BooleanField('Checked with receipt', default=False)
+    balance = models.DecimalField('Balance', decimal_places=2, max_digits=10, blank=True, null=True)
 
     def __str__(self):
         return f'{self.description} - {self.date_actual}'
@@ -1036,6 +1039,12 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
         else:
             return
 
+    def get_balance_token(self):
+        balance_str = ''
+        if self.balance < 0:
+            balance_str = 'N'
+        balance_str = balance_str + str(abs(self.balance)).replace('.','',1)
+        return balance_str
 
 class BaseRecurring(models.Model):
     class Meta:
@@ -1294,7 +1303,8 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
                                             blank=True, null=True)
 
     def __str__(self):
-        return self.account.name + " " + self.statement_date.strftime('%Y-%m-%d')
+        # return self.account.name + " " + self.statement_date.strftime('%Y-%m-%d')
+        return self.statement_date.strftime('%Y-%m-%d')
 
     def get_absolute_url(self):
         return reverse('budgetdb:details_statement', kwargs={'pk': self.pk})
