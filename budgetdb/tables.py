@@ -69,45 +69,212 @@ class AccountListTable(MySharingColumns, tables.Table):
         return format_html(categories)
 
 
+def set_class_transaction(record):
+    row_class = ''
+    if record.audit == 1:
+        row_class = 'AUDIT '
+    if record.budgetedevent_id is not None:
+        row_class = row_class + 'BUDGET '
+    if record.verified:
+        row_class = row_class + 'VERIFIED '
+    else:
+        row_class = row_class + 'UNVERIFIED '
+    if record.ismanual:
+        row_class = row_class + 'MANUAL '
+    if record.receipt:
+        row_class = row_class + 'RECEIPT '
+    else:
+        row_class = row_class + 'NORECEIPT'
+    return row_class
+
+
 class AccountActivityListTable(tables.Table):
-    addtransaction = tables.Column(verbose_name='add', orderable=False, empty_values=())
-    date_actual = tables.Column(verbose_name='Date')
-    recurencelinks = tables.Column(verbose_name='Recurrence', orderable=False, empty_values=())
-    amount_actual = tables.Column(verbose_name='Amount')
-    verified = tables.Column(verbose_name='verified')
-    amount_actual = tables.Column(verbose_name='receipt')
-    addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=())
-    account_id = 35
+    addtransaction = tables.Column(verbose_name='', orderable=False, empty_values=())
+    date_actual = tables.Column(verbose_name='Date',attrs={"td": {"class": "min"}})
+    recurencelinks = tables.Column(verbose_name='Repeat', orderable=False, empty_values=(), attrs={"th": {"class": "d-none d-md-table-cell"},"td": {"class": "min d-none d-md-table-cell"}})
+    amount_actual = tables.Column(verbose_name='$')
+    verified = tables.Column(verbose_name='verif', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}})
+    statement = tables.Column(verbose_name='Statement', attrs={"th": {"class": "d-none d-xl-table-cell"},"td": {"class": "d-none d-xl-table-cell"}})
+    receipt = tables.Column(verbose_name='Receipt', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}})
+    cat1 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}})
+    cat2 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}})
+    addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=(), attrs={"th": {"class": "d-none d-md-table-cell"},"td": {"class": "min d-none d-md-table-cell"}})
+    view_account_id = None
+    account_currency_symbol = ''
 
     class Meta:
-        model = Account
+        model = Transaction
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
                   "cat1", "cat2", "amount_actual", "verified", "receipt", "balance", "addaudit")
         attrs = {"class": "table table-hover"}
+        order_by = ("-date_actual")
         # per_page = 30
-
-    def __init__(self, *args, **kwargs):
-        a = 3
+        row_attrs = {
+            "id": lambda record: f'T{record.pk}',
+            "class": lambda record: set_class_transaction(record)
+        }
+    def __init__(self, *args, **kwargs):  
+        self.view_account_id = kwargs["data"].first().account_view_id  
+        self.account_currency_symbol = Account.objects.get(pk=self.view_account_id).currency.symbol   
         super().__init__(*args, **kwargs)
-        a = 5
 
-    def get_context_data(self, **kwargs):
-        a = 2
-        context = super().get_context_data(**kwargs)
+    def render_statement(self, record):
+        field = ''
+        if record.statement is not None:
+            reverse_url = reverse("budgetdb:details_statement", kwargs={"pk": record.statement.id})
+            field = field + (f'<button type="button" '
+                f'class="update-transaction btn btn-outline-primary btn-sm" '
+                f'data-form-url="{reverse_url}">'
+                f'{record.statement}'
+                f'</button>')
+        return format_html(field)
 
-        a = 2
-        return context
+    def render_receipt(self, record):
+        if record.audit:
+            return format_html('')
+        if record.receipt is True:
+            field = (f'<span class="material-symbols-outlined RECEIPT" onclick="togglereceiptT({record.id})" id="R{record.id}"></span>' )
+        else:
+            field = (f'<span class="material-symbols-outlined NORECEIPT" onclick="togglereceiptT({record.id})" id="R{record.id}"></span>' )
+        return format_html(field)
+
+    def render_verified(self, record):
+        if record.audit:
+            return format_html('')
+        if record.verified is True:
+            field = (f'<span class="material-symbols-outlined VERIFIED" onclick="toggleverifyT({record.id})" id="V{record.id}"></span>' )
+        else:
+            field = (f'<span class="material-symbols-outlined UNVERIFIED" onclick="toggleverifyT({record.id})" id="V{record.id}"></span>' )
+        return format_html(field)
+
+    def render_recurencelinks(self, value, record):
+        field = ''        
+        if record.budgetedevent is not None:
+            reverse_url = reverse("budgetdb:update_be", kwargs={"pk": record.budgetedevent.id})
+            field = field + (f'<a href="{reverse_url}" '
+                f'title="Edit the recurring event">'
+                f'<span class="material-symbols-outlined">manufacturing</span>'
+                f'</a>')
+            reverse_url = reverse("budgetdb:details_be", kwargs={"pk": record.budgetedevent.id})
+            field = field + (f'<a href='
+                f'"{reverse_url}" '
+                f'title="view the recurring event">'
+                f'<span class="material-symbols-outlined">list</span>'
+                f'</a>')
+        return format_html(field)
 
     def render_description(self, value, record):
-        return (f'<button  type="button" class="update-transaction btn btn-secondary btn-sm" '
-                f'data-form-url="{{% url "budgetdb:account_listview_update_transaction_modal" pk {record.id} %}}">'
-                f'{record.description}'
-                f'</button>'
-                )
+        field = ''
+        if record.vendor is not None:
+            field = field + (f'<button type="button" '
+                f'class="update-transaction btn btn-outline-dark btn-sm"> '
+                f'{record.vendor}'
+                f'</button>')
+        reverse_url = reverse("budgetdb:account_listview_update_transaction_modal", kwargs={"pk": record.id,
+                                                                                            "accountid": self.view_account_id})
+        field = field + (f'<button type="button" '
+            f'class="update-transaction btn btn-secondary btn-sm" '
+            f'data-form-url="{reverse_url}">'
+            f'{record.description}'
+            f'</button>')
 
-        return format_html(f'<a href="{reverse("budgetdb:account_max_redirect", kwargs={"pk": record.id})}">'
-                           f'{record.description}'
-                           f'</a>'
+        show_currency = False
+        if record.account_destination is not None:
+            if record.account_destination.currency != record.currency:
+                show_currency = True
+        if record.account_source is not None:
+            if record.account_source.currency != record.currency:
+                show_currency = True
+        if show_currency:
+            field = field + (f'<button type="button" '
+                f'class="btn btn-info btn-sm" '
+                f'{record.amount_actual_foreign_currency} '
+                f'{record.currency.name_short} '
+                f'</button>')
+        joinedtransaction = None
+        if record.budgetedevent is not None:
+            joinedtransaction = record.budgetedevent.budgeted_events.first()
+        if joinedtransaction is None:
+            joinedtransaction = record.transactions.first()
+
+        if joinedtransaction is not None:
+            reverse_url = reverse("budgetdb:update_joinedtransactions",
+                                     kwargs={"pk": joinedtransaction.id,
+                                             "datep": record.date_planned.strftime("%Y-%m-%d"),
+                                             "datea": record.date_actual.strftime("%Y-%m-%d"),
+                                            }
+                                    )
+            field = field + (f'<a href='
+                f'"{reverse_url}" '
+                f'title="Edit the joined transactions">'
+                f'<span class="material-symbols-outlined"><span class="material-symbols-outlined">dynamic_feed</span></span>'
+                f'</a>')
+
+        if record.account_destination is not None and record.account_destination.id != self.view_account_id:
+            reverse_url = reverse("budgetdb:list_account_activity",
+                                       kwargs={"pk": record.account_destination.id,}
+                                       )
+            field = field + (f'<a href='
+                f'"{reverse_url}" '
+                f'class="btn btn-info btn-sm" role="button"> '
+                f'<i class="fas fa-arrow-right"></i>'
+                f'{record.account_destination}'
+                f'</a>')
+        if record.account_source is not None and record.account_source.id != self.view_account_id:
+            reverse_url = reverse("budgetdb:list_account_activity",
+                                       kwargs={"pk": record.account_source.id,}
+                                       )
+            field = field + (f'<a href='
+                f'"{reverse_url}" '
+                f'class="btn btn-info btn-sm" role="button"> '
+                f'<i class="fas fa-arrow-left"></i>'
+                f'{record.account_source}'
+                f'</a>')
+  
+        return format_html(field)
+
+    def render_date_actual(self, value):
+        # strftime("%Y-%m-%d")
+        return format(value.strftime("%Y-%m-%d"))
+
+    def render_amount_actual(self, value, record):
+        if record.audit:
+            return format_html('')
+        return format_html(f'{value}{self.account_currency_symbol}')
+
+    def render_balance(self, value, record):
+        if record.audit:
+            return format_html('')
+        return format_html(f'{value}{self.account_currency_symbol}')        
+
+    def render_addtransaction(self, value, record):
+        reverse_url = reverse("budgetdb:create_transaction_from_date_account_modal",
+                              kwargs={"pk": self.view_account_id,
+                                      "date": record.date_actual.strftime("%Y-%m-%d"),
+                                      }
+                             )
+        return format_html(f'<button  type="button" '
+                           f'title="Add a transaction for this day"'
+						   f'class="update-transaction btn btn-link btn-sm" data-form-url="{reverse_url}">'
+                           f'<span class="material-symbols-outlined">add_circle</span>'
+                           f'</button>'
+                           )
+
+    def render_addaudit(self, value, record):
+        if record.audit:
+            return format_html(f'{record.balance}{self.account_currency_symbol}')        
+        balance_str = record.get_balance_token()
+        reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",
+                              kwargs={"pk": self.view_account_id,
+                                      "date": record.date_actual.strftime("%Y-%m-%d"),
+                                      "amount": balance_str,
+                                      }
+                             )
+        return format_html(f'<button  type="button" '
+                           f'title="Confirm account balance for this day"'
+						   f'class="update-transaction btn btn-link btn-sm" data-form-url="{reverse_url}">'
+                           f'<span class="material-symbols-outlined">add_circle</span>'
+                           f'</button>'
                            )
 
 

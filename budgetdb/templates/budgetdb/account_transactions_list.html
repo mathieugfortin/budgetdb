@@ -1,0 +1,59 @@
+{% extends 'budgetdb/base.html' %}
+{% block head_comment %}<!--generic_list v1 template-->{% endblock %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{title}} {% endblock %}
+{% block headblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/account_transactions_list.css' %}">
+{% endblock %}
+
+{% block content %}
+    <style>
+
+    </style>
+
+<div class="modal fade" id="transaction-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog mt-5">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="modal">
+    <div class="modal-dialog mt-5" role="document">
+        <div class="modal-content"></div>
+    </div>
+</div>
+<h3>{{ account_name }}   <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
+    <i class="fas fa-chart-line"></i>
+</a></h3> 
+    {% load render_table from django_tables2 %}
+    
+    {% if filter %}
+    <form action="" method="get" class="form form-inline">
+        {{ filter.form.as_p }}
+    </form>
+    {% endif %}
+
+    {% render_table table %}
+
+
+{% endblock %}
+
+
+{% block script %}
+<script type="text/javascript">
+    $(document).ready(function () {
+          $(".update-transaction").each(function () {
+            $(this).modalForm({
+              formURL: $(this).data("form-url")
+            });
+          });
+    });
+</script>
+
+{% include "budgetdb/js_toggle_verify.html" %}
+{% include "budgetdb/js_toggle_receipt.html" %}
+
+{% endblock %}

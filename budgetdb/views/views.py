@@ -11,7 +11,8 @@ from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.core.exceptions import PermissionDenied
+from django.core.mail import send_mail
 # from django.forms import ModelForm
 from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
@@ -22,6 +23,7 @@ from django.views.generic import (CreateView, DetailView,  # , FormView
                                   ListView, TemplateView, UpdateView)
 from django.views.generic.base import RedirectView
 # from bootstrap_modal_forms.generic import BSModalCreateView
+
 from django_tables2 import SingleTableView  # , SingleTableMixin
 from rest_framework import serializers
 
@@ -30,6 +32,7 @@ from budgetdb.forms import *
 from budgetdb.models import *
 from budgetdb.tables import *
 from budgetdb.tokens import account_activation_token
+
 
 # colors stolen from django chart js library
 COLORS = [
@@ -1286,7 +1289,7 @@ class IndexView(LoginRequiredMixin, TemplateView):
     template_name = 'budgetdb/index.html'
 
 
-class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+class AccountTransactionListViewOLD(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Account
     template_name = 'budgetdb/AccountTransactionListView.html'
 
@@ -1338,10 +1341,10 @@ class AccountTransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
         return context
 
 
-class AccountTransactionListView2(UserPassesTestMixin, MyListView):
+class AccountTransactionListView(UserPassesTestMixin, MyListView):
     model = Account
     table_class = AccountActivityListTable
-    # template_name = 'budgetdb/AccountTransactionListView.html'
+    template_name = 'budgetdb/account_transactions_list.html'
 
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'), is_deleted=False)
@@ -1350,11 +1353,22 @@ class AccountTransactionListView2(UserPassesTestMixin, MyListView):
     def handle_no_permission(self):
         raise PermissionDenied
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        preference = Preference.objects.get(user=self.request.user.id)
+        year = preference.end_interval.year
+        context['pk'] = pk
+        context['year'] = year
+        context['account_name'] = Account.objects.get(id=pk).name
+        return context
+
     def get_queryset(self):
         pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
         begin = preference.start_interval
         end = preference.end_interval
+        self.title = Account.objects.get(pk=pk).name
 
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
@@ -1368,27 +1382,6 @@ class AccountTransactionListView2(UserPassesTestMixin, MyListView):
 
         events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
         return events
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        pk = self.kwargs.get('pk')
-        preference = Preference.objects.get(user=self.request.user.id)
-        year = preference.end_interval.year
-        decorated = []
-        for transaction in self.object_list:
-            transaction.show_currency = False
-            if transaction.account_destination is not None:
-                if transaction.account_destination.currency != transaction.currency:
-                    transaction.show_currency = True
-            if transaction.account_source is not None:
-                if transaction.account_source.currency != transaction.currency:
-                    transaction.show_currency = True
-            decorated.append(transaction)
-        context['pk'] = pk
-        context['year'] = year
-        context['decorated'] = decorated
-        context['account_name'] = Account.objects.get(id=pk).name
-        return context
 
 
 ###################################################################################################################

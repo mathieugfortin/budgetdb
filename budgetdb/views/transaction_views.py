@@ -297,6 +297,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
             form.initial['description'] = f'Ajustement du marché'
         else:
             form.initial['description'] = f'Confirmation de solde'
+            form_amount = form_amount.replace('N','-',1)
             length = len(form_amount)
             clean_amount = form_amount[:length-2] + '.' + form_amount[-2:]
             form.initial['amount_actual'] = clean_amount

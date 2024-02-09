@@ -38,7 +38,7 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     # 'django_addanother',
     'budgetdb.apps.BudgetdbConfig',
-    'django.contrib.admin',
+    # 'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
