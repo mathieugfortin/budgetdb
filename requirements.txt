@@ -2,7 +2,7 @@ asgiref==3.7.2
 astroid==3.0.2
 crispy-bootstrap5==2023.10
 dill==0.3.7
-Django==5.0.1
+Django==5.0.2
 django-bootstrap-modal-forms==3.0.4
 django-chartjs==2.3.0
 django-crispy-forms==2.1

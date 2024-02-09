@@ -868,6 +868,7 @@ class CatType(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Category Type'
         verbose_name_plural = 'Categories Type'
+        ordering = ['name']
 
     user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='cattype_permissions_child')
     name = models.CharField(max_length=200)
