@@ -45,9 +45,10 @@
                 <td>{{ transaction.account_source }}</td>
                 <td>{{ transaction.account_destination }}</td>
                 <td>${{ transaction.amount_actual }}</td>
-                <td>{% if transaction.is_deleted == 1 %} <i class="fas fa-check-circle"></i> {% else %} <i class="fas fa-circle"></i> {% endif %} </td>
-                <td>{% if transaction.verified == 1 %} <i class="fas fa-check-circle"></i>
-                    {% else %} <i class="fas fa-circle"></i> {% endif %} </td>
+                <td>{% if transaction.is_deleted == 1 %} <span class="material-symbols-outlined">radio_button_checked</span>
+                    {% else %} <span class="material-symbols-outlined">radio_button_unchecked</span> {% endif %} </td>
+                <td>{% if transaction.verified == 1 %}  <span class="material-symbols-outlined">radio_button_checked</span>
+                    {% else %} <span class="material-symbols-outlined">radio_button_unchecked</span> {% endif %} </td>
             </tr>
         {% endfor %}
     </tbody>

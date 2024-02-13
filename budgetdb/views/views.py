@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import *
+import json
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Submit
@@ -521,7 +522,8 @@ def timeline2JSON(request):
             if account.date_closed < begin:
                 continue
         color = next(colors)
-        balances = account.build_balance_array(begin, end)
+        # balances = account.build_balance_array(begin, end)
+        balances = account.get_balances(begin, end)
         linedata = []
         i = 0
         for day in balances:
@@ -793,6 +795,81 @@ class MyNotificationLoggedout(TemplateView):
         context = super().get_context_data(**kwargs)
         context['notification_title'] = self.notification_title
         context['notification_message'] = self.notification_message
+        return context
+
+
+
+def testecharts():
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    begin = request.GET.get('begin', None)
+    end = request.GET.get('end', None)
+    cat_type_pk = request.GET.get('ct', None)
+    cattype = CatType.view_objects.get(pk=cat_type_pk)
+    colors = next_color()
+    color_list = []
+
+    labels = []  # categories
+    data = []  # totals
+    indexes = []  # cat1_ids
+
+    cat1sums = CatSums()
+    cat_totals = cat1sums.build_cat1_totals_array(begin, end)
+
+    for cat in cat_totals:
+        if cat.cattype_id == cattype.id:
+            labels.append(cat.cat1.name)
+            data.append(cat.total)
+            indexes.append(cat.cat1_id)
+            color = next(colors)
+            color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
+
+    data = {
+        'type': 'doughnut',
+        'options': {'responsive': True},
+        'data': {
+            'datasets': [{
+                    'data': data,
+                    'indexes': indexes,
+                    'backgroundColor': color_list,
+                    'label': cattype.name
+            }],
+            'labels': labels
+        },
+    }
+
+    return JsonResponse(data, safe=False)
+
+
+def AccountBalanceBuildBalance():
+    accounts = Account.objects.all()
+    for account in accounts:
+        balances = AccountBalanceDB.objects.filter(account=account).order_by('db_date')
+        previous_day = Decimal(0.00)
+        for day in balances:
+            if day.is_audit or day.audit != 0:
+                day.balance = day.audit
+                day.delta = day.audit - previous_day
+                day.is_audit = True
+            else:
+                day.balance = previous_day + day.delta
+            day.balance_is_dirty = False
+            previous_day = day.balance
+            day.save()
+
+
+
+class EChartView(LoginRequiredMixin, TemplateView):
+    template_name = 'budgetdb/echart_template.html'
+    echart_title = 'test'
+
+    def get_context_data(self, **kwargs):
+        accounts = list(Account.view_objects.values_list("name",flat=True))
+        #AccountBalanceBuildBalance()
+        series = json.dumps(accounts)
+        context = super().get_context_data(**kwargs)
+        context['echart_title'] = self.echart_title
+        context['series'] = series
         return context
 
 
@@ -1345,6 +1422,9 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
     model = Account
     table_class = AccountActivityListTable
     template_name = 'budgetdb/account_transactions_list.html'
+    begin = None
+    end = None
+    # SingleTableView.table_pagination = False
 
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'), is_deleted=False)
@@ -1363,25 +1443,36 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
         context['account_name'] = Account.objects.get(id=pk).name
         return context
 
+    def get_table_kwargs(self):
+       return {
+           'account_view': self.kwargs.get('pk'),
+           'begin': self.begin,
+           'end': self.end,
+       }
+
     def get_queryset(self):
         pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
+        self.begin = preference.start_interval
+        self.end = preference.end_interval
         self.title = Account.objects.get(pk=pk).name
 
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
         if beginstr is not None:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-            end = begin + relativedelta(months=1)
+            self.begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+            self.end = self.begin + relativedelta(months=1)
         if endstr is not None:
-            end = datetime.strptime(endstr, "%Y-%m-%d").date()
-        if end < begin:
-            end = begin + relativedelta(months=1)
+            self.end = datetime.strptime(endstr, "%Y-%m-%d").date()
+        if self.end < self.begin:
+            self.end = self.begin + relativedelta(months=1)
 
-        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
-        return events
+        # events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
+        childaccounts = Account.view_objects.filter(account_parent_id=pk, is_deleted=False)
+        accounts = childaccounts | Account.view_objects.filter(pk=pk)
+        events_source = Transaction.view_objects.filter(account_source__in=accounts,date_actual__gte=self.begin,date_actual__lte=self.end)
+        events_destination = Transaction.view_objects.filter(account_destination__in=accounts,date_actual__gte=self.begin,date_actual__lte=self.end)
+        return events_source | events_destination
 
 
 ###################################################################################################################

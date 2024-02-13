@@ -730,7 +730,7 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
                     css_class='row'
                 ),
                 Div(
-                    HTML("<h3><i class='fas fa-exclamation-triangle'></i>This event is part of a Joint Transaction.</h3> <h3>If you want to modify the recurrence timing, do it through the joint transaction</h3>"),
+                    HTML('<h3><span class="material-symbols-outlined">warning</span>This event is part of a Joint Transaction.</h3> <h3>If you want to modify the recurrence timing, do it through the joint transaction</h3>'),
                     css_class='row'
                 ),
                 HTML("<h4>Recurrence mask</h4>"),
@@ -1020,7 +1020,6 @@ class TransactionFormShort(forms.ModelForm):
                 Field('date_actual', css_class='form-group col-md-2  ', type='hidden'),
                 # Div('amount_actual', css_class='form-group col-md-1'),
                 Field('budgetedevent', css_class='form-group col-md-1', type='hidden'),
-                # HTML('<a href="{% url 'budgetdb:update_be' event.budgetedevent_id %}"> <i class="fas fa-calendar"></i></a>'),
                 css_class='row'
             ),
         )
@@ -1177,16 +1176,13 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row'
                 ),
                 Div(
-                    # Div(AppendedText('Fuel_L', 'L', css_class='form-group col-2')),
-                    # Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-2')),
                     Div('Fuel_L', css_class='form-group col-4'),
                     Div('Fuel_price', css_class='form-group col-4'),
                     css_class='row fuel'
                 ),
                 Div(
                     Div('account_source', css_class='form-group col-5  '),
-                    # Button('flip', '', css_class='fas fa-plus my-4 col-1', onclick='alert("Neat!");'),
-                    StrictButton('<i class="fa fa-arrows-h"></i>', name='flip', type="button",
+                    StrictButton('<span class="material-symbols-outlined">swap_horiz</span>', name='flip', type="button",
                                  css_class="btn btn-danger my-4 col-1", onclick="changeaccounts()"),
                     Div('account_destination', css_class='form-group col-5   '),
                     css_class='row'

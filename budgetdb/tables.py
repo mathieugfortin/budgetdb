@@ -90,32 +90,50 @@ def set_class_transaction(record):
 
 class AccountActivityListTable(tables.Table):
     addtransaction = tables.Column(verbose_name='', orderable=False, empty_values=())
-    date_actual = tables.Column(verbose_name='Date',attrs={"td": {"class": "min"}})
+    date_actual = tables.Column(verbose_name='Date',
+                                attrs={"td": {"class": "min"}},
+                                order_by=("date_actual", 'audit','-verified', '-id')
+                                )
     recurencelinks = tables.Column(verbose_name='Repeat', orderable=False, empty_values=(), attrs={"th": {"class": "d-none d-md-table-cell"},"td": {"class": "min d-none d-md-table-cell"}})
-    amount_actual = tables.Column(verbose_name='$')
-    verified = tables.Column(verbose_name='verif', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}})
-    statement = tables.Column(verbose_name='Statement', attrs={"th": {"class": "d-none d-xl-table-cell"},"td": {"class": "d-none d-xl-table-cell"}})
-    receipt = tables.Column(verbose_name='Receipt', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}})
-    cat1 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}})
-    cat2 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}})
+    amount_actual = tables.Column(verbose_name='$', orderable=False)
+    description = tables.Column(orderable=False)
+    mybalance = tables.Column(verbose_name='Balance', orderable=False, empty_values=())
+    verified = tables.Column(verbose_name='verif', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}}, orderable=False)
+    statement = tables.Column(verbose_name='Statement', attrs={"th": {"class": "d-none d-xl-table-cell"},"td": {"class": "d-none d-xl-table-cell"}}, orderable=False)
+    receipt = tables.Column(verbose_name='Receipt', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}}, orderable=False)
+    cat1 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False)
+    cat2 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False)
     addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=(), attrs={"th": {"class": "d-none d-md-table-cell"},"td": {"class": "min d-none d-md-table-cell"}})
     view_account_id = None
+    account = None
     account_currency_symbol = ''
+    previous_date = None
+    previous_balance = None
+    previous_amount = None
+    previous_source = None
+    
 
     class Meta:
         model = Transaction
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
-                  "cat1", "cat2", "amount_actual", "verified", "receipt", "balance", "addaudit")
+                  "cat1", "cat2", "amount_actual", "verified", "receipt", "mybalance", "addaudit")
         attrs = {"class": "table table-hover"}
         order_by = ("-date_actual")
-        # per_page = 30
+        per_page = 50
         row_attrs = {
             "id": lambda record: f'T{record.pk}',
             "class": lambda record: set_class_transaction(record)
         }
+    
     def __init__(self, *args, **kwargs):  
-        self.view_account_id = kwargs["data"].first().account_view_id  
-        self.account_currency_symbol = Account.objects.get(pk=self.view_account_id).currency.symbol   
+        view_account_id = kwargs.pop('account_view') 
+        self.account = Account.view_objects.get(pk=view_account_id)
+        self.begin = kwargs.pop('begin') 
+        self.end = kwargs.pop('end') 
+        self.account_currency_symbol = self.account.currency.symbol
+        #  sub account will bug here *********** zbrocoli
+        self.account.clean_balances(self.begin, self.end)
+        self.balances = AccountBalanceDB.objects.filter(account=self.account.id, db_date__gte=self.begin, db_date__lte=self.end)
         super().__init__(*args, **kwargs)
 
     def render_statement(self, record):
@@ -171,7 +189,7 @@ class AccountActivityListTable(tables.Table):
                 f'{record.vendor}'
                 f'</button>')
         reverse_url = reverse("budgetdb:account_listview_update_transaction_modal", kwargs={"pk": record.id,
-                                                                                            "accountid": self.view_account_id})
+                                                                                            "accountid": self.account.id})
         field = field + (f'<button type="button" '
             f'class="update-transaction btn btn-secondary btn-sm" '
             f'data-form-url="{reverse_url}">'
@@ -210,24 +228,26 @@ class AccountActivityListTable(tables.Table):
                 f'<span class="material-symbols-outlined"><span class="material-symbols-outlined">dynamic_feed</span></span>'
                 f'</a>')
 
-        if record.account_destination is not None and record.account_destination.id != self.view_account_id:
+        if record.account_destination is not None and record.account_destination.id != self.account.id:
             reverse_url = reverse("budgetdb:list_account_activity",
                                        kwargs={"pk": record.account_destination.id,}
                                        )
-            field = field + (f'<a href='
+            field = field + (
+                f'<a href='
                 f'"{reverse_url}" '
                 f'class="btn btn-info btn-sm" role="button"> '
-                f'<i class="fas fa-arrow-right"></i>'
+                f'<span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_right</span>'
                 f'{record.account_destination}'
                 f'</a>')
-        if record.account_source is not None and record.account_source.id != self.view_account_id:
+        if record.account_source is not None and record.account_source.id != self.account.id:
             reverse_url = reverse("budgetdb:list_account_activity",
                                        kwargs={"pk": record.account_source.id,}
                                        )
-            field = field + (f'<a href='
+            field = field + (
+                f'<a href='
                 f'"{reverse_url}" '
                 f'class="btn btn-info btn-sm" role="button"> '
-                f'<i class="fas fa-arrow-left"></i>'
+                f'<span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_left</span>'
                 f'{record.account_source}'
                 f'</a>')
   
@@ -240,16 +260,36 @@ class AccountActivityListTable(tables.Table):
     def render_amount_actual(self, value, record):
         if record.audit:
             return format_html('')
+        if not (record.budget_only is True and record.date_actual <= date.today()):
+            if record.account_source_id == self.account.id:
+                value = value * -1
+        else:
+            return format_html('')         
         return format_html(f'{value}{self.account_currency_symbol}')
 
-    def render_balance(self, value, record):
+    def render_mybalance(self, value, record):
         if record.audit:
             return format_html('')
-        return format_html(f'{value}{self.account_currency_symbol}')        
+        if self.order_by[0] == '-date_actual':
+            balance = self.balances.get(db_date=record.date_actual).balance
+            if self.previous_date is None or self.previous_date != record.date_actual:
+                self.previous_date = record.date_actual
+                self.previous_amount = record.amount_actual
+                self.previous_balance = balance
+                self.previous_source = record.account_source
+            else:
+                if self.previous_source == self.account:
+                    balance = self.previous_balance + self.previous_amount
+                else:
+                    balance = self.previous_balance - self.previous_amount
+                self.previous_amount = record.amount_actual
+                self.previous_balance = balance
+                self.previous_source = record.account_source
+            return format_html(f'{balance}{self.account_currency_symbol}') 
 
     def render_addtransaction(self, value, record):
         reverse_url = reverse("budgetdb:create_transaction_from_date_account_modal",
-                              kwargs={"pk": self.view_account_id,
+                              kwargs={"pk": self.account.id,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),
                                       }
                              )
@@ -262,10 +302,10 @@ class AccountActivityListTable(tables.Table):
 
     def render_addaudit(self, value, record):
         if record.audit:
-            return format_html(f'{record.balance}{self.account_currency_symbol}')        
+            return format_html(f'{record.amount_actual}{self.account_currency_symbol}')        
         balance_str = record.get_balance_token()
         reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",
-                              kwargs={"pk": self.view_account_id,
+                              kwargs={"pk": self.account.id,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),
                                       "amount": balance_str,
                                       }

@@ -49,6 +49,9 @@ urlpatterns = [
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
          name='setinterval_json'),
 
+    path('chart/test/', views.EChartView.as_view(),
+         name='echart_test'),
+
     # chart JS
     path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
     path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),

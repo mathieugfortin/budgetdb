@@ -1,0 +1,44 @@
+{% extends "budgetdb/basecrispy.html" %}
+{% load static %}
+{% load tojson %}
+{% block head_comment %}<!--echart template-->{% endblock %}
+{% block title %}{{echart_title}}{% endblock %}
+{% block content %}
+    <script src="
+        https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <div>
+        <p id="data_series">{{series}}</p>
+        <div id="chartdiv" style="width: 600px;height:400px;"></div>
+        <script type="text/javascript">
+            // Initialize the echarts instance based on the prepared dom
+            var mySeries = {{series|tojson}};
+            var myChart = echarts.init(document.getElementById('chartdiv'));
+      
+            // Specify the configuration items and data for the chart
+            var option = {
+              title: {
+                text: '{{echart_title}}'
+              },
+              tooltip: {},
+              legend: {
+                data: ['sales']
+              },
+              xAxis: {
+                data: mySeries
+              },
+              yAxis: {},
+              series: [
+                {
+                  name: 'sales',
+                  type: 'bar',
+                  data: [5, 20, 36, 10, 10, 20]
+                }
+              ]
+            };
+      
+            // Display the chart using the configuration items and data just specified.
+            myChart.setOption(option);
+          </script>
+    </div>
+{% endblock %}
