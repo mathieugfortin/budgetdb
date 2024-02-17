@@ -24,8 +24,9 @@
 <div class="container">
     <div class="row no-gutters">
       <div class="col-1 text-start">
-        <a href="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" class="btn btn-link btn-sm" title="Create transaction for today" >
-            <span class="material-symbols-outlined">add_circle</span></a>
+        <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
+            <span class="material-symbols-outlined">add_circle</span>
+        </button>
       </div>
       <div class="col text-center">
         <h3>{{ account_name }} 
@@ -34,8 +35,10 @@
         </h3>
       </div>
       <div class="col-1 text-end">
-        <a href="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" class="btn btn-link btn-sm" title="Create audited balance for today" >
-            <span class="material-symbols-outlined">add_circle</span></a>      </div>
+        <button  type="button" title="Create audit for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
+            <span class="material-symbols-outlined">add_circle</span>
+        </button>
+      </div>
     </div>
 </div>
 
