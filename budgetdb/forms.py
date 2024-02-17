@@ -938,6 +938,10 @@ class PreferenceForm(forms.ModelForm):
         
         self.helper.layout = Layout(
             Div(
+                Div('theme', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
+            Div(
                 Div('start_interval', css_class='form-group col-md-4  '),
                 Div('end_interval', css_class='form-group col-md-4  '),
                 css_class='row'

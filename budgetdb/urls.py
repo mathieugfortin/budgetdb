@@ -50,11 +50,12 @@ urlpatterns = [
          name='setinterval_json'),
 
     path('chart/test/', views.EChartView.as_view(),
-         name='echart_test'),
+         name='timeline_chart'),
+    path('echartOptionJSON', views.echartOption2JSON, name='echart_option_json'),
 
     # chart JS
-    path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
-    path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),
+    path('timeline2/', views.timeline2.as_view(), name='timeline_chart_old'),
+    path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json_old'),
 
     # User
     path('user/signup/', views.UserSignupView.as_view(),

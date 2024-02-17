@@ -798,78 +798,160 @@ class MyNotificationLoggedout(TemplateView):
         return context
 
 
-
-def testecharts():
+def echartOption2JSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
-    begin = request.GET.get('begin', None)
-    end = request.GET.get('end', None)
-    cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.view_objects.get(pk=cat_type_pk)
-    colors = next_color()
-    color_list = []
+    accountcategoryID = request.GET.get('ac', None)
+    title = ''
+    if accountcategoryID is None or accountcategoryID == 'None':
+        accounts = Account.view_objects.all().order_by('account_host', 'name')
+        title = 'All'
+    else:
+        try:
+            accountcategory = AccountCategory.view_objects.get(pk=accountcategoryID)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        title = accountcategory.name
+        accounts = Account.view_objects.filter(account_categories=accountcategory.pk).order_by('account_host', 'name')
 
-    labels = []  # categories
-    data = []  # totals
-    indexes = []  # cat1_ids
+    preference = get_object_or_404(Preference, user=request.user.id)
+    begin = preference.start_interval
+    end = preference.end_interval
 
-    cat1sums = CatSums()
-    cat_totals = cat1sums.build_cat1_totals_array(begin, end)
 
-    for cat in cat_totals:
-        if cat.cattype_id == cattype.id:
-            labels.append(cat.cat1.name)
-            data.append(cat.total)
-            indexes.append(cat.cat1_id)
-            color = next(colors)
-            color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
+    series = []  # lines
+    x_axis = []  # Dates, x axis
+    series_label = []  # series label
 
+    dates = MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date')
+    index_today = None
+    i = 0
+    for day in dates:
+        x_axis.append(f'{day.db_date}')
+        if day.db_date == date.today():
+            index_today = i
+        i += 1
+    if index_today is not None:
+        vert_line =  {
+                'type': 'line',
+                'silent': 'true',
+                
+                'markLine': {
+                    'symbol': 'circle',
+                    'lineStyle': {
+                        'color': 'rgb(255,0,0)',
+                        'type': 'solid',
+                    },
+                    'data': [
+                    {
+                        'name': 'Today',
+                        'xAxis': date.today(),
+                    }
+                    ]
+                }
+                }
+        series.append(vert_line)
+
+    nb_days = len(x_axis)
+    linetotaldata = [Decimal(0.00)] * nb_days
+    for account in accounts:
+        if account.can_view() is False:
+            continue
+        if account.date_closed is not None:
+            if account.date_closed < begin:
+                continue
+        series_label.append(f'{account.name}')
+        balances = account.get_balances(begin, end)
+        linedata = []
+        i = 0
+        for day in balances:
+            linetotaldata[i] += day.balance
+            linedata.append(day.balance)
+            i += 1
+        linedict = {
+            'name': account.name,
+            'type': 'line',
+            'smooth': 'true',
+            'symbol': account.currency.symbol,  # doesn't work...
+            'data': linedata,
+        }
+        series.append(linedict)
+
+
+
+
+    # datasets.append(linedict)
     data = {
-        'type': 'doughnut',
-        'options': {'responsive': True},
-        'data': {
-            'datasets': [{
-                    'data': data,
-                    'indexes': indexes,
-                    'backgroundColor': color_list,
-                    'label': cattype.name
-            }],
-            'labels': labels
+        'title': {
+                'text': title
+                },
+        'legend': {
+                'data': series_label,
+                'type': 'scroll',
+                'orient': 'vertical',
+                'right': '10',
+                'top': '20',
+                'bottom': '20',
+            },
+        'grid': {
+            'left': '1%',
+            'right': '2%',
+            'bottom': '2%',
+            'containLabel': 'true'
         },
+       # 'tooltip': {
+        #    'trigger': 'axis',
+         #   'valueFormatter': '(value) => "$" + value.toFixed(2)'
+            #'formatter': 'callback'
+        #},
+        'dataZoom': [
+            {
+            'type': 'inside',
+            'start': 0,
+            'end': 100,
+            },
+        ],
+        'markLine': {
+            'data': [ 
+                { 'name': 'bang', 
+                'xAxis': '2024-01-28' } 
+            ]
+        },
+        'xAxis': {
+            'boundaryGap': 'false',
+            'data': x_axis,
+           # 'type': 'time',
+        },
+        'yAxis': {
+            'type': 'value'
+        },
+        'series': series
     }
 
     return JsonResponse(data, safe=False)
 
 
-def AccountBalanceBuildBalance():
-    accounts = Account.objects.all()
-    for account in accounts:
-        balances = AccountBalanceDB.objects.filter(account=account).order_by('db_date')
-        previous_day = Decimal(0.00)
-        for day in balances:
-            if day.is_audit or day.audit != 0:
-                day.balance = day.audit
-                day.delta = day.audit - previous_day
-                day.is_audit = True
-            else:
-                day.balance = previous_day + day.delta
-            day.balance_is_dirty = False
-            previous_day = day.balance
-            day.save()
-
-
-
 class EChartView(LoginRequiredMixin, TemplateView):
-    template_name = 'budgetdb/echart_template.html'
+    template_name = 'budgetdb/echart_template_json.html'
     echart_title = 'test'
 
     def get_context_data(self, **kwargs):
-        accounts = list(Account.view_objects.values_list("name",flat=True))
-        #AccountBalanceBuildBalance()
-        series = json.dumps(accounts)
         context = super().get_context_data(**kwargs)
+
+        accountcategoryID = self.request.GET.get('ac', None)
+
+        if accountcategoryID is not None:
+            accountcategory = get_object_or_404(AccountCategory, pk=accountcategoryID)
+            if not accountcategory.can_view():
+                raise PermissionDenied
+            context['accountcategory'] = accountcategory
+        else:
+            context['accountcategory'] = None
+
+        accountcategories = AccountCategory.view_objects.all()
+        context['accountcategories'] = accountcategories
+        context['ac'] = accountcategoryID
         context['echart_title'] = self.echart_title
-        context['series'] = series
         return context
 
 

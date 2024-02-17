@@ -3,15 +3,16 @@
 <!--base template-->
 {% block head_comment %}{% endblock %}
 <!doctype html>
-<html lang="en-ca">
+<html lang="en-ca"  data-bs-theme="{{preference_mode}}" >
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">       
+    {% block headblock %}{% endblock %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
     <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
     <link rel="shortcut icon" href="{% static 'budgetdb/favicon.ico' %}"/>        
-    {% block headblock %}{% endblock %}
+    
     <title>{% block title %}The I'm not crazy, you're crazy! Budget{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
         
@@ -20,9 +21,8 @@
 <body style="background-color:red">-->
     <body>
     {% csrf_token %}
-
     {% block navtools %}
-    <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg fixed-top bg-body-tertiary">
         <div class="container-fluid">
         <a class="navbar-brand" href="{% url 'budgetdb:home' %}">Budget</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -167,10 +167,10 @@
     </nav>
     {% endblock %}
 
-
-
-    {% block content %}{% endblock %}
-
+    <div class="container-md w-100" >
+    {% block content %}
+    {% endblock %}
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
     <script src="https://kit.fontawesome.com/860aa3fdee.js" crossorigin="anonymous"></script>
@@ -178,7 +178,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
     
     {% if user.is_authenticated %}
-<script>
+    <script>
 
     var begin_interval;
     var end_interval;

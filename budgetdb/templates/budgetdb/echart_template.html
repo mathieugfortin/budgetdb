@@ -1,44 +1,95 @@
 {% extends "budgetdb/basecrispy.html" %}
 {% load static %}
-{% load tojson %}
+
 {% block head_comment %}<!--echart template-->{% endblock %}
 {% block title %}{{echart_title}}{% endblock %}
 {% block content %}
-    <script src="
-        https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
-    </script>
     <div>
-        <p id="data_series">{{series}}</p>
-        <div id="chartdiv" style="width: 600px;height:400px;"></div>
-        <script type="text/javascript">
-            // Initialize the echarts instance based on the prepared dom
-            var mySeries = {{series|tojson}};
-            var myChart = echarts.init(document.getElementById('chartdiv'));
-      
-            // Specify the configuration items and data for the chart
-            var option = {
-              title: {
-                text: '{{echart_title}}'
-              },
-              tooltip: {},
-              legend: {
-                data: ['sales']
-              },
-              xAxis: {
-                data: mySeries
-              },
-              yAxis: {},
-              series: [
-                {
-                  name: 'sales',
-                  type: 'bar',
-                  data: [5, 20, 36, 10, 10, 20]
-                }
-              ]
-            };
-      
-            // Display the chart using the configuration items and data just specified.
-            myChart.setOption(option);
-          </script>
+        <p id="data_series">pouet</p>
+        <div id="chartdiv" style="width: 600px;height:400px;">
+        </div>
     </div>
+{% endblock %}
+{% block script %}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"> </script>        
+    <script type="text/javascript">
+        // Initialize the echarts instance based on the prepared dom
+        var chartDom = document.getElementById('chartdiv');
+        var myChart = echarts.init(chartDom);
+        var option;
+        // Specify the configuration items and data for the chart
+        option = {
+            title: {
+                text: 'Stacked Line'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['Email', 'Union Ads', 'Video Ads', 'Direct', 'Search Engine']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+
+            xAxis: {
+            
+                boundaryGap: false,
+                data: ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", "2024-01-06", "2024-01-07"]
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                name: 'Email',
+                type: 'line',
+                smooth: true,
+                data: [120, 132, 101, 134, 90, 230, 210]
+                },
+                {
+                name: 'Union Ads',
+                type: 'line',
+                smooth: true,
+                data: [220, 182, 191, 234, 290, 330, 310]
+                },
+                {
+                name: 'Video Ads',
+                type: 'line',
+                data: [150, 232, 201, 154, 190, 330, 410]
+                },
+                {
+                name: 'Direct',
+                type: 'line',
+                data: [320, 332, 301, 334, 390, 330, 320]
+                },
+                {
+                name: 'Search Engine',
+                type: 'line',
+                smooth: true,
+                data: [820, 932, 901, 934, 1290, 1330, 1320]
+                },
+                {
+                type: 'line',
+                name: 'myLine',
+                markLine: {
+                    symbol: 'your custom symbol',
+                    data: [
+                    {
+                        name: 'name',
+                        xAxis: "2024-01-04",
+                        symbol: 'none', // <- disable the start point symbol here
+                    }
+                    ]
+                }
+                }
+            ]
+        };
+                
+        // Display the chart using the configuration items and data just specified.
+        option && myChart.setOption(option);
+    </script>
 {% endblock %}

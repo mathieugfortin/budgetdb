@@ -1,5 +1,5 @@
 {% extends 'budgetdb/base.html' %}
-{% block head_comment %}<!--generic_list v1 template-->{% endblock %}
+{% block head_comment %}<!--account_transaction_list template-->{% endblock %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -9,10 +9,6 @@
 {% endblock %}
 
 {% block content %}
-    <style>
-
-    </style>
-
 <div class="modal fade" id="transaction-modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog mt-5">
         <div class="modal-content">
@@ -25,9 +21,24 @@
         <div class="modal-content"></div>
     </div>
 </div>
-<h3>{{ account_name }}   <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
-    <i class="fas fa-chart-line"></i>
-</a></h3> 
+<div class="container">
+    <div class="row no-gutters">
+      <div class="col-1 text-start">
+        <a href="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" class="btn btn-link btn-sm" title="Create transaction for today" >
+            <span class="material-symbols-outlined">add_circle</span></a>
+      </div>
+      <div class="col text-center">
+        <h3>{{ account_name }} 
+        <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
+            <span class="material-symbols-outlined">monitoring</span></a>
+        </h3>
+      </div>
+      <div class="col-1 text-end">
+        <a href="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" class="btn btn-link btn-sm" title="Create audited balance for today" >
+            <span class="material-symbols-outlined">add_circle</span></a>      </div>
+    </div>
+</div>
+
     {% load render_table from django_tables2 %}
     
     {% if filter %}

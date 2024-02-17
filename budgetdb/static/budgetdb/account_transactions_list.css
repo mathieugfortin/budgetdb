@@ -8,19 +8,19 @@
   /* List formatting, color by transaction caracteristics */
   
   tr.AUDIT {
-    background-color: rgb(147, 154, 185)
+    --bs-table-bg: rgb(147, 154, 185)
   }
   tr.UNVERIFIED.BUDGET {
-    background-color: rgb(78, 167, 240)
+    --bs-table-bg: rgb(78, 167, 240)
   }
   tr.UNVERIFIED {
-    background-color: rgb(252, 221, 156)
+    --bs-table-bg: rgb(252, 221, 156)
   }
   tr.UNVERIFIED.MANUAL.NORECEIPT {
-    background-color: rgb(233, 111, 90)
+    --bs-table-bg: rgb(233, 111, 90)
   }
   tr.UNVERIFIED.RECEIPT {
-    background-color: rgb(177, 219, 230)
+    --bs-table-bg: rgb(177, 219, 230)
   }
   
   /* check buttons by verified and receipt status */  

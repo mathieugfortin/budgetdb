@@ -92,7 +92,7 @@ output of: python manage.py show_urls
 /en-ca/template/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:template_max_redirect
 /en-ca/template/update/<int:pk>/	budgetdb.views.views.TemplateUpdateView	budgetdb:update_template
 /en-ca/timeline2/	budgetdb.views.views.timeline2	budgetdb:timeline_chart
-/en-ca/timeline2JSON	budgetdb.views.views.timeline2JSON	budgetdb:timeline2_chart_json
+/en-ca/timeline2JSON	budgetdb.views.views.timeline2JSON	budgetdb:timeline2_chart_json_old
 /en-ca/transaction/<int:pk>/	budgetdb.views.transaction_views.TransactionDetailView	budgetdb:details_transaction
 /en-ca/transaction/add/	budgetdb.views.transaction_views.TransactionCreateView	budgetdb:create_transaction
 /en-ca/transaction/add/<int:account_pk>	budgetdb.views.transaction_views.TransactionCreateViewFromDateAccount	budgetdb:create_transaction_from_date_account

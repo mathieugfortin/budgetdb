@@ -234,6 +234,10 @@ class BaseSoftDelete(models.Model):
 
 
 class Preference(models.Model):
+    COLOR_MODE = {
+        "light": "Light",
+        "dark": "Dark",
+    }
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     start_interval = models.DateField(blank=True)
     end_interval = models.DateField(blank=True)
@@ -245,6 +249,7 @@ class Preference(models.Model):
                                           related_name="currency_prefered"
                                           )
     favorite_accounts = models.ManyToManyField("Account", related_name="favorites", blank=True)
+    theme = models.CharField('Color Mode',max_length=15, choices=COLOR_MODE, default='Dark')
     # add ordre of listing, old first/ new first
 
 
@@ -318,7 +323,6 @@ class AccountBalances(models.Model):
     class Meta:
         managed = False
         db_table = 'budgetdb_accounttotal'
-
 
 
 class AccountBalanceDB(models.Model):
@@ -690,9 +694,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 day.balance_is_dirty = False
                 previous_day = day.balance
                 day.save()
-
-
-
 
     def get_balances(self, start_date, end_date):
         self.clean_balances(start_date, end_date)
