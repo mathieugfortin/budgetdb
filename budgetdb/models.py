@@ -253,6 +253,15 @@ class Preference(models.Model):
     # add ordre of listing, old first/ new first
 
 
+class Messages(models.Model):
+    MESSAGE_TYPE = {
+        "tutorial": "Tutorial",
+    }
+    title = models.CharField(max_length=200)
+    body = models.CharField(max_length=2000)
+    message_type = models.CharField('Type',max_length=15, choices=MESSAGE_TYPE, default='Tutorial')
+
+
 class Invitation(MyMeta, BaseSoftDelete, ClassOwner):
     class Meta:
         verbose_name = 'Invitation'

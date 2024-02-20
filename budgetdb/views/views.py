@@ -798,7 +798,7 @@ class MyNotificationLoggedout(TemplateView):
         return context
 
 
-def echartOption2JSON(request):
+def echartOptionTimeline2JSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     accountcategoryID = request.GET.get('ac', None)
@@ -872,6 +872,7 @@ def echartOption2JSON(request):
             'name': account.name,
             'type': 'line',
             'smooth': 'true',
+            'areaStyle': {},
             'symbol': account.currency.symbol,  # doesn't work...
             'data': linedata,
         }
@@ -931,9 +932,9 @@ def echartOption2JSON(request):
     return JsonResponse(data, safe=False)
 
 
-class EChartView(LoginRequiredMixin, TemplateView):
+class EChartTimelineView(LoginRequiredMixin, TemplateView):
     template_name = 'budgetdb/echart_template_json.html'
-    echart_title = 'test'
+    echart_title = 'Account Timeline'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -952,6 +953,20 @@ class EChartView(LoginRequiredMixin, TemplateView):
         context['accountcategories'] = accountcategories
         context['ac'] = accountcategoryID
         context['echart_title'] = self.echart_title
+        return context
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'budgetdb/dashboard.html'
+    title = ''
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        messages = Messages.objects.filter(message_type='tutorial')
+
+        context['messages'] = messages
+        context['title'] = 'Dashboard'
         return context
 
 

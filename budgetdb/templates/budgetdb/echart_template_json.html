@@ -35,8 +35,8 @@
 
         var chartDom = document.getElementById('chartdiv');
         var myChart = echarts.init(chartDom);
-        let callback = (args) => {
-            debugger;
+        let tooltip_callback = (args) => {
+            //debugger;
             let mytooltip = args[0].axisValue + '<br />';
             let total = 0;
             for(let argN = 0; argN < args.length; ++ argN)
@@ -55,7 +55,7 @@
                     option = Object.assign({
                         tooltip: {
                             trigger: 'axis',
-                            formatter: callback
+                            formatter: tooltip_callback
                             }
                         }, 
                         option )

@@ -126,6 +126,11 @@
                             <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preference</a>
                             <a class="dropdown-item" href="{% url 'budgetdb:list_invitation' %}">Sharing</a>
                             <a class="dropdown-item" href="{% url 'budgetdb:password_update' %}">Change Password</a>
+                            <a class="dropdown-item" href=#>
+                            <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                                Instructions
+                              </button>
+                            </a>
                             <a class="dropdown-item">
                                 <form id="logout-form" method="post" action="{% url 'budgetdb:logout' %}">
                                     {% csrf_token %}
@@ -166,6 +171,118 @@
         {% endif %}
     </nav>
     {% endblock %}
+  <!-- Modal -->
+  <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="instructionsModalLabel">Instructions</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-4">
+                  <nav id="navbar-instructions" class="h-100 flex-column align-items-stretch pe-4 border-end">
+                    <nav class="nav nav-pills flex-column">
+                      <a class="nav-link" href="#item-1">Preferences</a>
+                      <nav class="nav nav-pills flex-column">
+                        <a class="nav-link ms-3 my-1" href="#item-1-1">Color Theme</a>
+                        <a class="nav-link ms-3 my-1" href="#item-1-2">Timeline</a>
+                        <a class="nav-link ms-3 my-1" href="#item-1-3">Currency</a>
+                        <a class="nav-link ms-3 my-1" href="#item-1-4">Prefered Currency</a>
+                      </nav>
+                      <a class="nav-link" href="#item-2">Config</a>
+                      <nav class="nav nav-pills flex-column">
+                        <a class="nav-link ms-3 my-1" href="#item-2-1">Account Hosts</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-2">Accounts</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-3">Account Categories</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-4">Category Type</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-5">Categories</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-6">Subcategories</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-7">Vendors</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-8">Templates</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-9">Recurring Events</a>
+                        <a class="nav-link ms-3 my-1" href="#item-2-10">Statements</a>
+                      </nav>
+                    </nav>
+                  </nav>
+                </div>
+              
+                <div class="col-8">
+                  <div data-bs-spy="scroll" data-bs-target="#navbar-instructions" data-bs-smooth-scroll="true" class="scrollspy-example-2" tabindex="0">
+                    <div id="item-1">
+                      <h4>Preferences</h4>
+                      <p>under your name on the right menu</p>
+                    </div>
+                    <div id="item-1-1">
+                      <h5>Light or dark Mode</h5>
+                      <p>...</p>
+                    </div>
+                    <div id="item-1-2">
+                      <h5>Timeline</h5>
+                      <p>Set your limits and the active period.  You can also set the active period using the sliders in the menu</p>
+                    </div>
+                    <div id="item-1-3">
+                      <h5>Currency</h5>
+                      <p>Set the currencies you want to see when working with transactions</p>
+                    </div>
+                    <div id="item-1-4">
+                      <h5>Prefered Currency</h5>
+                      <p>Select the your default value</p>
+                    </div>
+                    <div id="item-2">
+                      <h5>Config</h5>
+                      <p>...</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Account Hosts</h5>
+                        <p>Create hosts. Ex: you for cash, your bank for checking, your employer for pay and benefits</p>
+                      </div>
+                    <div id="item-2-2">
+                        <h5>Accounts</h5>
+                        <p>Create your accounts</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Account Categories</h5>
+                        <p>These categories are used for the timeline graph. You can create one for retirement account, investments, frequently used...</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Categort types</h5>
+                        <p>Qualifies categories and subcategories. Ex: revenue, expenses, savings</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Categories</h5>
+                        <p>Used with subcategories to qualify transactions</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Vendors</h5>
+                        <p>...</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Templates</h5>
+                        <p>Allows for transaction templates associated with vendors to speed up transaction creation. Ex: bagel shop, category:food subcategory:groceries source account:credit card</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Categories</h5>
+                        <p>Everything that repeats itself from yearly tax payment to coffee every workday.
+                            Choose repetition pattern, use the checkboxes to block/allow times lots. You can put tuitions every month and remove the summer months.
+                            All the check boxes apply all the time, regardless of the configured repetition pattern.
+                            Once you save, individuals transactions will be created.
+                            If you are modifying a recurring event, every unverified and "no receipt" transactions associated will be deleted and recreated.
+                            If you change the repeat pattern, old verified transactions will stay but new transactions could look like duplicate. To avoid this, you can set the start of the repeat pattern to the point after your verifications are done, typically today.</p>
+                    </div>
+                    <div id="item-2-1">
+                        <h5>Statements</h5>
+                        <p>Designed to verify credit card statements</p>
+                    </div>  
+                  </div>
+                </div>
+              </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
     <div class="container-md w-100" >
     {% block content %}
