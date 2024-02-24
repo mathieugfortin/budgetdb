@@ -3,10 +3,18 @@
 {% block head_comment %}<!--tutorial-->{% endblock %}
 {% block title %}{{title}}{% endblock %}
 {% block content %}
-<div class="row row-cols-1 row-cols-md-2 g-4">
+<div class="row row-cols-1 row-cols-md-2 ">
+    <div class="col">
+        <div class="card">
+            <div class="card-body"  style="height:300px;" > 
+                <h5 class="card-title">Monthly Budget</h5>
+                <div id="chart1" style="height:300px;"></div>
+            </div>
+        </div>
+    </div>
     <div class="col">
       <div class="card">
-        <img src="..." class="card-img-top" alt="...">
+        
         <div class="card-body">
           <h5 class="card-title">Card title</h5>
           <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
@@ -15,16 +23,7 @@
     </div>
     <div class="col">
       <div class="card">
-        <img src="..." class="card-img-top" alt="...">
-        <div class="card-body">
-          <h5 class="card-title">Card title</h5>
-          <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-        </div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="card">
-        <img src="..." class="card-img-top" alt="...">
+        
         <div class="card-body">
           <h5 class="card-title">Card title</h5>
           <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content.</p>
@@ -33,12 +32,115 @@
     </div>
     <div class="col">
       <div class="card">
-        <img src="..." class="card-img-top" alt="...">
-        <div class="card-body">
-          <h5 class="card-title">Card title</h5>
-          <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+        
+        <div class="card-body" style="width: 600px;height:400px;">
+          <h5 class="card-title">graph 1</h5>
+          
+          <div id="chartdiv" style="width: 90%;height:90%;">
+          </div>
         </div>
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block script %}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"> </script>        
+    <script type="text/javascript">
+        // Initialize the echarts instance based on the prepared dom
+        var chartDom = document.getElementById('chartdiv');
+        var myChart = echarts.init(chartDom);
+        var option;
+        // Specify the configuration items and data for the chart
+        option = {
+            title: {
+                text: 'Stacked Line'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['Email', 'Union Ads', 'Video Ads', 'Direct', 'Search Engine']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+
+            xAxis: {
+            
+                boundaryGap: false,
+                data: ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", "2024-01-06", "2024-01-07"]
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                name: 'Email',
+                type: 'line',
+                smooth: true,
+                data: [120, 132, 101, 134, 90, 230, 210]
+                },
+                {
+                name: 'Union Ads',
+                type: 'line',
+                smooth: true,
+                data: [220, 182, 191, 234, 290, 330, 310]
+                },
+                {
+                name: 'Video Ads',
+                type: 'line',
+                data: [150, 232, 201, 154, 190, 330, 410]
+                },
+                {
+                name: 'Direct',
+                type: 'line',
+                data: [320, 332, 301, 334, 390, 330, 320]
+                },
+                {
+                name: 'Search Engine',
+                type: 'line',
+                smooth: true,
+                data: [820, 932, 901, 934, 1290, 1330, 1320]
+                },
+                {
+                type: 'line',
+                name: 'myLine',
+                markLine: {
+                    symbol: 'your custom symbol',
+                    data: [
+                    {
+                        name: 'name',
+                        xAxis: "2024-01-04",
+                        symbol: 'none', // <- disable the start point symbol here
+                    }
+                    ]
+                }
+                }
+            ]
+        };
+                
+        // Display the chart using the configuration items and data just specified.
+        option && myChart.setOption(option);
+    </script>
+    <script>
+        var chart1Dom = document.getElementById('chart1');
+        var chart1 = echarts.init(chart1Dom);
+        let option1;
+        debugger
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:cattype_month_JSON" %}?pk1=116&pk2=-117&pk3=-125', function(data) {
+                    option1 = data
+                    option1 && chart1.setOption(option1);
+                    }
+                );
+            }
+        );
+
+
+
+    </script>
 {% endblock %}

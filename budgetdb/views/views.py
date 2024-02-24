@@ -933,6 +933,7 @@ def echartOptionTimeline2JSON(request):
 
 
 class EChartTimelineView(LoginRequiredMixin, TemplateView):
+    # template_name = 'budgetdb/echart_template.html'
     template_name = 'budgetdb/echart_template_json.html'
     echart_title = 'Account Timeline'
 
@@ -1000,7 +1001,7 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         decorated = []
         for account in self.object_list:
-            account.balance = account.balance_by_EOD(datetime.today())
+            account.balance = account.get_balance(datetime.today()).balance
             if account.owner != get_current_user():
                 account.nice_name = f'{account.account_host} - {account.owner} - {account.name}'
             else:
@@ -1203,6 +1204,79 @@ class CatTypeListView(MyListView):
 class CatTypeDetailView(MyDetailView):
     model = CatType
     template_name = 'budgetdb/cattype_detail.html'
+
+
+def CatTypeMonthJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+
+    today = date.today()
+    series = []
+    total = Decimal('0.00')
+    i = 1
+    param = request.GET.get(f'pk{i}', None)    
+    while param is not None:
+        id = param
+        sign = 1
+        cattype = None
+        if id[0] == '-':
+            sign = -1
+            id = id.replace('-','',1)
+        try:
+            cattype = CatType.view_objects.get(pk=id)
+            value = sign * cattype.get_month_total(today)
+            total = total + value
+            linedict = {
+                'name': cattype.name,
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [value],
+            }
+            series.append(linedict)
+        except ObjectDoesNotExist:
+            continue
+        
+        i = i + 1
+        param = request.GET.get(f'pk{i}', None)    
+
+
+    linedict = {
+                'name': 'balance',
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [total],
+            }
+    series.append(linedict)
+
+    month_name = today.strftime("%B")
+
+
+    data = {
+ 
+        "tooltip": {
+            "trigger": 'axis',
+            "axisPointer": {
+         "type": 'shadow' 
+            }
+        },
+        'xAxis': {
+            'type': 'value',
+            'position': 'top',
+            'splitLine': {
+                'lineStyle': {
+                    'type': 'dashed'
+                }
+            }
+        },
+        'yAxis': {
+            'type': 'category',
+            'show': False,
+            'data': [month_name]
+        },
+        'series': series
+    
+    }
+    return JsonResponse(data, safe=False)
 
 
 class CatTypeUpdateView(MyUpdateView):

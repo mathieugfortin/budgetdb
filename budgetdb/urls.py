@@ -42,7 +42,7 @@ register_converter(TwoDigitDayConverter, 'dd')
 app_name = 'budgetdb'
 
 urlpatterns = [
-    path('', views.IndexView.as_view(), name='home'),
+    path('', views.IndexView.as_view(), name='emptyhome'),
 
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
@@ -57,7 +57,7 @@ urlpatterns = [
     # path('timeline2/', views.timeline2.as_view(), name='timeline_chart_old'),
     # path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json_old'),
 
-    path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
+    path('dashboard/', views.DashboardView.as_view(), name='home'),
 
     # User
     path('user/signup/', views.UserSignupView.as_view(),
@@ -240,6 +240,8 @@ urlpatterns = [
          name='list_cattype'),
     path('cattype/<int:pk>/', views.CatTypeDetailView.as_view(),
          name='details_cattype'),
+    path('cattype/JSONcard/month/', views.CatTypeMonthJSON,
+         name='cattype_month_JSON'),
     path('cattype/add/', views.CatTypeCreateView.as_view(),
          name='create_cattype'),
     path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),

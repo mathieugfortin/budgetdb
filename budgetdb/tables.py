@@ -87,6 +87,14 @@ def set_class_transaction(record):
         row_class = row_class + 'NORECEIPT'
     return row_class
 
+def get_balance_token(balance):
+    balance_str = ''
+    if balance is None:
+        return '0'
+    if balance < 0:
+        balance_str = 'N'
+    balance_str = balance_str + str(abs(balance)).replace('.','',1)
+    return balance_str
 
 class AccountActivityListTable(tables.Table):
     addtransaction = tables.Column(verbose_name='', orderable=False, empty_values=())
@@ -111,7 +119,7 @@ class AccountActivityListTable(tables.Table):
     previous_balance = None
     previous_amount = None
     previous_source = None
-    
+    linebalance = None
 
     class Meta:
         model = Transaction
@@ -119,7 +127,7 @@ class AccountActivityListTable(tables.Table):
                   "cat1", "cat2", "amount_actual", "verified", "receipt", "mybalance", "addaudit")
         attrs = {"class": "table table-hover"}
         order_by = ("-date_actual")
-        per_page = 50
+        per_page = 150
         row_attrs = {
             "id": lambda record: f'T{record.pk}',
             "class": lambda record: set_class_transaction(record)
@@ -131,9 +139,7 @@ class AccountActivityListTable(tables.Table):
         self.begin = kwargs.pop('begin') 
         self.end = kwargs.pop('end') 
         self.account_currency_symbol = self.account.currency.symbol
-        #  sub account will bug here *********** zbrocoli
-        self.account.clean_balances(self.begin, self.end)
-        self.balances = AccountBalanceDB.objects.filter(account=self.account.id, db_date__gte=self.begin, db_date__lte=self.end)
+        self.balances = self.account.get_balances(self.begin, self.end)
         super().__init__(*args, **kwargs)
 
     def render_statement(self, record):
@@ -285,6 +291,7 @@ class AccountActivityListTable(tables.Table):
                 self.previous_amount = record.amount_actual
                 self.previous_balance = balance
                 self.previous_source = record.account_source
+            self.linebalance = balance
             return format_html(f'{balance}{self.account_currency_symbol}') 
 
     def render_addtransaction(self, value, record):
@@ -303,7 +310,7 @@ class AccountActivityListTable(tables.Table):
     def render_addaudit(self, value, record):
         if record.audit:
             return format_html(f'{record.amount_actual}{self.account_currency_symbol}')        
-        balance_str = record.get_balance_token()
+        balance_str = get_balance_token(self.linebalance)
         reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",
                               kwargs={"pk": self.account.id,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),

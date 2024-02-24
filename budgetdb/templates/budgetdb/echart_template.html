@@ -19,75 +19,62 @@
         var option;
         // Specify the configuration items and data for the chart
         option = {
-            title: {
-                text: 'Stacked Line'
-            },
-            tooltip: {
-                trigger: 'axis'
-            },
-            legend: {
-                data: ['Email', 'Union Ads', 'Video Ads', 'Direct', 'Search Engine']
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
+    "title": {
+        "text": "February balance"
+    },
+    "tooltip": {
+    "trigger": 'axis',
+    "axisPointer": {
 
-            xAxis: {
+      "type": 'shadow' 
+    }
+},
+    "xAxis": {
+        "type": "value",
+        "position": "top",
+
+    },
+    "yAxis": {
+        "type": "category",
+
+        "data": [
+            "February",
+        ]
+    },
+    "series": [
+        {
+            "name": "Balance",
+            "type": "bar",
             
-                boundaryGap: false,
-                data: ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", "2024-01-06", "2024-01-07"]
-            },
-            yAxis: {
-                type: 'value'
-            },
-            series: [
-                {
-                name: 'Email',
-                type: 'line',
-                smooth: true,
-                data: [120, 132, 101, 134, 90, 230, 210]
-                },
-                {
-                name: 'Union Ads',
-                type: 'line',
-                smooth: true,
-                data: [220, 182, 191, 234, 290, 330, 310]
-                },
-                {
-                name: 'Video Ads',
-                type: 'line',
-                data: [150, 232, 201, 154, 190, 330, 410]
-                },
-                {
-                name: 'Direct',
-                type: 'line',
-                data: [320, 332, 301, 334, 390, 330, 320]
-                },
-                {
-                name: 'Search Engine',
-                type: 'line',
-                smooth: true,
-                data: [820, 932, 901, 934, 1290, 1330, 1320]
-                },
-                {
-                type: 'line',
-                name: 'myLine',
-                markLine: {
-                    symbol: 'your custom symbol',
-                    data: [
-                    {
-                        name: 'name',
-                        xAxis: "2024-01-04",
-                        symbol: 'none', // <- disable the start point symbol here
-                    }
-                    ]
-                }
-                }
+
+            "data": [
+                "12406.01",
+             
             ]
-        };
+        },
+        {
+            "name": "Depenses",
+            "type": "bar",
+           
+
+            "data": [
+               
+                "-7755.11",
+             
+            ]
+        },
+        {
+            "name": "Revenu",
+            "type": "bar",
+           
+
+            "data": [
+               
+                "20161.12"
+            ]
+        }
+    ]
+};
                 
         // Display the chart using the configuration items and data just specified.
         option && myChart.setOption(option);
