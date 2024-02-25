@@ -138,15 +138,17 @@ urlpatterns = [
          name='list_account_activity2'),
     path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
-    path('account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
+    path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.AccountTransactionListView.as_view(),
+         name='list_account_activity_period'),
+    path('transaction/update_modal/<int:accountpk>/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
-    path('account/listactivity/<int:pk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+    path('transaction/add_audit_modal/<int:accountpk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
          name='list_account_activity_create_audit_from_account'),
-    path('account/listactivity/<int:pk>/audit_add/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+    path('transaction/add_audit_modal/<int:accountpk>/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
          name='list_account_activity_create_audit_from_account'),
-    path('account/listactivity/add/<int:pk>/<slug:date>/', views.TransactionCreateModal.as_view(),
+    path('transaction/add_modal/<int:accountpk>/<slug:date>/', views.TransactionCreateModal.as_view(),
          name='create_transaction_from_date_account_modal'),
-    path('account/listactivity/add/<int:pk>/', views.TransactionCreateModal.as_view(),
+    path('transaction/add_modal/<int:accountpk>/', views.TransactionCreateModal.as_view(),
          name='create_transaction_from_date_account_modal'),
 
     ##########################################################################################################
@@ -262,6 +264,8 @@ urlpatterns = [
          name='create_statement'),
     path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
+    path('statement/addtransactions/<int:pk>/', views.StatementAddTransactionsRedirectView.as_view(),
+         name='add_transactions_to_statement'),
 
     ##########################################################################################################
     # Template

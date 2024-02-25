@@ -239,10 +239,10 @@ class Preference(models.Model):
         "dark": "Dark",
     }
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    start_interval = models.DateField(blank=True)
-    end_interval = models.DateField(blank=True)
-    max_interval_slider = models.DateField(blank=True, null=True)
-    min_interval_slider = models.DateField(blank=True, null=True)
+    slider_start = models.DateField(blank=True)
+    slider_stop = models.DateField(blank=True)
+    timeline_stop = models.DateField(blank=True, null=True)
+    timeline_start = models.DateField(blank=True, null=True)
     currencies = models.ManyToManyField("Currency", related_name="currencies")
     currency_prefered = models.ForeignKey("Currency",
                                           on_delete=models.DO_NOTHING,
@@ -1434,18 +1434,18 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         else:    
             return True
 
-    def createTransactions(self, n=400, begin_interval=None, interval_length_months=60, end_interval=None):
+    def createTransactions(self, n=400, begin_interval=None, interval_length_months=60, slider_stop=None):
         if begin_interval is None:
             begin_interval = self.repeat_start
 
         # make sure we generate at least up to the end of the timeline
         user = get_current_user()
         preference = Preference.objects.get(user=user.id)
-        if end_interval is None:
-            end_interval = preference.max_interval_slider
-        default_end_interval = begin_interval + relativedelta(months=interval_length_months)
-        if default_end_interval < end_interval:
-            delta = default_end_interval - end_interval
+        if slider_stop is None:
+            slider_stop = preference.timeline_stop
+        default_slider_stop = begin_interval + relativedelta(months=interval_length_months)
+        if default_slider_stop < slider_stop:
+            delta = default_slider_stop - slider_stop
             interval_length_months += 1 - round(delta.days / 30)
 
         transaction_dates = self.listPotentialTransactionDates(n=n,

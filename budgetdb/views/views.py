@@ -59,13 +59,13 @@ def next_color(color_list=COLORS):
 
 
 def PreferenceSetIntervalJSON(request):
-    start_interval = request.POST.get("begin_interval", None)
-    end_interval = request.POST.get("end_interval", None)
+    slider_start = request.POST.get("begin_interval", None)
+    slider_stop = request.POST.get("slider_stop", None)
     preference = Preference.objects.get(user=request.user.id)
-    if start_interval:
-        preference.start_interval = datetime.strptime(start_interval, "%Y-%m-%d")
-    if end_interval:
-        preference.end_interval = datetime.strptime(end_interval, "%Y-%m-%d")
+    if slider_start:
+        preference.slider_start = datetime.strptime(slider_start, "%Y-%m-%d")
+    if slider_stop:
+        preference.slider_stop = datetime.strptime(slider_stop, "%Y-%m-%d")
     preference.save()
     return HttpResponse(status=200)
 
@@ -104,23 +104,18 @@ def PreferenceGetJSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     preference = Preference.objects.get(user=request.user.id)
-    transactions = Transaction.view_objects.all().order_by("date_actual")
-
-    if (preference.min_interval_slider is None):
-        start_slider = transactions.first().date_actual
-    else:
-        start_slider = preference.min_interval_slider
-
-    if (preference.max_interval_slider is None):
-        stop_slider = transactions.last().date_actual
-    else:
-        stop_slider = preference.max_interval_slider
+    
+    if (preference.timeline_start is None or preference.timeline_stop is None):
+        transactions = Transaction.view_objects.all().order_by("date_actual")
+        preference.timeline_start = preference.timeline_start or transactions.first().date_actual
+        preference.timeline_stop = preference.timeline_stop or transactions.last().date_actual
+        preference.save()
 
     data = {
-        'start_interval': preference.start_interval,
-        'end_interval': preference.end_interval,
-        'begin_data': start_slider,
-        'end_data': stop_slider,
+        'slider_start': preference.slider_start,
+        'slider_stop': preference.slider_stop,
+        'timeline_start': preference.timeline_start,
+        'timeline_stop': preference.timeline_stop,
         # 'begin_data': transactions.first().date_actual,
         # 'end_data': transactions.last().date_actual,
     }
@@ -496,8 +491,8 @@ def timeline2JSON(request):
         accounts = Account.view_objects.filter(account_categories=accountcategoryID).order_by('account_host', 'name')
 
     preference = get_object_or_404(Preference, user=request.user.id)
-    begin = preference.start_interval
-    end = preference.end_interval
+    begin = preference.slider_start
+    end = preference.slider_stop
 
     colors = next_color()
 
@@ -578,12 +573,12 @@ class CatTotalPieChart(TemplateView):
         preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
-            end = preference.end_interval
+            end = preference.slider_stop
         else:
             end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
-            begin = preference.start_interval
+            begin = preference.slider_start
         else:
             begin = datetime.strptime(begin, "%Y-%m-%d")
 
@@ -606,12 +601,12 @@ class CatTotalBarChart(TemplateView):
         preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
-            end = preference.end_interval
+            end = preference.slider_stop
         else:
             end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
-            begin = preference.start_interval
+            begin = preference.slider_start
         else:
             begin = datetime.strptime(begin, "%Y-%m-%d")
 
@@ -738,6 +733,10 @@ class MyCreateView(LoginRequiredMixin, CreateView):
 
 
 class MyDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    task = 'View'
+    url = ''
+    title = ''
+
     def test_func(self):
         try:
             view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
@@ -752,6 +751,14 @@ class MyDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         my_object = super().get_object(queryset=queryset)
         my_object.editable = my_object.can_edit()
         return my_object
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = self.model._meta.verbose_name
+        context["task"] = self.task
+        context["url"] = self.url
+        context["title"] = self.title
+        return context        
 
 
 class MyListView(LoginRequiredMixin, SingleTableView):
@@ -815,8 +822,8 @@ def echartOptionTimeline2JSON(request):
         accounts = Account.view_objects.filter(account_categories=accountcategory.pk).order_by('account_host', 'name')
 
     preference = get_object_or_404(Preference, user=request.user.id)
-    begin = preference.start_interval
-    end = preference.end_interval
+    begin = preference.slider_start
+    end = preference.slider_stop
 
 
     series = []  # lines
@@ -1444,28 +1451,69 @@ class StatementListView(MyListView):
 class StatementDetailView(MyDetailView):
     model = Statement
     template_name = 'budgetdb/statement_detail.html'
+    date_min = None
+    date_max = None
 
     def get_object(self, queryset=None):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
         statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
+        self.date_min = statement.included_transactions.first().date_actual
+        self.title = f'Statement {statement.statement_date} for {statement.account}'
         transactions_sum = 0
         for transaction in statement.included_transactions:
             transactions_sum += transaction.amount_actual
         statement.transactions_sum = transactions_sum
         statement.error = transactions_sum - statement.balance
-        min_date = statement.statement_date - relativedelta(months=2)
-        statement.possible_transactions = Transaction.view_objects.filter(account_source=statement.account,
-                                                                          date_actual__lte=statement.statement_date,
-                                                                          date_actual__gt=min_date,
+        if statement.error < 0:
+            statement.errorsign = '-'
+            statement.error = -statement.error
+        
+        self.date_max = statement.statement_date
+        statement.possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
+                                                                          date_actual__lte=self.date_max,
+                                                                          date_actual__gt=self.date_min,
                                                                           statement__isnull=True,
                                                                           audit=False
                                                                           ).order_by('date_actual')
+                                                                          
+        if statement.possible_transactions.count() > 0 and self.date_min > statement.possible_transactions.first().date_actual:
+            self.date_min = statement.possible_transactions.first().date_actual
         transactions_sumP = 0
         for transaction in statement.possible_transactions:
             transactions_sumP += transaction.amount_actual
         statement.transactions_sumP = transactions_sumP
         return statement
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["date1"] = self.date_min
+        context["date2"] = self.date_max
+        return context  
+
+
+class StatementAddTransactionsRedirectView(RedirectView):
+    permanent = False
+
+    def get_redirect_url(*args, **kwargs):
+        pk = kwargs.get('pk')
+        model = Statement
+        try:
+            statement = model.admin_objects.get(pk=pk)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        min_date = statement.statement_date - relativedelta(days=40)
+        possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
+                                                                date_actual__lte=statement.statement_date,
+                                                                date_actual__gt=min_date,
+                                                                statement__isnull=True,
+                                                                audit=False
+                                                                ).update(statement=pk)
+
+
+        viewname = 'budgetdb:'
+        viewname = viewname + 'details_' + model._meta.model_name
+        return reverse_lazy(viewname, kwargs={'pk': pk})
 
 
 class StatementUpdateView(LoginRequiredMixin, UpdateView):
@@ -1551,8 +1599,8 @@ class AccountTransactionListViewOLD(LoginRequiredMixin, UserPassesTestMixin, Lis
     def get_queryset(self):
         pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
+        begin = preference.slider_start
+        end = preference.slider_stop
 
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
@@ -1571,7 +1619,7 @@ class AccountTransactionListViewOLD(LoginRequiredMixin, UserPassesTestMixin, Lis
         context = super().get_context_data(**kwargs)
         pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
-        year = preference.end_interval.year
+        year = preference.slider_stop.year
         decorated = []
         for transaction in self.object_list:
             transaction.show_currency = False
@@ -1595,6 +1643,9 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
     template_name = 'budgetdb/account_transactions_list.html'
     begin = None
     end = None
+    year = None
+    create = False
+    account = None
     # SingleTableView.table_pagination = False
 
     def test_func(self):
@@ -1606,17 +1657,15 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs.get('pk')
-        preference = Preference.objects.get(user=self.request.user.id)
-        year = preference.end_interval.year
-        context['pk'] = pk
-        context['year'] = year
-        context['account_name'] = Account.objects.get(id=pk).name
+       
+        context['pk'] = self.account.pk
+        context['year'] = self.year
+        context['account_name'] = self.account.name
         return context
 
     def get_table_kwargs(self):
        return {
-           'account_view': self.kwargs.get('pk'),
+           'account_view': self.account.pk,
            'begin': self.begin,
            'end': self.end,
        }
@@ -1624,21 +1673,21 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
     def get_queryset(self):
         pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
-        self.begin = preference.start_interval
-        self.end = preference.end_interval
-        self.title = Account.objects.get(pk=pk).name
+        date1 = self.kwargs.get('date1')
+        date2 = self.kwargs.get('date2')
+        if date1 is not None and date2 is not None:
+            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
+            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
+            preference.slider_start = self.begin
+            preference.slider_stop = self.end
+            preference.save() 
+        else:
+            self.begin = preference.slider_start
+            self.end = preference.slider_stop
+        self.year = preference.slider_stop.year
+        self.account = Account.objects.get(pk=pk)
+        self.title = self.account.name
 
-        beginstr = self.request.GET.get('begin', None)
-        endstr = self.request.GET.get('end', None)
-        if beginstr is not None:
-            self.begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-            self.end = self.begin + relativedelta(months=1)
-        if endstr is not None:
-            self.end = datetime.strptime(endstr, "%Y-%m-%d").date()
-        if self.end < self.begin:
-            self.end = self.begin + relativedelta(months=1)
-
-        # events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
         childaccounts = Account.view_objects.filter(account_parent_id=pk, is_deleted=False)
         accounts = childaccounts | Account.view_objects.filter(pk=pk)
         events_source = Transaction.view_objects.filter(account_source__in=accounts,date_actual__gte=self.begin,date_actual__lte=self.end)
@@ -1700,10 +1749,10 @@ class UserSignupView(CreateView):
         user = form.save()
         preference = Preference.objects.create(
             user=user,
-            start_interval=datetime.today().date()-relativedelta(months=6),
-            end_interval=datetime.today().date()+relativedelta(months=6),
-            min_interval_slider=datetime.today().date()-relativedelta(months=6),
-            max_interval_slider=datetime.today().date()+relativedelta(months=6),
+            slider_start=datetime.today().date()-relativedelta(months=6),
+            slider_stop=datetime.today().date()+relativedelta(months=6),
+            timeline_start=datetime.today().date()-relativedelta(months=6),
+            timeline_stop=datetime.today().date()+relativedelta(months=6),
             currency_prefered = Currency.objects.get(name_short='CAD')
             )
         preference.save()
@@ -1784,8 +1833,8 @@ class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
             stop = transactions.last().date_actual
             preference = Preference.objects.create(
                 user=user,
-                start_interval=start,
-                end_interval=stop,
+                slider_start=start,
+                slider_stop=stop,
                 begin_data=start,
                 end_data=stop
                 )

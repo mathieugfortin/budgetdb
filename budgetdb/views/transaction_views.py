@@ -185,10 +185,11 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
     form_class = TransactionModalForm
     task = 'Create'
     user = None
+    account = None
 
     def test_func(self):
         try:
-            admin_object = Account.admin_objects.get(pk=self.kwargs.get('pk'))
+            self.account = Account.admin_objects.get(pk=self.kwargs.get('accountpk'))
         except ObjectDoesNotExist:
             raise PermissionDenied
         return True
@@ -211,10 +212,9 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         form_date = self.kwargs.get('date')
         if form_date is None:
             form_date = datetime.now().strftime("%Y-%m-%d")
-        account = get_object_or_404(Account, id=self.kwargs.get('pk'))
         preference = get_object_or_404(Preference, user=self.user)
         form.initial['date_actual'] = form_date
-        form.initial['account_source'] = account
+        form.initial['account_source'] = self.account
         form.initial['currency'] = preference.currency_prefered.id
         form.initial['amount_actual_foreign_currency'] = Decimal(0)
         form.initial['audit'] = False
@@ -222,7 +222,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         return form
 
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('pk')})
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.account.pk})
 
 
 class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpdateView):
@@ -272,9 +272,10 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
     form_class = TransactionModalForm
     task = 'Create'
     user = None
+    account = None
 
     def test_func(self):
-        view_object = get_object_or_404(Account, pk=self.kwargs.get('pk'))
+        self.account = get_object_or_404(Account, pk=self.kwargs.get('accountpk'))
         return view_object.can_edit()
 
     def handle_no_permission(self):
@@ -301,11 +302,9 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
             length = len(form_amount)
             clean_amount = form_amount[:length-2] + '.' + form_amount[-2:]
             form.initial['amount_actual'] = clean_amount
-        account_id = self.kwargs.get('pk')
-        account = get_object_or_404(Account, id=account_id)
         preference = get_object_or_404(Preference, user=self.user)
         form.initial['date_actual'] = form_date
-        form.initial['account_source'] = account
+        form.initial['account_source'] = self.account
         form.initial['audit'] = True
         form.initial['verified'] = True
         form.initial['currency'] = preference.currency_prefered
@@ -321,7 +320,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         return context
 
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('pk')})
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.account.pk})
 
 
 ###################################################################################################################
@@ -520,8 +519,8 @@ class TransactionListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
+        begin = preference.slider_start
+        end = preference.slider_stop
 
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)

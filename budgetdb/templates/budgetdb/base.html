@@ -362,11 +362,11 @@
 
     $(document).ready(function(){
             $.getJSON('{% url "budgetdb:preferences_json" %}', function(result){
-                min = parseDateIS(result.begin_data);
-                max = parseDateIS(result.end_data);
-                begin_interval = result.start_interval;
+                min = parseDateIS(result.timeline_start);
+                max = parseDateIS(result.timeline_stop);
+                begin_interval = result.slider_start;
                 from = parseDateIS(begin_interval);
-                end_interval = result.end_interval;
+                end_interval = result.slider_stop;
                 to = parseDateIS(end_interval);
                 $(".js-range-slider").ionRangeSlider({
                     type: "double",

@@ -146,11 +146,10 @@ class AccountActivityListTable(tables.Table):
         field = ''
         if record.statement is not None:
             reverse_url = reverse("budgetdb:details_statement", kwargs={"pk": record.statement.id})
-            field = field + (f'<button type="button" '
-                f'class="update-transaction btn btn-outline-primary btn-sm" '
-                f'data-form-url="{reverse_url}">'
+            field = field + (f'<a class="btn btn-outline-primary btn-sm" '
+                f'href="{reverse_url}">'
                 f'{record.statement}'
-                f'</button>')
+                f'</a>')
         return format_html(field)
 
     def render_receipt(self, record):
@@ -195,7 +194,7 @@ class AccountActivityListTable(tables.Table):
                 f'{record.vendor}'
                 f'</button>')
         reverse_url = reverse("budgetdb:account_listview_update_transaction_modal", kwargs={"pk": record.id,
-                                                                                            "accountid": self.account.id})
+                                                                                            "accountpk": self.account.pk})
         field = field + (f'<button type="button" '
             f'class="update-transaction btn btn-secondary btn-sm" '
             f'data-form-url="{reverse_url}">'
@@ -234,7 +233,7 @@ class AccountActivityListTable(tables.Table):
                 f'<span class="material-symbols-outlined"><span class="material-symbols-outlined">dynamic_feed</span></span>'
                 f'</a>')
 
-        if record.account_destination is not None and record.account_destination.id != self.account.id:
+        if record.account_destination is not None and record.account_destination != self.account:
             reverse_url = reverse("budgetdb:list_account_activity",
                                        kwargs={"pk": record.account_destination.id,}
                                        )
@@ -245,7 +244,7 @@ class AccountActivityListTable(tables.Table):
                 f'<span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_right</span>'
                 f'{record.account_destination}'
                 f'</a>')
-        if record.account_source is not None and record.account_source.id != self.account.id:
+        if record.account_source is not None and record.account_source != self.account:
             reverse_url = reverse("budgetdb:list_account_activity",
                                        kwargs={"pk": record.account_source.id,}
                                        )
@@ -267,7 +266,7 @@ class AccountActivityListTable(tables.Table):
         if record.audit:
             return format_html('')
         if not (record.budget_only is True and record.date_actual <= date.today()):
-            if record.account_source_id == self.account.id:
+            if record.account_source == self.account:
                 value = value * -1
         else:
             return format_html('')         
@@ -296,7 +295,7 @@ class AccountActivityListTable(tables.Table):
 
     def render_addtransaction(self, value, record):
         reverse_url = reverse("budgetdb:create_transaction_from_date_account_modal",
-                              kwargs={"pk": self.account.id,
+                              kwargs={"accountpk": self.account.pk,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),
                                       }
                              )
@@ -312,7 +311,7 @@ class AccountActivityListTable(tables.Table):
             return format_html(f'{record.amount_actual}{self.account_currency_symbol}')        
         balance_str = get_balance_token(self.linebalance)
         reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",
-                              kwargs={"pk": self.account.id,
+                              kwargs={"accountpk": self.account.pk,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),
                                       "amount": balance_str,
                                       }

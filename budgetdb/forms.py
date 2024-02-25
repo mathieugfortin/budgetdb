@@ -904,19 +904,19 @@ class PreferenceForm(forms.ModelForm):
         model = Preference
         fields = '__all__'
         widgets = {
-            'start_interval': forms.DateInput(
+            'slider_start': forms.DateInput(
                 format=('%Y-%m-%d'),
                 attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
             ),
-            'end_interval': forms.DateInput(
+            'slider_stop': forms.DateInput(
                 format=('%Y-%m-%d'),
                 attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
             ),
-            'max_interval_slider': forms.DateInput(
+            'timeline_stop': forms.DateInput(
                 format=('%Y-%m-%d'),
                 attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
             ),
-            'min_interval_slider': forms.DateInput(
+            'timeline_start': forms.DateInput(
                 format=('%Y-%m-%d'),
                 attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
             ),
@@ -931,10 +931,10 @@ class PreferenceForm(forms.ModelForm):
         self.helper = FormHelper()
         self.fields['favorite_accounts'].queryset = Account.view_objects.all()
         self.fields['currency_prefered'].label = 'Prefered Currency'
-        self.fields['min_interval_slider'].label = 'Timeline Beginning'
-        self.fields['max_interval_slider'].label = 'Timeline End'
-        self.fields['start_interval'].label = 'Start of time selection'
-        self.fields['end_interval'].label = 'End of time selection'
+        self.fields['timeline_start'].label = 'Timeline Beginning'
+        self.fields['timeline_stop'].label = 'Timeline End'
+        self.fields['slider_start'].label = 'Start of time selection'
+        self.fields['slider_stop'].label = 'End of time selection'
         
         self.helper.layout = Layout(
             Div(
@@ -942,13 +942,13 @@ class PreferenceForm(forms.ModelForm):
                 css_class='row'
             ),
             Div(
-                Div('start_interval', css_class='form-group col-md-4  '),
-                Div('end_interval', css_class='form-group col-md-4  '),
+                Div('slider_start', css_class='form-group col-md-4  '),
+                Div('slider_stop', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
-                Div('min_interval_slider', css_class='form-group col-md-4  '),
-                Div('max_interval_slider', css_class='form-group col-md-4  '),
+                Div('timeline_start', css_class='form-group col-md-4  '),
+                Div('timeline_stop', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(

@@ -1,10 +1,10 @@
 {% extends "budgetdb/base.html" %}
-
-{% block title %}Statement - {{ statement.account }} for {{ statement.statement_date }}{% endblock %}
+{% block head_comment %}<!--statement_detail template-->{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
 
-<h1>{{ statement.account }}</h1>
+<h1>Statement {{ statement.statement_date|date:"Y-m-d"  }} for <a href="{% url 'budgetdb:list_account_activity_period' statement.account.id date1 date2 %}" >{{ statement.account.name }}</a></h1>
 
 <table class="table">
     <thead class="thead-dark">
@@ -16,19 +16,25 @@
     </tr>
     </thead>
     <tr>
-        <td>{{ statement.statement_date }}</td>
+        <td>{{ statement.statement_date|date:"Y-m-d"  }}</td>
         <td>{{ statement.balance }}$</td>
         <td>{{ statement.minimum_payment }}$</td>
-        <td>{{ statement.statement_due_date }}</td>
+        <td>{{ statement.statement_due_date|date:"Y-m-d"  }}</td>
     </tr>
     {% if statement.error != 0 %}
     <tr>
         <td></td>
         <td>Transactions total: {{ statement.transactions_sum }}$</td>
-        <td>error: {{ statement.error }}$ </td>
+        {% if statement.errorsign == '-' %}
+            <td>error: Missing transactions for {{ statement.error }}$ </td>
+        {% else %}
+            <td>error: Too many transactions by {{ statement.error }}$ </td>
+        {% endif %}
         <td></td>
     </tr>
     {% endif %}
+
+
 
 </table>
 
@@ -57,7 +63,7 @@
     </thead>
     {% for transaction in statement.included_transactions %}
     <tr>
-        <td>{{ transaction.date_actual }}</td>
+        <td>{{ transaction.date_actual|date:"Y-m-d"  }}</td>
         <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
         <td>{{ transaction.amount_actual }}$</td>
     </tr>
@@ -79,11 +85,14 @@
     </tr>
     </thead>
     {% for transaction in statement.possible_transactions %}
-    <tr>
-        <td>{{ transaction.date_actual }}</td>
-        <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
-        <td>{{ transaction.amount_actual }}$</td>
-    </tr>
+        <tr>
+            <td>{{ transaction.date_actual|date:"Y-m-d"  }}</td>
+            <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
+            <td>{{ transaction.amount_actual }}$</td>
+        </tr>
+        {% if forloop.last and statement.editable %}
+            <a href="{% url 'budgetdb:add_transactions_to_statement' statement.id %}" class="btn btn-outline-primary" role="button"> Add these transactions to the statement</a>
+        {% endif %}
     {% endfor %}
 </table>
 

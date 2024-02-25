@@ -65,7 +65,7 @@ class budgetedEventsAnormal3ListView(MyListView):
         # last generated transaction not set
         needs_generation = BudgetedEvent.view_objects.filter(generated_interval_stop__isnull=True).distinct()
         # last generation is before the end of the timeline
-        needs_generation = needs_generation | BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.end_interval).distinct()
+        needs_generation = needs_generation | BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.slider_stop).distinct()
         # only those that haven't reached the end (repeat_stop) of the recurrence
         not_finished = [be.id for be in needs_generation if be.isGenerateNeeded()]
         return needs_generation.filter(id__in=not_finished)
