@@ -60,7 +60,7 @@ def next_color(color_list=COLORS):
 
 def PreferenceSetIntervalJSON(request):
     slider_start = request.POST.get("begin_interval", None)
-    slider_stop = request.POST.get("slider_stop", None)
+    slider_stop = request.POST.get("end_interval", None)
     preference = Preference.objects.get(user=request.user.id)
     if slider_start:
         preference.slider_start = datetime.strptime(slider_start, "%Y-%m-%d")

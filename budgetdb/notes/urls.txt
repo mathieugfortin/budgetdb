@@ -7,7 +7,7 @@ output of: python manage.py show_urls > budgetdb/notes/urls.txt
 /en-ca/account/ListJSON	budgetdb.views.views.GetAccountViewListJSON	budgetdb:account_list_view_json
 /en-ca/account/add/	budgetdb.views.views.AccountCreateView	budgetdb:create_account
 /en-ca/account/details	budgetdb.views.views.AccountSummaryView	budgetdb:list_account_summary
-/en-ca/account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/	budgetdb.views.transaction_views.TransactionModalUpdate	budgetdb:account_listview_update_transaction_modal
+/en-ca/account/listactivity/<int:accountpk>/transaction_update_modal/<int:pk>/	budgetdb.views.transaction_views.TransactionModalUpdate	budgetdb:account_listview_update_transaction_modal
 /en-ca/account/listactivity/<int:pk>/	budgetdb.views.views.AccountTransactionListView	budgetdb:list_account_activity
 /en-ca/account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/	budgetdb.views.views.AccountTransactionListView	budgetdb:list_account_activity_period
 /en-ca/account/listactivity/<int:pk>/audit_add	budgetdb.views.transaction_views.TransactionAuditCreateModalViewFromDateAccount	budgetdb:list_account_activity_create_audit_from_account

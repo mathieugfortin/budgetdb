@@ -260,7 +260,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         return form
 
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('accountid')})
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('accountpk')})
 
 
 ###################################################################################################################

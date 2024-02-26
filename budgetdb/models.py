@@ -435,7 +435,7 @@ class Currency(models.Model):
 class AccountReport():
     def __init__(self,
                  accountname=None,
-                 accountid=None,
+                 accountpk=None,
                  isaccountparent=True,
                  year=None,
                  month=None,
@@ -454,7 +454,7 @@ class AccountReport():
         self.rate = Decimal(0.00) if rate is None else rate
         self.interests = Decimal(0.00) if interests is None else interests
         self.accountname = '' if accountname is None else accountname
-        self.accountid = accountid
+        self.accountpk = accountpk
         self.isaccountparent = isaccountparent
 
     def addmonthYearly(self, monthreport):
@@ -496,7 +496,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         user = get_current_user()
         preference = Preference.objects.get(user=user.id)
         star = ""
-        if preference.favorite_accounts.filter(favorites=preference.id, id=self.id):
+        if preference.favorite_accounts.filter(favorites=preference.id, id=self.pk):
             star = "★ "
         if user == self.owner:
             return star + self.account_host.name + " - " + self.name
@@ -508,7 +508,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def balance_by_EOD(self, dateCheck):
 
-        audit_today = Transaction.view_objects.filter(account_source_id=self.id, date_actual=dateCheck, audit=True).order_by('-date_actual')[:1]
+        audit_today = Transaction.view_objects.filter(account_source_id=self.pk, date_actual=dateCheck, audit=True).order_by('-date_actual')[:1]
         if audit_today.count() == 1:
             return audit_today.first().amount_actual
 
@@ -520,7 +520,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 balance += children.balance_by_EOD(dateCheck)
             return balance
 
-        closestAudit = Transaction.view_objects.filter(account_source_id=self.id, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
+        closestAudit = Transaction.view_objects.filter(account_source_id=self.pk, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
         if closestAudit.count() == 0:
             balance = Decimal(0.00)
             events = Transaction.view_objects.filter(date_actual__lte=dateCheck)
@@ -528,23 +528,23 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             balance = Decimal(closestAudit.first().amount_actual)
             events = Transaction.view_objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck)
 
-        events = events.filter(account_source_id=self.id) | events.filter(account_destination_id=self.id)
+        events = events.filter(account_source_id=self.pk) | events.filter(account_destination_id=self.pk)
 
         for event in events:
             amount = Decimal(0.00)
             if event.audit is True:
                 balance = event.amount_actual
             elif not (event.budget_only is True and event.date_actual <= date.today()):
-                if event.account_destination_id == self.id:
+                if event.account_destination_id == self.pk:
                     balance += event.amount_actual
-                if event.account_source_id == self.id:
+                if event.account_source_id == self.pk:
                     balance -= event.amount_actual
 
         return balance
 
     def build_yearly_report_unit(self, year):
         start_date = datetime(year, 1, 1)
-        account_list = Account.objects.filter(account_parent_id=self.id, is_deleted=False).exclude(date_closed__lt=start_date)
+        account_list = Account.objects.filter(account_parent_id=self.pk, is_deleted=False).exclude(date_closed__lt=start_date)
         previous_day = start_date + timedelta(days=-1)
 
         accountsReport = []
@@ -567,7 +567,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         else:
             # if the account has childrens, it can't have direct transactions, just sum the childrens
             # add a check so as to not add parent accounts
-            reports_totals_monthly = [AccountReport(accountname=self.name, accountid=self.id) for i in range(13)]
+            reports_totals_monthly = [AccountReport(accountname=self.name, accountpk=self.pk) for i in range(13)]
             for account_report in accountsReport:
                 # do not add parent accounts to the totals
                 if account_report[0].isaccountparent:
@@ -625,7 +625,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                                     withdrawals=withdrawals,
                                     interests=interests,
                                     rate=rate,
-                                    accountid=self.id,
+                                    accountpk=self.pk,
                                     isaccountparent=False,
                                     )
         return reportmonth
@@ -635,9 +635,9 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                                                  date_actual__lte=end_date,
                                                  is_deleted=False).order_by('date_actual', '-verified', 'audit','-id')
         childrens = self.account_children.filter(is_deleted=False)
-        account_list = Account.objects.filter(id=self.id, is_deleted=False) | childrens
+        account_list = Account.objects.filter(id=self.pk, is_deleted=False) | childrens
         events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
-        # balance = Decimal(Account.view_objects.get(id=self.id).balance_by_EOD(start_date))
+        # balance = Decimal(Account.view_objects.get(id=self.pk).balance_by_EOD(start_date))
         balance = Decimal(self.balance_by_EOD(start_date))
         for event in events:
             amount = Decimal(0.00)
@@ -653,9 +653,9 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                     event.audit_amount = str(event.amount_actual) + "$"
                 # event.viewname = f'{event._meta.app_label}:details_transaction_Audit'
             elif not (event.budget_only is True and event.date_actual <= date.today()):
-                if event.account_destination_id == self.id:
+                if event.account_destination_id == self.pk:
                     amount += event.amount_actual
-                if event.account_source_id == self.id:
+                if event.account_source_id == self.pk:
                     amount -= event.amount_actual
                 balance = balance + amount
                 event.calc_amount = str(amount) + "$"
@@ -698,7 +698,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         first_parent_dirty = AccountBalanceDB.objects.filter(account=self, db_date__gt=closest_parent_audit.db_date, db_date__lte=end_date,balance_is_dirty=True).order_by('db_date').first()
         if first_parent_dirty is not None:
             start_date = first_parent_dirty.db_date
-        childaccounts = Account.view_objects.filter(account_parent_id=self.id, is_deleted=False)
+        childaccounts = Account.view_objects.filter(account_parent_id=self.pk, is_deleted=False)
         if (childaccounts.count() > 0):
             # this is a parent, clean child accounts
             for child in childaccounts:
@@ -748,7 +748,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         days = AccountBalanceDB.objects.filter(account=self, db_date__gte=first_dirty_date, db_date__lte=end_date).order_by('db_date')
         
 
-        childaccounts = Account.view_objects.filter(account_parent_id=self.id, is_deleted=False)        
+        childaccounts = Account.view_objects.filter(account_parent_id=self.pk, is_deleted=False)        
         childrens_delta = AccountBalanceDB.objects.filter(account__in=childaccounts, db_date__gte=first_dirty_date, db_date__lte=end_date).values('db_date').annotate(Sum('delta'))
         childrens_delta.order('db_date')
         for day in days:
@@ -791,23 +791,23 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         sqlst = f"SELECT " \
                 f"row_number() OVER () as id, " \
                 f"c.db_date, " \
-                f"{self.id} as account_id, " \
+                f"{self.pk} as account_id, " \
                 f"ta.amount_actual AS audit, " \
                 f"sum(case " \
-                f"  when t.account_source_id={self.id} Then -t.amount_actual " \
-                f"  when t.account_destination_id={self.id} then t.amount_actual " \
+                f"  when t.account_source_id={self.pk} Then -t.amount_actual " \
+                f"  when t.account_destination_id={self.pk} then t.amount_actual " \
                 f"END) AS delta " \
                 f"FROM budgetdb.budgetdb_mycalendar c " \
                 f"left join budgetdb.budgetdb_transaction t ON c.db_date = t.date_actual " \
-                f"    AND (t.account_source_id={self.id} OR t.account_destination_id={self.id}) AND t.audit = 0 AND t.is_deleted = 0 " \
+                f"    AND (t.account_source_id={self.pk} OR t.account_destination_id={self.pk}) AND t.audit = 0 AND t.is_deleted = 0 " \
                 f"LEFT JOIN budgetdb.budgetdb_transaction ta ON c.db_date = ta.date_actual " \
-                f"    AND ta.audit = 1 AND ta.account_source_id = {self.id} AND ta.is_deleted = 0 " \
+                f"    AND ta.audit = 1 AND ta.account_source_id = {self.pk} AND ta.is_deleted = 0 " \
                 f"WHERE c.db_date BETWEEN '{start_date}' AND '{end_date}' " \
                 f"GROUP BY c.db_date " \
                 f"ORDER BY c.db_date "
 
         # get children account data
-        childaccounts = Account.view_objects.filter(account_parent_id=self.id, is_deleted=False)
+        childaccounts = Account.view_objects.filter(account_parent_id=self.pk, is_deleted=False)
         childcount = childaccounts.count()
         # is this all done with DB queries?  Can I do it all in memory?
         if (childcount > 0):  # If children, account is virtual, only check childrens
@@ -1246,20 +1246,43 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     def get_absolute_url(self):
         return reverse('budgetdb:details_transaction', kwargs={'pk': self.pk})
 
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        # save original values, when model is loaded from database,
+        # in a separate attribute on the model
+        instance._loaded_values = dict(zip(field_names, values))
+        
+        return instance
+
     def save(self, *args, **kwargs):
         
         if self.can_edit() is True:
             super(Transaction, self).save(*args, **kwargs)
-            # ZBROCOLI  need to do this on the OLD source and destination as well.....
-            if self.account_source is not None:
-                # adjust balance for the source account
-                #self.account_source.force_deltas()
-                dirty = AccountBalanceDB.objects.get(account=self.account_source, db_date=self.date_actual)                
+            
+            dirties = None
+            if self._loaded_values.get('date_actual') != self.date_actual:
+                #If the date changed, get the old accounts, old date
+                account_filter = [self._loaded_values.get('account_destination_id'),
+                                  self._loaded_values.get('account_source_id'),
+                                  ]
+                dirties = AccountBalanceDB.objects.filter(account__in=account_filter, db_date=self._loaded_values.get('date_actual'))                
+                # and new accounts, new date
+                account_filter = [self.account_source,
+                                  self.account_destination
+                                  ]
+                dirties = dirties | AccountBalanceDB.objects.filter(account__in=account_filter, db_date=self.date_actual)
+            else:
+                #same date, old and new for the same date
+                account_filter = [self._loaded_values.get('account_destination_id'),
+                                  self._loaded_values.get('account_source_id'),
+                                  self.account_source,
+                                  self.account_destination
+                                  ]
+                dirties = AccountBalanceDB.objects.filter(account__in=account_filter, db_date=self.date_actual)
+
+            for dirty in dirties:
                 dirty.set_delta_and_dirty()
-            if self.account_destination is not None:
-                # adjust balance for the destination account
-                dirty = AccountBalanceDB.objects.get(account=self.account_destination, db_date=self.date_actual)  
-                dirty.set_delta_and_dirty()              
 
 
 class BaseRecurring(models.Model):
@@ -1377,14 +1400,14 @@ class BaseRecurring(models.Model):
         return event_date_list
 
     def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id)
+        transactions = Transaction.view_objects.filter(budgetedevent_id=self.pk)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
     def listPreviousTransaction(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
-        transactions = Transaction.view_objects.filter(budgetedevent_id=self.id)
+        transactions = Transaction.view_objects.filter(budgetedevent_id=self.pk)
         transactions = transactions.filter(date_actual__lt=begin_interval)
         end_date = begin_interval - relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__gt=end_date).order_by('-date_actual')[:n]
@@ -1467,7 +1490,7 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
                                                          amount_planned=self.amount_planned,
                                                          ismanual=self.ismanual,
                                                          description=self.description,
-                                                         budgetedevent_id=self.id,
+                                                         budgetedevent_id=self.pk,
                                                          account_destination=self.account_destination,
                                                          account_source=self.account_source,
                                                          cat1=self.cat1,
@@ -1487,14 +1510,14 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         # don't delete if it's verified with a receipt
         # don't delete if it's flagged as deleted
         # don't delete is self is none, it's a new BE creation
-        if self.id is not None:
-            transactions = Transaction.view_objects.filter(budgetedevent=self.id, verified=False, receipt=False)
+        if self.pk is not None:
+            transactions = Transaction.view_objects.filter(budgetedevent=self.pk, verified=False, receipt=False)
             transactions.delete()
             self.generated_interval_start = None
             self.generated_interval_stop = None
 
     def lastTransactionDate(self):
-        transactions = Transaction.view_objects.filter(budgetedevent=self.id)
+        transactions = Transaction.view_objects.filter(budgetedevent=self.pk)
         last_transaction = transactions.order_by('-date_actual').first()
         if last_transaction is None:
             return "No Transaction"

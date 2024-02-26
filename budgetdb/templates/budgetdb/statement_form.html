@@ -23,12 +23,12 @@
 
 $("#id_account").change(function () {
       var url = "{% url 'budgetdb:ajax_load_payment_transaction' %}";
-      var accountid = $(this).val();  
+      var accountpk = $(this).val();  
 
       $.ajax({                       // initialize an AJAX request
         url: url,                   
         data: {
-          'account': accountid      
+          'account': accountpk      
         },
         success: function (data) {   // `data` is the return of the `load_payment_transaction` view function
           $("#id_payment_transaction").html(data);  // replace the contents of transaction input with the data that came from the server
