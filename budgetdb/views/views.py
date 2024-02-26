@@ -867,7 +867,7 @@ def echartOptionTimeline2JSON(request):
         if account.date_closed is not None:
             if account.date_closed < begin:
                 continue
-        series_label.append(f'{account.name}')
+        series_label.append(f'{account}')
         balances = account.get_balances(begin, end)
         linedata = []
         i = 0
@@ -876,7 +876,7 @@ def echartOptionTimeline2JSON(request):
             linedata.append(day.balance)
             i += 1
         linedict = {
-            'name': account.name,
+            'name': f'{account}',
             'type': 'line',
             'smooth': 'true',
             'areaStyle': {},
