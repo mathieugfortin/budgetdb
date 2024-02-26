@@ -750,7 +750,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
         childaccounts = Account.view_objects.filter(account_parent_id=self.pk, is_deleted=False)        
         childrens_delta = AccountBalanceDB.objects.filter(account__in=childaccounts, db_date__gte=first_dirty_date, db_date__lte=end_date).values('db_date').annotate(Sum('delta'))
-        childrens_delta.order('db_date')
         for day in days:
             if day.is_audit or day.audit != 0:
                 day.balance = day.audit
