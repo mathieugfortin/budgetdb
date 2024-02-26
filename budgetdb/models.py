@@ -1261,12 +1261,21 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
             super(Transaction, self).save(*args, **kwargs)
             
             dirties = None
-            if self._loaded_values.get('date_actual') != self.date_actual:
+            if hasattr(Transaction,'_loaded_values') is False:
+                old_source = None
+                old_destination = None
+                old_date = self.date_actual
+            else:
+                old_source = self._loaded_values.get('account_source_id')
+                old_destination = self._loaded_values.get('account_destination_id')
+                old_date = self._loaded_values.get('date_actual')
+            
+            if old_date != self.date_actual:
                 #If the date changed, get the old accounts, old date
-                account_filter = [self._loaded_values.get('account_destination_id'),
-                                  self._loaded_values.get('account_source_id'),
+                account_filter = [old_destination,
+                                  old_source,
                                   ]
-                dirties = AccountBalanceDB.objects.filter(account__in=account_filter, db_date=self._loaded_values.get('date_actual'))                
+                dirties = AccountBalanceDB.objects.filter(account__in=account_filter, db_date=old_date)
                 # and new accounts, new date
                 account_filter = [self.account_source,
                                   self.account_destination
@@ -1274,8 +1283,8 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
                 dirties = dirties | AccountBalanceDB.objects.filter(account__in=account_filter, db_date=self.date_actual)
             else:
                 #same date, old and new for the same date
-                account_filter = [self._loaded_values.get('account_destination_id'),
-                                  self._loaded_values.get('account_source_id'),
+                account_filter = [old_destination,
+                                  old_source,
                                   self.account_source,
                                   self.account_destination
                                   ]

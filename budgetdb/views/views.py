@@ -1457,12 +1457,21 @@ class StatementDetailView(MyDetailView):
     def get_object(self, queryset=None):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
-        statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
-        self.date_min = statement.included_transactions.first().date_actual
+        # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
+        self.date_min = statement.statement_date - timedelta(days=35)
         self.title = f'Statement {statement.statement_date} for {statement.account}'
-        transactions_sum = 0
-        for transaction in statement.included_transactions:
-            transactions_sum += transaction.amount_actual
+        statement.included_transactions = statement.transaction_set.filter(is_deleted=False).order_by('date_actual')
+        if statement.included_transactions.count() > 0:
+            first_transaction_date = statement.included_transactions.first().date_actual
+            if first_transaction_date < self.date_min:
+                self.date_min = first_transaction_date
+            
+        sum_from = statement.included_transactions.filter(account_source=statement.account).aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        sum_to = statement.included_transactions.filter(account_destination=statement.account).aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        
+        # switching sign because the CC balance is positive in the statement even if it's a debt
+        transactions_sum = - (sum_to or Decimal('0.00')) + (sum_from or Decimal('0.00'))
+        
         statement.transactions_sum = transactions_sum
         statement.error = transactions_sum - statement.balance
         if statement.error < 0:
@@ -1476,12 +1485,8 @@ class StatementDetailView(MyDetailView):
                                                                           statement__isnull=True,
                                                                           audit=False
                                                                           ).order_by('date_actual')
-                                                                          
-        if statement.possible_transactions.count() > 0 and self.date_min > statement.possible_transactions.first().date_actual:
-            self.date_min = statement.possible_transactions.first().date_actual
-        transactions_sumP = 0
-        for transaction in statement.possible_transactions:
-            transactions_sumP += transaction.amount_actual
+
+        transactions_sumP = statement.possible_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum')
         statement.transactions_sumP = transactions_sumP
         return statement
 

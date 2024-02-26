@@ -276,7 +276,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
 
     def test_func(self):
         self.account = get_object_or_404(Account, pk=self.kwargs.get('accountpk'))
-        return view_object.can_edit()
+        return self.account.can_edit()
 
     def handle_no_permission(self):
         raise PermissionDenied

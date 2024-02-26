@@ -210,7 +210,7 @@ class AccountActivityListTable(tables.Table):
                 show_currency = True
         if show_currency:
             field = field + (f'<button type="button" '
-                f'class="btn btn-info btn-sm" '
+                f'class="btn btn-info btn-sm" >'
                 f'{record.amount_actual_foreign_currency} '
                 f'{record.currency.name_short} '
                 f'</button>')
@@ -292,6 +292,8 @@ class AccountActivityListTable(tables.Table):
                 self.previous_source = record.account_source
             self.linebalance = balance
             return format_html(f'{balance}{self.account_currency_symbol}') 
+        else:
+            pass
 
     def render_addtransaction(self, value, record):
         reverse_url = reverse("budgetdb:create_transaction_from_date_account_modal",
