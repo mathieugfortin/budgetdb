@@ -383,13 +383,13 @@ class AccountBalanceDB(models.Model):
         super(AccountBalanceDB, self).save(*args, **kwargs)
     
     def set_delta_and_dirty(self):
+        self.balance_is_dirty = True
         try:
             audit = Transaction.objects.get(account_source=self.account,date_actual=self.db_date, is_deleted=False, audit=True)
             previous = AccountBalanceDB.objects.get(account=self.account, db_date=self.db_date - timedelta(days=1))
             self.audit = audit.amount_actual
             self.balance = self.audit
             self.is_audit = True
-            self.balance_is_dirty = False
             self.delta = self.audit - previous.balance
         except ObjectDoesNotExist:
             self.audit = Decimal('0.00')
@@ -397,7 +397,6 @@ class AccountBalanceDB(models.Model):
             sum_destination = Transaction.objects.filter(account_destination=self.account,date_actual=self.db_date, is_deleted=False, audit=False).aggregate(Sum('amount_actual'))
             sum_source = Transaction.objects.filter(account_source=self.account,date_actual=self.db_date, is_deleted=False, audit=False).aggregate(Sum('amount_actual'))
             self.delta = (sum_destination.get('amount_actual__sum') or Decimal('0.00')) - (sum_source.get('amount_actual__sum') or Decimal('0.00'))
-            self.balance_is_dirty = True
         self.save()
 
 
