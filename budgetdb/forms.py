@@ -1150,12 +1150,16 @@ class TransactionModalForm(BSModalModelForm):
 
         if audit_view is False:
             self.helper.layout = Layout(
-                Field('vendor', css_class='form-group col-md-4  '),
-                Field('description'),
+                Div(
+                    Field('vendor', css_class='form-group col-md-4  '),
+                    Field('description'),
+                )
             )
         else:
             self.helper.layout = Layout(
-                Field('description'),
+                Div(
+                    Field('description'),
+                )
             )
 
         self.helper.layout.extend([

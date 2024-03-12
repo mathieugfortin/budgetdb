@@ -51,7 +51,7 @@ urlpatterns = [
 
     path('chart/timeline/', views.EChartTimelineView.as_view(),
          name='timeline_chart'),
-    path('echartOptionJSON', views.echartOptionTimeline2JSON, name='echart_option_json'),
+    path('chart/echartOptionTimelineJSON', views.echartOptionTimeline2JSON, name='timeline_option_json'),
 
     # chart JS
     # path('timeline2/', views.timeline2.as_view(), name='timeline_chart_old'),

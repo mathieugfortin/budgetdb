@@ -25,54 +25,10 @@
 {% endblock %}
 {% block script %}
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"> </script>      
-
-    <script type="text/javascript">
-        // Create our number formatter.
-        const formatter = new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-        });
-
-        var chartDom = document.getElementById('chartdiv');
-        var myChart = echarts.init(chartDom);
-        let tooltip_callback = (args) => {
-            //debugger;
-            let mytooltip = args[0].axisValue + '<br />';
-            let total = 0;
-            for(let argN = 0; argN < args.length; ++ argN)
-                {
-                    let arg = args[argN];
-                    mytooltip = mytooltip + '<div style="float: left;">' + arg.marker + ' ' + arg.seriesName  + ':  </div>   <div style="float: right;"><b > ' + formatter.format(arg.value) + '</b> </div><br />'; 
-                    total = total + parseFloat(arg.value);
-                }
-            mytooltip = mytooltip + '<div style="float: left;">  Total: </div>   <div style="float: right;"><b > ' +  formatter.format(total) + '$</b>';
-            return mytooltip;
-        }
-        let option;
-        $(document).ready(function(){
-            $.getJSON('{% url "budgetdb:echart_option_json" %}?ac={{ ac }}', function(data) {
-                    option = data
-                    option = Object.assign({
-                        tooltip: {
-                            trigger: 'axis',
-                            formatter: tooltip_callback
-                            }
-                        }, 
-                        option )
-                    option && myChart.setOption(option);
-                    }
-                );
-            }
-        );
-
-        $(window).on('resize', resize);
-
-        // Resize function
-        function resize() {
-        setTimeout(function () {
-            // Resize chart
-            myChart.resize();
-        }, 200);
-        }
-    </script>
+    <script type="text/javascript" src="{% static 'budgetdb/js/echarts_timeline.js' %}" 
+            defer
+            jsonurl="{% url 'budgetdb:timeline_option_json' %}?ac={{ ac }}"
+            target="chartdiv"
+            >
+        </script>
 {% endblock %}

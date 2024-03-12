@@ -7,17 +7,16 @@
     <div class="col">
         <div class="card">
             <div class="card-body"  style="height:300px;" > 
-                <h5 class="card-title">Monthly Budget</h5>
+                <h5 class="card-title">Monthly Balance</h5>
                 <div id="chart1" style="height:300px;"></div>
             </div>
         </div>
     </div>
     <div class="col">
       <div class="card">
-        
         <div class="card-body">
-          <h5 class="card-title">Card title</h5>
-          <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+          <h5 class="card-title">Favorite Accounts</h5>
+          <div id="chart2" style="height:300px;"></div>
         </div>
       </div>
     </div>
@@ -46,87 +45,7 @@
 
 {% block script %}
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"> </script>        
-    <script type="text/javascript">
-        // Initialize the echarts instance based on the prepared dom
-        var chartDom = document.getElementById('chartdiv');
-        var myChart = echarts.init(chartDom);
-        var option;
-        // Specify the configuration items and data for the chart
-        option = {
-            title: {
-                text: 'Stacked Line'
-            },
-            tooltip: {
-                trigger: 'axis'
-            },
-            legend: {
-                data: ['Email', 'Union Ads', 'Video Ads', 'Direct', 'Search Engine']
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
-
-            xAxis: {
-            
-                boundaryGap: false,
-                data: ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", "2024-01-06", "2024-01-07"]
-            },
-            yAxis: {
-                type: 'value'
-            },
-            series: [
-                {
-                name: 'Email',
-                type: 'line',
-                smooth: true,
-                data: [120, 132, 101, 134, 90, 230, 210]
-                },
-                {
-                name: 'Union Ads',
-                type: 'line',
-                smooth: true,
-                data: [220, 182, 191, 234, 290, 330, 310]
-                },
-                {
-                name: 'Video Ads',
-                type: 'line',
-                data: [150, 232, 201, 154, 190, 330, 410]
-                },
-                {
-                name: 'Direct',
-                type: 'line',
-                data: [320, 332, 301, 334, 390, 330, 320]
-                },
-                {
-                name: 'Search Engine',
-                type: 'line',
-                smooth: true,
-                data: [820, 932, 901, 934, 1290, 1330, 1320]
-                },
-                {
-                type: 'line',
-                name: 'myLine',
-                markLine: {
-                    symbol: 'your custom symbol',
-                    data: [
-                    {
-                        name: 'name',
-                        xAxis: "2024-01-04",
-                        symbol: 'none', // <- disable the start point symbol here
-                    }
-                    ]
-                }
-                }
-            ]
-        };
-                
-        // Display the chart using the configuration items and data just specified.
-        option && myChart.setOption(option);
-    </script>
-    <script>
+     <script>
         var chart1Dom = document.getElementById('chart1');
         var chart1 = echarts.init(chart1Dom);
         let option1;
@@ -139,8 +58,14 @@
                 );
             }
         );
-
-
-
+    </script>  
+    <script type="text/javascript" src="{% static 'budgetdb/js/echarts_timeline.js' %}" 
+            defer
+            jsonurl="{% url 'budgetdb:timeline_option_json' %}?ac=favorites&period=nextmonth"
+            target="chart2"
+            >
     </script>
+
+
+
 {% endblock %}

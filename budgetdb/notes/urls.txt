@@ -73,7 +73,7 @@ output of: python manage.py show_urls > budgetdb/notes/urls.txt
 /en-ca/cattype/update/<int:pk>/	budgetdb.views.views.CatTypeUpdateView	budgetdb:update_cattype
 /en-ca/chart/timeline/	budgetdb.views.views.EChartTimelineView	budgetdb:timeline_chart
 /en-ca/dashboard/	budgetdb.views.views.DashboardView	budgetdb:home
-/en-ca/echartOptionJSON	budgetdb.views.views.echartOptionTimeline2JSON	budgetdb:echart_option_json
+/en-ca/echartOptionTimelineJSON	budgetdb.views.views.echartOptionTimeline2JSON	budgetdb:echart_option_json
 /en-ca/invitation/	budgetdb.views.views.InvitationListView	budgetdb:list_invitation
 /en-ca/invitation/accept/<int:pk>/	budgetdb.views.views.InvitationAcceptView	budgetdb:accept_invitation
 /en-ca/invitation/add/	budgetdb.views.views.InvitationCreateView	budgetdb:create_invitation

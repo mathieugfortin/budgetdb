@@ -312,7 +312,7 @@ def GetCat1TotalBarChartData(request):
     endstr = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
     cattype = CatType.view_objects.get(pk=cat_type_pk)
-    cats = Cat1.view_objects.all()
+    cats = Cat1.view_objects.filter(cattype=cattype)
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
@@ -336,10 +336,12 @@ def GetCat1TotalBarChartData(request):
     for cat in cats:
         data = [None] * nbmonths
         cat1sums = CatSums()
-        cat_totals = cat1sums.build_monthly_cat1_totals_array(beginstr, endstr, cat.id)
+        #cat_totals = cat1sums.build_monthly_cat1_totals_array(beginstr, endstr, cat.id)
+        transactions = Transaction.objects.filter(date_actual__gte=begin,date_actual__lte=end,is_deleted=False,cat1__in=cats)
+        cat1_totals = transactions.values('cat1').annotate(Sum('amount_actual'))
         color = next(colors)
         empty = True
-        for total in cat_totals:
+        for total in cat1_totals:
             if total.cattype_id == cattype.id:
                 empty = False
                 index = indexdict[f'{total.year}-{total.month:02d}']
@@ -808,9 +810,18 @@ class MyNotificationLoggedout(TemplateView):
 def echartOptionTimeline2JSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
-    accountcategoryID = request.GET.get('ac', None)
     title = ''
-    if accountcategoryID is None or accountcategoryID == 'None':
+    preference = get_object_or_404(Preference, user=request.user.id)
+    begin = preference.slider_start
+    end = preference.slider_stop
+    accountcategoryID = request.GET.get('ac', None)
+    period = request.GET.get('period', None)
+    if period == 'nextmonth':
+        begin = datetime.today()
+        end = begin + timedelta(days=40)
+    if accountcategoryID  == 'favorites':
+        accounts = preference.favorite_accounts.all()
+    elif accountcategoryID is None or accountcategoryID == 'None':
         accounts = Account.view_objects.all().order_by('account_host', 'name')
         title = 'All'
     else:
@@ -821,9 +832,7 @@ def echartOptionTimeline2JSON(request):
         title = accountcategory.name
         accounts = Account.view_objects.filter(account_categories=accountcategory.pk).order_by('account_host', 'name')
 
-    preference = get_object_or_404(Preference, user=request.user.id)
-    begin = preference.slider_start
-    end = preference.slider_stop
+
 
 
     series = []  # lines
@@ -1665,7 +1674,7 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
        
         context['pk'] = self.account.pk
         context['year'] = self.year
-        context['account_name'] = self.account.name
+        context['account_name'] = self.account
         return context
 
     def get_table_kwargs(self):
