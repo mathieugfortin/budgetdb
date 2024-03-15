@@ -348,15 +348,17 @@ class AccountBalanceDB(models.Model):
         'relative change for the day',
         decimal_places=2,
         max_digits=10,
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
+        default=Decimal('0.00'),
         )
     balance = models.DecimalField(
         'balance for the day',
         decimal_places=2,
         max_digits=10,
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
+        default=Decimal('0.00'),
         )
     balance_is_dirty = models.BooleanField('If there is a new transaction for this day, the balance is not reliable', default=False)
     is_audit = models.BooleanField('override of the account balance', default=False)
@@ -392,7 +394,7 @@ class AccountBalanceDB(models.Model):
             self.is_audit = True
             self.delta = self.audit - previous.balance
         else:
-            self.audit = Decimal('0.00')
+            self.audit = None
             self.is_audit = False
             sum_destination = Transaction.objects.filter(account_destination=self.account,date_actual=self.db_date, is_deleted=False, audit=False).aggregate(Sum('amount_actual'))
             sum_source = Transaction.objects.filter(account_source=self.account,date_actual=self.db_date, is_deleted=False, audit=False).aggregate(Sum('amount_actual'))
@@ -513,13 +515,13 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def new_balances(self, begin, end):
         date = begin - timedelta(days=1)
-        new_balance = AccountBalanceDB(account=self.pk,db_date=date,audit=Decimal('0.00'),is_audit=True,balance_is_dirty=True)
+        new_balance = AccountBalanceDB(account=self,db_date=date,audit=Decimal('0.00'),balance=Decimal('0.00'),is_audit=True,balance_is_dirty=True)
+        new_balance.save()
         date = date + timedelta(days=1)
-        while date <= end:
-            new_balance = AccountBalanceDB(account=self.pk,db_date=date)
+        while date <= end.date():
+            new_balance = AccountBalanceDB(account=self,db_date=date)
             new_balance.save()
             date = date + timedelta(days=1)
-
 
     def save(self, *args, **kwargs):
 
@@ -527,10 +529,10 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             super(Account, self).save(*args, **kwargs)            
             #new account, need to create balances and set first one
             if self.date_closed is None:
-                end_generate = datetime.today().date + timedelta(years=3)
+                end_generate = datetime.today() + relativedelta(years=3)
             else:
                 end_generate = self.date_closed
-                self.new_balances(self.date_open,self.date_closed)
+            self.new_balances(self.date_open,end_generate)
         else:
             super(Account, self).save(*args, **kwargs)
             if self.date_open < self._loaded_values.get('date_open'):
@@ -560,9 +562,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             elif self.date_closed < self._loaded_values.get('date_closed'):
                 #remove unused balances 
                 unused_balances = AccountBalanceDB.objects.filter(account=self.account,db_date__gt=self.date_closed).delete()
-
-        
-
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_account_simple')
@@ -751,8 +750,22 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         # return False if the balances were not dirty and were not modified
         # return True if the balances were dirty and were modified
 
+
         if end_date is None:
             end_date = start_date
+
+        if end_date < self.date_open:
+            return false
+
+        if self.date_closed is not None and start_date > self.date_closed:
+            return false
+
+        if self.date_closed is not None and end_date > self.date_closed :
+            end_date = self.date_closed
+
+        if start_date < self.date_open:
+            start_date = self.date_open
+
 
         children_needed_cleaning = False
         closest_parent_audit = AccountBalanceDB.objects.filter(account=self, db_date__lte=start_date, is_audit=True).order_by('-db_date').first()
@@ -779,19 +792,19 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def build_balances_leaf(self, first_dirty_date, end_date):    
         last_clean_date = first_dirty_date - timedelta(days=1)
-        last_clean_day = AccountBalanceDB.objects.get(account=self, db_date=last_clean_date)
-        previous_day = last_clean_day.balance
-        days = AccountBalanceDB.objects.filter(account=self, db_date__gte=first_dirty_date, db_date__lte=end_date).order_by('db_date')
-        for day in days:
-            if day.is_audit or day.audit != 0:
-                day.balance = day.audit
-                day.is_audit = True
-                day.delta = day.audit - previous_day
+        last_clean_balance = AccountBalanceDB.objects.get(account=self, db_date=last_clean_date)
+        previous_day_balance = last_clean_balance.balance
+        balances = AccountBalanceDB.objects.filter(account=self, db_date__gte=first_dirty_date, db_date__lte=end_date).order_by('db_date')
+        for balance in balances:
+            if balance.is_audit or (balance.audit is not None and balance.audit != decimal('0.0')):
+                balance.balance = balance.audit
+                balance.is_audit = True
+                balance.delta = balance.audit - previous_day_balance
             else:
-                day.balance = previous_day + day.delta
-            day.balance_is_dirty = False
-            previous_day = day.balance
-            day.save()
+                balance.balance = previous_day_balance + balance.delta
+            balance.balance_is_dirty = False
+            previous_day_balance = balance.balance
+            balance.save()
         # we updated balances, the next day is now dirty
         new_dirty_date = end_date + timedelta(days=1)
         new_dirty_day = AccountBalanceDB.objects.get(account=self, db_date=new_dirty_date)
