@@ -2,7 +2,7 @@
 const data = document.currentScript.attributes;
 const jsonurl = data.getNamedItem('jsonurl').value;
 const target = data.getNamedItem('target').value;
-debugger
+// debugger
 
 // Create our number formatter.
 const formatter = new Intl.NumberFormat('en-US', {

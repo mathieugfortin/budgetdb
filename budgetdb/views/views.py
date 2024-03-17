@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from decimal import *
 import json
 
@@ -63,9 +63,9 @@ def PreferenceSetIntervalJSON(request):
     slider_stop = request.POST.get("end_interval", None)
     preference = Preference.objects.get(user=request.user.id)
     if slider_start:
-        preference.slider_start = datetime.strptime(slider_start, "%Y-%m-%d")
+        preference.slider_start = date.strptime(slider_start, "%Y-%m-%d")
     if slider_stop:
-        preference.slider_stop = datetime.strptime(slider_stop, "%Y-%m-%d")
+        preference.slider_stop = date.strptime(slider_stop, "%Y-%m-%d")
     preference.save()
     return HttpResponse(status=200)
 
@@ -315,10 +315,10 @@ def GetCat1TotalBarChartData(request):
     cats = Cat1.view_objects.filter(cattype=cattype)
 
     if endstr is not None and endstr != 'None':
-        end = datetime.strptime(endstr, "%Y-%m-%d").date()
+        end = date.strptime(endstr, "%Y-%m-%d").date()
 
     if beginstr is not None and beginstr != 'None':
-        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+        begin = date.strptime(beginstr, "%Y-%m-%d").date()
 
     labels = []  # months
     datasets = []
@@ -379,10 +379,10 @@ def GetCat2TotalBarChartData(request):
     cats = Cat2.view_objects.filter(cat1=cat1)
 
     if endstr is not None and endstr != 'None':
-        end = datetime.strptime(endstr, "%Y-%m-%d").date()
+        end = date.strptime(endstr, "%Y-%m-%d").date()
 
     if beginstr is not None and beginstr != 'None':
-        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+        begin = date.strptime(beginstr, "%Y-%m-%d").date()
 
     labels = []  # months
     datasets = []
@@ -577,12 +577,12 @@ class CatTotalPieChart(TemplateView):
         if end is None or end == 'None':
             end = preference.slider_stop
         else:
-            end = datetime.strptime(end, "%Y-%m-%d")
+            end = date.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
             begin = preference.slider_start
         else:
-            begin = datetime.strptime(begin, "%Y-%m-%d")
+            begin = date.strptime(begin, "%Y-%m-%d")
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
@@ -605,12 +605,12 @@ class CatTotalBarChart(TemplateView):
         if end is None or end == 'None':
             end = preference.slider_stop
         else:
-            end = datetime.strptime(end, "%Y-%m-%d")
+            end = date.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
             begin = preference.slider_start
         else:
-            begin = datetime.strptime(begin, "%Y-%m-%d")
+            begin = date.strptime(begin, "%Y-%m-%d")
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
@@ -656,7 +656,7 @@ class ObjectMaxRedirect(RedirectView):
         model_name = args[0].model
         model = apps.get_model('budgetdb', model_name)
         try:
-            redirect_object = model.view_objects.get(pk=pk)
+            redirect_object = model.view_all_objects.get(pk=pk)
         except ObjectDoesNotExist:
             raise PermissionDenied
         viewname = 'budgetdb:'
@@ -817,7 +817,7 @@ def echartOptionTimeline2JSON(request):
     accountcategoryID = request.GET.get('ac', None)
     period = request.GET.get('period', None)
     if period == 'nextmonth':
-        begin = datetime.today()
+        begin = date.today()
         end = begin + timedelta(days=40)
     if accountcategoryID  == 'favorites':
         accounts = preference.favorite_accounts.all()
@@ -1010,14 +1010,14 @@ class AccountSummaryView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         accounts = Account.view_objects.all().order_by('account_host__name', 'name')
-        accounts = accounts.exclude(date_closed__lt=datetime.today())
+        accounts = accounts.exclude(date_closed__lt=date.today())
         return accounts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         decorated = []
         for account in self.object_list:
-            account.balance = account.get_balance(datetime.today()).balance
+            account.balance = account.get_balance(date.today()).balance
             if account.owner != get_current_user():
                 account.nice_name = f'{account.account_host} - {account.owner} - {account.name}'
             else:
@@ -1619,10 +1619,10 @@ class AccountTransactionListViewOLD(LoginRequiredMixin, UserPassesTestMixin, Lis
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
         if beginstr is not None:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+            begin = date.strptime(beginstr, "%Y-%m-%d").date()
             end = begin + relativedelta(months=1)
         if endstr is not None:
-            end = datetime.strptime(endstr, "%Y-%m-%d").date()
+            end = date.strptime(endstr, "%Y-%m-%d").date()
         if end < begin:
             end = begin + relativedelta(months=1)
 
@@ -1690,8 +1690,8 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
         date1 = self.kwargs.get('date1')
         date2 = self.kwargs.get('date2')
         if date1 is not None and date2 is not None:
-            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
-            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
+            self.begin = date.strptime(date1, "%Y-%m-%d").date()
+            self.end = date.strptime(date2, "%Y-%m-%d").date()
             preference.slider_start = self.begin
             preference.slider_stop = self.end
             preference.save() 
@@ -1763,10 +1763,10 @@ class UserSignupView(CreateView):
         user = form.save()
         preference = Preference.objects.create(
             user=user,
-            slider_start=datetime.today().date()-relativedelta(months=6),
-            slider_stop=datetime.today().date()+relativedelta(months=6),
-            timeline_start=datetime.today().date()-relativedelta(months=6),
-            timeline_stop=datetime.today().date()+relativedelta(months=6),
+            slider_start=date.today()-relativedelta(months=6),
+            slider_stop=date.today()+relativedelta(months=6),
+            timeline_start=date.today()-relativedelta(months=6),
+            timeline_stop=date.today()+relativedelta(months=6),
             currency_prefered = Currency.objects.get(name_short='CAD')
             )
         preference.save()

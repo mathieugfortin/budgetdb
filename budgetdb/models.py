@@ -149,6 +149,15 @@ class TransactionDeletedViewerManager(models.Manager):
         qs = ok_source | ok_dest
         return qs
 
+class TransactionViewerAllManager(models.Manager):
+    def get_queryset(self):
+        user = get_current_user()
+        qs = super().get_queryset()
+        view_accounts = Account.view_objects.all()
+        ok_source = qs.filter(account_source__in=view_accounts)
+        ok_dest = qs.filter(account_destination__in=view_accounts)
+        qs = ok_source | ok_dest
+        return qs
 
 class TransactionAdminManager(models.Manager):
     def get_queryset(self):
@@ -529,7 +538,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             super(Account, self).save(*args, **kwargs)            
             #new account, need to create balances and set first one
             if self.date_closed is None:
-                end_generate = datetime.today() + relativedelta(years=3)
+                end_generate = date.today() + relativedelta(years=3)
             else:
                 end_generate = self.date_closed
             self.new_balances(self.date_open,end_generate)
@@ -603,7 +612,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         return balance
 
     def build_yearly_report_unit(self, year):
-        start_date = datetime(year, 1, 1)
+        start_date = date(year, 1, 1)
         account_list = Account.objects.filter(account_parent_id=self.pk, is_deleted=False).exclude(date_closed__lt=start_date)
         previous_day = start_date + timedelta(days=-1)
 
@@ -657,10 +666,10 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def build_report(self, year, month=None, balance_beginning=None):
         if month is None:
-            start_date = datetime(year-1, 12, 31)
-            end_date = datetime(year, 12, 31)
+            start_date = date(year-1, 12, 31)
+            end_date = date(year, 12, 31)
         else:
-            start_date = datetime(year, month, 1)
+            start_date = date(year, month, 1)
             end_date = start_date + relativedelta(day=+31)
 
         balance_end = self.balance_by_EOD(end_date)
@@ -749,7 +758,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         # after this is run, the interval start_date, end_date is clean
         # return False if the balances were not dirty and were not modified
         # return True if the balances were dirty and were modified
-
 
         if end_date is None:
             end_date = start_date
@@ -1282,6 +1290,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     objects = models.Manager()  # The default manager.
     view_objects = TransactionViewerManager()
     view_deleted_objects = TransactionDeletedViewerManager()
+    view_all_objects = TransactionViewerAllManager()
     admin_objects = TransactionAdminManager()
 
     budgetedevent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True, null=True)
@@ -1457,7 +1466,7 @@ class BaseRecurring(models.Model):
         else:
             return True
 
-    def listPotentialTransactionDates(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+    def listPotentialTransactionDates(self, n=20, begin_interval=date.today(), interval_length_months=60):
         calendar = MyCalendar.objects.filter(db_date__gte=begin_interval, db_date__lte=begin_interval+relativedelta(months=interval_length_months))
         event_date_list = []
         i = n
@@ -1471,14 +1480,21 @@ class BaseRecurring(models.Model):
                         break
         return event_date_list
 
-    def listNextTransactions(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+    def listNextTransactions(self, n=20, begin_interval=date.today(), interval_length_months=60):
         transactions = Transaction.view_objects.filter(budgetedevent_id=self.pk)
         transactions = transactions.filter(date_actual__gt=begin_interval)
         end_date = begin_interval + relativedelta(months=interval_length_months)
         transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
         return transactions
 
-    def listPreviousTransaction(self, n=20, begin_interval=datetime.today().date(), interval_length_months=60):
+    def listLinkedTransactions(self, n=20, begin_interval=date.today(), interval_length_months=60):
+        transactions = Transaction.view_all_objects.filter(budgetedevent_id=self.pk)
+        transactions = transactions.filter(date_actual__gt=begin_interval)
+        end_date = begin_interval + relativedelta(months=interval_length_months)
+        transactions = transactions.filter(date_actual__lte=end_date).order_by('date_actual')[:n]
+        return transactions
+
+    def listPreviousTransaction(self, n=20, begin_interval=date.today(), interval_length_months=60):
         transactions = Transaction.view_objects.filter(budgetedevent_id=self.pk)
         transactions = transactions.filter(date_actual__lt=begin_interval)
         end_date = begin_interval - relativedelta(months=interval_length_months)
@@ -1497,8 +1513,8 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
                                             on_delete=models.CASCADE,
                                             related_name='budgetedevent_permissions_child'
                                             )
-    generated_interval_start = models.DateTimeField('begining of the generated events interval', blank=True, null=True)
-    generated_interval_stop = models.DateTimeField('end of the generated events interval', blank=True, null=True)
+    generated_interval_start = models.DateField('begining of the generated events interval', blank=True, null=True)
+    generated_interval_stop = models.DateField('end of the generated events interval', blank=True, null=True)
     percent_planned = models.DecimalField('percent of another event.  say 10% of pay goes to RRSP',
                                           decimal_places=2, max_digits=10, blank=True, null=True)
     budgetedevent_percent_ref = models.ForeignKey('self', on_delete=models.CASCADE, blank=True,

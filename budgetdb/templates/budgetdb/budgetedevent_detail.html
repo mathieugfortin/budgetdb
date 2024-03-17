@@ -9,6 +9,9 @@
         li.UNVERIFIED {
         background-color: rgb(191, 199, 120)
         }
+        li.DELETED {
+            text-decoration: line-through;
+        }        
     </style>
 
     <div id="details">
@@ -159,9 +162,10 @@
         <ol>
         {% for transaction in next_transactions %}
             
-            <li  {% if transaction.verified == 0 %} class="UNVERIFIED" {% endif %}
+            <li  {% if transaction.is_deleted == 1 %} class="DELETED"
+                {% elif transaction.verified == 0 %} class="UNVERIFIED" {% endif %}
             >
-            <a href="{% url 'budgetdb:update_transaction' transaction.id %}">{{ transaction.date_actual }}</a>  
+            <a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.date_actual }}</a>  
                 {{ transaction.amount_actual }}$ -
                 {% if transaction.account_source != None %} From {{transaction.account_source}} {% endif %}
                 {% if transaction.account_destination != None %} To {{transaction.account_destination}} {% endif %}                

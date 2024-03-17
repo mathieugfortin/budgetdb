@@ -282,6 +282,7 @@ urlpatterns = [
 
     ##########################################################################################################
     # Transaction
+    path('transaction/ListManualJSON', views.load_manual_transactionsJSON, name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
     path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,

@@ -14,7 +14,7 @@ from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Acco
 from budgetdb.models import JoinedTransactions
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm
-from datetime import datetime, date
+from datetime import date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
@@ -42,7 +42,7 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
 
     def test_func(self):
         try:
-            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+            view_object = self.model.view_all_objects.get(pk=self.kwargs.get('pk'))
         except ObjectDoesNotExist:
             raise PermissionDenied
         return view_object.can_edit()
@@ -162,7 +162,7 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
         form = super().get_form(form_class)
         form_date = self.kwargs.get('date')
         if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
+            form_date = date.now().strftime("%Y-%m-%d")
         try:
             account = Account.admin_objects.get(pk=self.kwargs.get('account_pk'))
         except ObjectDoesNotExist:
@@ -211,7 +211,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         form = super().get_form(form_class)
         form_date = self.kwargs.get('date')
         if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
+            form_date = date.now().strftime("%Y-%m-%d")
         preference = get_object_or_404(Preference, user=self.user)
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = self.account
@@ -294,7 +294,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         form_date = self.kwargs.get('date')
         form_amount = self.kwargs.get('amount')
         if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
+            form_date = date.now().strftime("%Y-%m-%d")
             form.initial['description'] = f'Ajustement du marché'
         else:
             form.initial['description'] = f'Confirmation de solde'
@@ -380,7 +380,7 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, UserPassesTestMixin, Deta
         date = self.kwargs.get('date')
         joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.filter(is_deleted=False)
-        transactionPlannedDate = datetime.strptime(date, "%Y-%m-%d").date()
+        transactionPlannedDate = date.strptime(date, "%Y-%m-%d").date()
         firstbudgetedevent = joinedtransactions.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
@@ -446,7 +446,7 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         datea = self.kwargs.get('datea')
         joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.all()
-        transactionPlannedDate = datetime.strptime(datep, "%Y-%m-%d").date()
+        transactionPlannedDate = date.strptime(datep, "%Y-%m-%d").date()
         # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
         firstbudgetedevent = joinedtransactions.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
@@ -525,10 +525,10 @@ class TransactionListView(LoginRequiredMixin, ListView):
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
         if beginstr is not None:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+            begin = date.strptime(beginstr, "%Y-%m-%d").date()
             end = begin + relativedelta(months=1)
         if endstr is not None:
-            end = datetime.strptime(endstr, "%Y-%m-%d").date()
+            end = date.strptime(endstr, "%Y-%m-%d").date()
         if end < begin:
             end = begin + relativedelta(months=1)
 
@@ -547,6 +547,14 @@ class TransactionUnverifiedListView(MyListView):
     def get_queryset(self):
         return self.model.view_objects.filter(is_deleted=0, verified=0, audit=0, date_actual__lt=date.today()).order_by('date_actual')
 
+def load_manual_transactionsJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
+    transactions = Transaction.view_objects.filter(verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
+
+    return render(request, 'budgetdb/transaction_list_date_desc.html', {'transactions': transactions})
+
 
 class TransactionManualListView(MyListView):
     model = Transaction
@@ -555,7 +563,7 @@ class TransactionManualListView(MyListView):
 
     def get_queryset(self):
         inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
-        return self.model.view_objects.filter(is_deleted=0, verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
+        return self.model.view_objects.filter(verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
 
 
 class TransactionDeletedListView(MyListView):

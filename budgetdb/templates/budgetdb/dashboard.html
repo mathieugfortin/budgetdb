@@ -24,8 +24,8 @@
       <div class="card">
         
         <div class="card-body">
-          <h5 class="card-title">Card title</h5>
-          <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content.</p>
+          <h5 class="card-title">Upcoming manual transactions</h5>
+          <div id="chart3"></div>
         </div>
       </div>
     </div>
@@ -49,7 +49,7 @@
         var chart1Dom = document.getElementById('chart1');
         var chart1 = echarts.init(chart1Dom);
         let option1;
-        debugger
+        // debugger
         $(document).ready(function(){
             $.getJSON('{% url "budgetdb:cattype_month_JSON" %}?pk1=116&pk2=-117&pk3=-125', function(data) {
                     option1 = data
@@ -65,7 +65,18 @@
             target="chart2"
             >
     </script>
-
-
+       
+    <script>
+        let listManual;
+        var listDom = document.getElementById('chart3');
+        debugger
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:manual_transaction_list_json" %}', function(data) {
+                    listManual = data;
+                    }
+                );
+            }
+        );
+    </script>
 
 {% endblock %}
