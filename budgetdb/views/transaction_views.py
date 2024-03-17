@@ -2,7 +2,7 @@ from django import forms
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
@@ -548,13 +548,17 @@ class TransactionUnverifiedListView(MyListView):
         return self.model.view_objects.filter(is_deleted=0, verified=0, audit=0, date_actual__lt=date.today()).order_by('date_actual')
 
 def load_manual_transactionsJSON(request):
+
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
     transactions = Transaction.view_objects.filter(verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
 
-    return render(request, 'budgetdb/transaction_list_date_desc.html', {'transactions': transactions})
+    array = []
+    for entry in transactions:
+        array.append([{"pk": entry.pk}, {"date": entry.date_actual}, {"description": entry.description}, {"amount": entry.amount_actual}])
 
+    return JsonResponse(array, safe=False)
 
 class TransactionManualListView(MyListView):
     model = Transaction

@@ -1,8 +1,0 @@
-<ul>
-    {% for transaction in transactions %}
-        <li> {{ transaction.date_actual }}
-        <a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a>  
-            {{ transaction.amount_actual }}$ 
-        </li>
-    {% endfor %}
-</ul>

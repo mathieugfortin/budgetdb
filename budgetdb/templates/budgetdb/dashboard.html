@@ -24,8 +24,10 @@
       <div class="card">
         
         <div class="card-body">
-          <h5 class="card-title">Upcoming manual transactions</h5>
-          <div id="chart3"></div>
+          <h5 class="card-title">Manual Transactions Reminder</h5>
+          <div id="chart3">
+            
+          </div>
         </div>
       </div>
     </div>
@@ -67,12 +69,29 @@
     </script>
        
     <script>
+
         let listManual;
         var listDom = document.getElementById('chart3');
-        debugger
+        // debugger
         $(document).ready(function(){
-            $.getJSON('{% url "budgetdb:manual_transaction_list_json" %}', function(data) {
-                    listManual = data;
+            $.getJSON('{% url "budgetdb:manual_transaction_list_json" %}', function(result) {
+                    var UL = document.createElement('ul');
+                    
+                    // debugger
+                    $.each(result, function(i, field){
+                        // debugger
+                        LI = document.createElement('li');
+                        A = document.createElement('a');
+                        baseURL = '{% url "budgetdb:details_transaction" 12345 %}';
+                        baseURL=baseURL.replace(/12345/,field[0].pk.toString());
+                        A.setAttribute('href',baseURL);
+                        A.innerHTML =  field[2].description;
+                        LI.innerHTML = field[1].date + ' ';
+                        LI.append(A);
+                        LI.innerHTML = LI.innerHTML + ' ' + field[3].amount + '$';
+                        UL.append(LI);
+                    });            
+                    document.getElementById('chart3').append(UL);        
                     }
                 );
             }
