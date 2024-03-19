@@ -1,0 +1,25 @@
+[
+{
+    "model": "budgetdb.user",
+    "pk": 1,
+    "fields": {
+        "password": "pbkdf2_sha256$720000$tlP4PVKdT7IMJh3jOEd8Pj$zyS84EHFhtOVCHuMccF9T9bsLHWOhMYRp6CoFOTD9Nk=",
+        "last_login": "2024-03-15T09:46:57.956",
+        "is_superuser": true,
+        "first_name": "Him",
+        "last_name": "",
+        "is_staff": true,
+        "is_active": true,
+        "date_joined": "2022-03-08T02:15:53.419",
+        "email": "email@444.555",
+        "email_verified": true,
+        "groups": [],
+        "user_permissions": [],
+        "friends": [
+            1,
+            2,
+            4
+        ]
+    }
+}
+]

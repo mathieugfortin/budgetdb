@@ -4,11 +4,11 @@ from datetime import date
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import BudgetedEvent, CatBudget
+from budgetdb.models import BudgetedEvent, CatBudget, Account, AccountHost
 
 
 class BudgetedEventTests(TestCase):
-    # fixtures = ["budgetdb/fixtures/calendarfixture.json"]
+    fixtures = ["budgetdb/tests/fixtures/myCalendar.json"]
 
     def test_BudgetedEvent_recurring_match(self):
         dateCheck = datetime.date.today()

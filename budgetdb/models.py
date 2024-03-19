@@ -149,6 +149,7 @@ class TransactionDeletedViewerManager(models.Manager):
         qs = ok_source | ok_dest
         return qs
 
+
 class TransactionViewerAllManager(models.Manager):
     def get_queryset(self):
         user = get_current_user()
@@ -158,6 +159,7 @@ class TransactionViewerAllManager(models.Manager):
         ok_dest = qs.filter(account_destination__in=view_accounts)
         qs = ok_source | ok_dest
         return qs
+
 
 class TransactionAdminManager(models.Manager):
     def get_queryset(self):
@@ -763,10 +765,10 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             end_date = start_date
 
         if end_date < self.date_open:
-            return false
+            return False
 
         if self.date_closed is not None and start_date > self.date_closed:
-            return false
+            return False
 
         if self.date_closed is not None and end_date > self.date_closed :
             end_date = self.date_closed

@@ -162,7 +162,7 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
         form = super().get_form(form_class)
         form_date = self.kwargs.get('date')
         if form_date is None:
-            form_date = date.now().strftime("%Y-%m-%d")
+            form_date = date.today().strftime("%Y-%m-%d")
         try:
             account = Account.admin_objects.get(pk=self.kwargs.get('account_pk'))
         except ObjectDoesNotExist:
@@ -211,7 +211,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         form = super().get_form(form_class)
         form_date = self.kwargs.get('date')
         if form_date is None:
-            form_date = date.now().strftime("%Y-%m-%d")
+            form_date = date.today().strftime("%Y-%m-%d")
         preference = get_object_or_404(Preference, user=self.user)
         form.initial['date_actual'] = form_date
         form.initial['account_source'] = self.account
@@ -294,7 +294,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         form_date = self.kwargs.get('date')
         form_amount = self.kwargs.get('amount')
         if form_date is None:
-            form_date = date.now().strftime("%Y-%m-%d")
+            form_date = date.today().strftime("%Y-%m-%d")
             form.initial['description'] = f'Ajustement du marché'
         else:
             form.initial['description'] = f'Confirmation de solde'

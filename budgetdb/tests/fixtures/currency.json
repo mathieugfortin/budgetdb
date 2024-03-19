@@ -1,0 +1,172 @@
+[
+{
+    "model": "budgetdb.currency",
+    "pk": 1,
+    "fields": {
+        "name": "Canadian",
+        "name_short": "CAD",
+        "symbol": "$",
+        "priority": 1
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 2,
+    "fields": {
+        "name": "US",
+        "name_short": "USD",
+        "symbol": "$",
+        "priority": 2
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 3,
+    "fields": {
+        "name": "Euro",
+        "name_short": "Euro",
+        "symbol": "€",
+        "priority": 3
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 4,
+    "fields": {
+        "name": "British Pound",
+        "name_short": "GBP",
+        "symbol": "£",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 5,
+    "fields": {
+        "name": "Australian dollar",
+        "name_short": "AUD",
+        "symbol": "$",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 6,
+    "fields": {
+        "name": "Bermudian dollar",
+        "name_short": "BMD",
+        "symbol": "$",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 7,
+    "fields": {
+        "name": "Brazilian real",
+        "name_short": "BRL",
+        "symbol": "R$",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 8,
+    "fields": {
+        "name": "Costa Rican colón",
+        "name_short": "CRC",
+        "symbol": "₡",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 9,
+    "fields": {
+        "name": "Cuban peso",
+        "name_short": "CUP",
+        "symbol": "$",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 10,
+    "fields": {
+        "name": "Fijian dollar",
+        "name_short": "FJD",
+        "symbol": "$",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 11,
+    "fields": {
+        "name": "Honduran lempira",
+        "name_short": "HNL",
+        "symbol": "L",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 12,
+    "fields": {
+        "name": "Japanese yen",
+        "name_short": "JPY",
+        "symbol": "¥",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 13,
+    "fields": {
+        "name": "South Korean won",
+        "name_short": "KRW",
+        "symbol": "₩",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 14,
+    "fields": {
+        "name": "New Zealand dollar",
+        "name_short": "NZD",
+        "symbol": "$",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 15,
+    "fields": {
+        "name": "Swedish krona",
+        "name_short": "SEK",
+        "symbol": "kr",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 16,
+    "fields": {
+        "name": "Thai baht",
+        "name_short": "THB",
+        "symbol": "฿",
+        "priority": 99
+    }
+},
+{
+    "model": "budgetdb.currency",
+    "pk": 17,
+    "fields": {
+        "name": "Pesos Mexicain",
+        "name_short": "MEX",
+        "symbol": "$",
+        "priority": 6
+    }
+}
+]

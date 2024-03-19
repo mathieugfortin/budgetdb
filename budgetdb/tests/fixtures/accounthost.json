@@ -1,0 +1,12 @@
+[
+{
+    "model": "budgetdb.accounthost",
+    "pk": 69,
+    "fields": {
+        "is_deleted": false,
+        "deleted_at": null,
+        "deleted_by": null,
+        "name": "AccountHost1"
+    }
+}
+]
