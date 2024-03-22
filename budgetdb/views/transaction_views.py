@@ -380,7 +380,7 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, UserPassesTestMixin, Deta
         date = self.kwargs.get('date')
         joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.filter(is_deleted=False)
-        transactionPlannedDate = date.strptime(date, "%Y-%m-%d").date()
+        transactionPlannedDate = datetime.strptime(date, "%Y-%m-%d").date()
         firstbudgetedevent = joinedtransactions.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
         previousrecurrence = firstbudgetedevent.listPreviousTransaction(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
@@ -446,7 +446,7 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         datea = self.kwargs.get('datea')
         joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.all()
-        transactionPlannedDate = date.strptime(datep, "%Y-%m-%d").date()
+        transactionPlannedDate = datetime.strptime(datep, "%Y-%m-%d").date()
         # I want to show individual deleted transactions but not when the whole budgetedevent is deleted
         firstbudgetedevent = joinedtransactions.budgetedevents.filter(is_deleted=False).order_by('joined_order').first()
         nextrecurrence = firstbudgetedevent.listNextTransactions(n=1, begin_interval=transactionPlannedDate).first().date_planned.strftime("%Y-%m-%d")
@@ -525,10 +525,10 @@ class TransactionListView(LoginRequiredMixin, ListView):
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
         if beginstr is not None:
-            begin = date.strptime(beginstr, "%Y-%m-%d").date()
+            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
             end = begin + relativedelta(months=1)
         if endstr is not None:
-            end = date.strptime(endstr, "%Y-%m-%d").date()
+            end = datetime.strptime(endstr, "%Y-%m-%d").date()
         if end < begin:
             end = begin + relativedelta(months=1)
 

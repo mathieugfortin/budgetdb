@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime,date
 from decimal import *
 import json
 
@@ -63,9 +63,9 @@ def PreferenceSetIntervalJSON(request):
     slider_stop = request.POST.get("end_interval", None)
     preference = Preference.objects.get(user=request.user.id)
     if slider_start:
-        preference.slider_start = date.strptime(slider_start, "%Y-%m-%d")
+        preference.slider_start = datetime.strptime(slider_start, "%Y-%m-%d")
     if slider_stop:
-        preference.slider_stop = date.strptime(slider_stop, "%Y-%m-%d")
+        preference.slider_stop = datetime.strptime(slider_stop, "%Y-%m-%d")
     preference.save()
     return HttpResponse(status=200)
 
@@ -237,16 +237,23 @@ def GetCat1TotalPieChartData(request):
     data = []  # totals
     indexes = []  # cat1_ids
 
-    cat1sums = CatSums()
-    cat_totals = cat1sums.build_cat1_totals_array(begin, end)
 
-    for cat in cat_totals:
-        if cat.cattype_id == cattype.id:
-            labels.append(cat.cat1.name)
-            data.append(cat.total)
-            indexes.append(cat.cat1_id)
-            color = next(colors)
-            color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
+    cat1s = Cat1.view_objects.all()
+    accounts = Account.admin_objects.all()
+    transactions = Transaction.view_objects.filter(date_actual__gte=begin, date_actual__lt=end,account_destination__in=accounts)
+    transactions = transactions | Transaction.view_objects.filter(date_actual__gte=begin, date_actual__lt=end,account_source__in=accounts)
+    # zbrocoli not dealing with account currencies
+    cat1s_sums = cattype.get_cat1_totals(begin,end)
+
+
+    for cat in cat1s_sums:
+        cat1_pk=cat.get('cat1_id')
+        cat1 = Cat1.objects.get(pk=cat1_pk)
+        labels.append(cat1.name)
+        data.append(cat.get('amount_actual__sum'))
+        indexes.append(cat1_pk)
+        color = next(colors)
+        color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
 
     data = {
         'type': 'doughnut',
@@ -312,13 +319,15 @@ def GetCat1TotalBarChartData(request):
     endstr = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
     cattype = CatType.view_objects.get(pk=cat_type_pk)
-    cats = Cat1.view_objects.filter(cattype=cattype)
 
     if endstr is not None and endstr != 'None':
-        end = date.strptime(endstr, "%Y-%m-%d").date()
+        end = datetime.strptime(endstr, "%Y-%m-%d").date()
 
     if beginstr is not None and beginstr != 'None':
-        begin = date.strptime(beginstr, "%Y-%m-%d").date()
+        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+
+
+    cat1s_sums = cattype.get_cat1_monthly_totals(begin,end)
 
     labels = []  # months
     datasets = []
@@ -333,7 +342,7 @@ def GetCat1TotalBarChartData(request):
         i = i + relativedelta(months=1)
         nbmonths += 1
 
-    for cat in cats:
+    for cat in cat1s_sums:
         data = [None] * nbmonths
         cat1sums = CatSums()
         #cat_totals = cat1sums.build_monthly_cat1_totals_array(beginstr, endstr, cat.id)
@@ -379,10 +388,10 @@ def GetCat2TotalBarChartData(request):
     cats = Cat2.view_objects.filter(cat1=cat1)
 
     if endstr is not None and endstr != 'None':
-        end = date.strptime(endstr, "%Y-%m-%d").date()
+        end = datetime.strptime(endstr, "%Y-%m-%d").date()
 
     if beginstr is not None and beginstr != 'None':
-        begin = date.strptime(beginstr, "%Y-%m-%d").date()
+        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
 
     labels = []  # months
     datasets = []
@@ -577,12 +586,12 @@ class CatTotalPieChart(TemplateView):
         if end is None or end == 'None':
             end = preference.slider_stop
         else:
-            end = date.strptime(end, "%Y-%m-%d")
+            end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
             begin = preference.slider_start
         else:
-            begin = date.strptime(begin, "%Y-%m-%d")
+            begin = datetime.strptime(begin, "%Y-%m-%d")
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
@@ -605,12 +614,12 @@ class CatTotalBarChart(TemplateView):
         if end is None or end == 'None':
             end = preference.slider_stop
         else:
-            end = date.strptime(end, "%Y-%m-%d")
+            end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
             begin = preference.slider_start
         else:
-            begin = date.strptime(begin, "%Y-%m-%d")
+            begin = datetime.strptime(begin, "%Y-%m-%d")
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
@@ -1619,10 +1628,10 @@ class AccountTransactionListViewOLD(LoginRequiredMixin, UserPassesTestMixin, Lis
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
         if beginstr is not None:
-            begin = date.strptime(beginstr, "%Y-%m-%d").date()
+            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
             end = begin + relativedelta(months=1)
         if endstr is not None:
-            end = date.strptime(endstr, "%Y-%m-%d").date()
+            end = datetime.strptime(endstr, "%Y-%m-%d").date()
         if end < begin:
             end = begin + relativedelta(months=1)
 
@@ -1690,8 +1699,8 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
         date1 = self.kwargs.get('date1')
         date2 = self.kwargs.get('date2')
         if date1 is not None and date2 is not None:
-            self.begin = date.strptime(date1, "%Y-%m-%d").date()
-            self.end = date.strptime(date2, "%Y-%m-%d").date()
+            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
+            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
             preference.slider_start = self.begin
             preference.slider_stop = self.end
             preference.save() 

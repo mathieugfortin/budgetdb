@@ -299,11 +299,11 @@ def BudgetedEventSubmit(request):
     amount_planned = Decimal(request.POST.get('amount_planned'))
     cat1_id = int(request.POST.get('cat1'))
     cat2_id = int(request.POST.get('cat2'))
-    repeat_start = date.strptime(request.POST.get('repeat_start'), "%Y-%m-%d").date()
+    repeat_start = datetime.strptime(request.POST.get('repeat_start'), "%Y-%m-%d").date()
     if request.POST.get('repeat_stop') == '':
         repeat_stop = None
     else:
-        repeat_stop = date.strptime(request.POST.get('repeat_stop'), "%Y-%m-%d").date()
+        repeat_stop = datetime.strptime(request.POST.get('repeat_stop'), "%Y-%m-%d").date()
 
     if request.POST.get('vendor') == '':
         vendor_id = None

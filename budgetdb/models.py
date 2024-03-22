@@ -11,6 +11,10 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Sum, Q
+from django.db.models.functions import (
+     ExtractMonth,
+     ExtractYear,
+ )
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager #, Group
@@ -954,13 +958,6 @@ class CatSums(models.Model):
         managed = False
         db_table = 'budgetdb_cattotals'
 
-    def build_cat1_totals_array(self, start_date, end_date):
-
-
-        cat1_totals = CatSums.objects.raw(sqlst)
-
-        return cat1_totals
-
     def build_cat2_totals_array(self, start_date, end_date):
         # don't do the sql = thing in prod
         sqlst = f"SELECT " \
@@ -1162,6 +1159,24 @@ class CatType(BaseSoftDelete, UserPermissions):
         
         return total
 
+    def get_cat1_totals(self, start, end):
+        cat1s = Cat1.view_objects.filter(cattype=self)
+        accounts = Account.view_objects.all()
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts,cat1__in=cat1s)
+        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts,cat1__in=cat1s)
+        # zbrocoli not dealing with account currencies
+        cat1s_sums = transactions.values('cat1_id').annotate(Sum('amount_actual'))
+        return cat1s_sums
+
+    def get_cat1_monthly_totals(self, start, end):
+        cat1s = Cat1.view_objects.filter(cattype=self)
+        accounts = Account.view_objects.all()
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts,cat1__in=cat1s)
+        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts,cat1__in=cat1s)
+        # zbrocoli not dealing with account currencies
+        transactions = transactions.annotate(month=ExtractMonth('date_actual'),year=ExtractYear('date_actual'))
+        cat1s_sums = transactions.values('cat1_id','month','year').annotate(Sum('amount_actual'))
+        return cat1s_sums
 
 class Cat1(BaseSoftDelete, UserPermissions):
     class Meta:
@@ -1329,7 +1344,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
         
         if self.can_edit() is True:
             if self.audit is True:
-                if Transaction.objects.filter(date_actual=self.date_actual,account_source=self.account_source,audit=True).exclude(pk=self.pk).count() > 0:
+                if Transaction.objects.filter(date_actual=self.date_actual,account_source=self.account_source,audit=True,is_deleted=False).exclude(pk=self.pk).count() > 0:
                     # don't save an audit if there is already one on the same day on the same account
                     return
             super(Transaction, self).save(*args, **kwargs)
