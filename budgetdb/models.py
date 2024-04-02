@@ -1153,9 +1153,11 @@ class CatType(BaseSoftDelete, UserPermissions):
         transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts)
         transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts)
         # zbrocoli not dealing with account currencies
-        cat1onlytransact = transactions.filter(cat1__in=cat1s, cat2__isnull=True).aggregate(Sum('amount_actual')).get('amount_actual__sum')
-        cat2transact = transactions.filter(cat2__in=cat2s).aggregate(Sum('amount_actual')).get('amount_actual__sum')
-        total = (cat1onlytransact or Decimal('0.00')) + (cat2transact or Decimal('0.00'))
+        cat1onlytransact = transactions.filter(cat1__in=cat1s) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        cat2transact = transactions.filter(cat2__in=cat2s) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        type_transactions = cat1onlytransact | cat2transact
+        total = (type_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum') or Decimal('0.00'))
+        # total = (cat1onlytransact or Decimal('0.00')) + (cat2transact or Decimal('0.00'))
         
         return total
 

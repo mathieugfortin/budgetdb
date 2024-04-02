@@ -125,7 +125,7 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context['dayWeekMapDic'] = dayWeekMapDic
         context['dayMonthMapDic'] = dayMonthMapDic
         context['weekMonthMapDic'] = weekMonthMapDic
-        begin_interval = date.today().date() + relativedelta(months=-13)
+        begin_interval = date.today() + relativedelta(months=-18)
         context['next_transactions'] = budgeted_event.listLinkedTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context
 
