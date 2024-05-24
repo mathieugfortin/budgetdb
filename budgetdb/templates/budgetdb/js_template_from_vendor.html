@@ -10,6 +10,8 @@
                 'vendor_id': vendor_id             // add the cat1 id to the GET parameters
             },
             success: function (data) {   
+                
+                debugger
                 $("#id_cat1").val(data.cat1);
                 $("#id_description").val(data.description);
                 $("#id_comment").val("created from template");
@@ -17,6 +19,7 @@
                 $("#id_account_destination").val(data.account_destination);
                 $("#id_amount_planned").val(data.amount_actual);
                 $("#id_currency").val(data.currency);
+                $("#id_currency").trigger("change");
                 $("#id_amount_planned_foreign_currency").val(data.amount_planned_foreign_currency);
                 $("#id_ismanual").val(data.ismanual);
                 // load cat2
@@ -29,10 +32,13 @@
                         'cat1': cat1Id             
                     },
                     success: function (data) {   
+                        debugger
                         $("#id_cat2").html(data);  // fill the cat2 dropdown
                         $("#id_cat2").val(cat2Id); // set cat2
+                        $("#id_cat2").trigger("change");            
                     }
-                });                
+                });    
+
             }
         });
     });

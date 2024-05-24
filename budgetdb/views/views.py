@@ -665,7 +665,7 @@ class ObjectMaxRedirect(RedirectView):
         model_name = args[0].model
         model = apps.get_model('budgetdb', model_name)
         try:
-            redirect_object = model.view_all_objects.get(pk=pk)
+            redirect_object = model.objects.get(pk=pk)
         except ObjectDoesNotExist:
             raise PermissionDenied
         viewname = 'budgetdb:'
@@ -1236,6 +1236,7 @@ def CatTypeMonthJSON(request):
         return JsonResponse({}, status=401)
 
     today = date.today()
+    #today = date.fromisoformat('2024-06-04')
     series = []
     total = Decimal('0.00')
     i = 1
@@ -1801,6 +1802,21 @@ class UserLoginView(auth_views.LoginView):
     def form_valid(self, form):
         login(self.request, form.get_user())
         return redirect('budgetdb:home')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # julie = User.objects.get(first_name='julie')
+        # julie.set_password('etpatatietpatata')
+        # julie.save()
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
+        return form
+
+class UserPasswordResetView(auth_views.PasswordResetView):
+    model = User
+    template_name = 'budgetdb/user_forgot_password.html'
+    email_template_name = "budgetdb/email_password_reset.html"
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
