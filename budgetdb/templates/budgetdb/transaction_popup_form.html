@@ -12,10 +12,10 @@
     {% crispy form %}
 {% endblock %}
 {% block script %}
+    {% include "budgetdb/js_template_from_vendor.html" %}
     {% include "budgetdb/js_cat1-cat2.html" %}
     {% include "budgetdb/js_currency.html" %}
     {% include "budgetdb/js_flip_accounts.html" %}
-    {% include "budgetdb/js_template_from_vendor.html" %}
     <script type="text/javascript">
         $('#modal').on('shown.bs.modal', function () {
             setTimeout(function (){

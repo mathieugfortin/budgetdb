@@ -528,7 +528,6 @@ def timeline2JSON(request):
             if account.date_closed < begin:
                 continue
         color = next(colors)
-        # balances = account.build_balance_array(begin, end)
         balances = account.get_balances(begin, end)
         linedata = []
         i = 0

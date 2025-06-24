@@ -319,39 +319,9 @@ class Invitation(MyMeta, BaseSoftDelete, ClassOwner):
         email.send()
 
 
-class AccountBalances(models.Model):
-    db_date = models.DateField(blank=True)
-    account = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
-    audit = models.DecimalField(
-        'audited amount',
-        decimal_places=2,
-        max_digits=10,
-        blank=True,
-        null=True,
-        )
-    delta = models.DecimalField(
-        'relative change for the day',
-        decimal_places=2,
-        max_digits=10,
-        blank=True,
-        null=True,
-        )
-    balance = models.DecimalField(
-        'balance for the day',
-        decimal_places=2,
-        max_digits=10,
-        blank=True,
-        null=True,
-        )
-
-    class Meta:
-        managed = False
-        db_table = 'budgetdb_accounttotal'
-
-
 class AccountBalanceDB(models.Model):
     db_date = models.DateField(blank=True)
-    account = models.ForeignKey("Account", on_delete=models.DO_NOTHING, blank=True, null=True)
+    account = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True)
     audit = models.DecimalField(
         'audited amount',
         decimal_places=2,
@@ -530,11 +500,11 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def new_balances(self, begin, end):
         date = begin - timedelta(days=1)
-        new_balance = AccountBalanceDB(account=self,db_date=date,audit=Decimal('0.00'),balance=Decimal('0.00'),is_audit=True,balance_is_dirty=True)
+        new_balance = AccountBalanceDB(account=self,db_date=date,audit=Decimal('0.00'),balance=Decimal('0.00'),is_audit=True,balance_is_dirty=False)
         new_balance.save()
         date = date + timedelta(days=1)
-        while date <= end.date():
-            new_balance = AccountBalanceDB(account=self,db_date=date)
+        while date <= end:
+            new_balance = AccountBalanceDB(account=self,db_date=date,balance_is_dirty=True)
             new_balance.save()
             date = date + timedelta(days=1)
 
@@ -782,6 +752,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
 
         children_needed_cleaning = False
+        if self.id >= 500:
+            None
         closest_parent_audit = AccountBalanceDB.objects.filter(account=self, db_date__lte=start_date, is_audit=True).order_by('-db_date').first()
         first_parent_dirty = AccountBalanceDB.objects.filter(account=self, db_date__gte=closest_parent_audit.db_date, db_date__lte=end_date,balance_is_dirty=True).order_by('db_date').first()
         if first_parent_dirty is not None:
@@ -806,6 +778,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def build_balances_leaf(self, first_dirty_date, end_date):    
         last_clean_date = first_dirty_date - timedelta(days=1)
+        if self.id >= 500:
+            None
         last_clean_balance = AccountBalanceDB.objects.get(account=self, db_date=last_clean_date)
         previous_day_balance = last_clean_balance.balance
         balances = AccountBalanceDB.objects.filter(account=self, db_date__gte=first_dirty_date, db_date__lte=end_date).order_by('db_date')
@@ -872,61 +846,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         for balance in balances:
             balance.set_delta_and_dirty()
 
-    def build_balance_array(self, start_date, end_date):  ### DEPRECATING THIS  ###
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT " \
-                f"row_number() OVER () as id, " \
-                f"c.db_date, " \
-                f"{self.pk} as account_id, " \
-                f"ta.amount_actual AS audit, " \
-                f"sum(case " \
-                f"  when t.account_source_id={self.pk} Then -t.amount_actual " \
-                f"  when t.account_destination_id={self.pk} then t.amount_actual " \
-                f"END) AS delta " \
-                f"FROM budgetdb.budgetdb_mycalendar c " \
-                f"left join budgetdb.budgetdb_transaction t ON c.db_date = t.date_actual " \
-                f"    AND (t.account_source_id={self.pk} OR t.account_destination_id={self.pk}) AND t.audit = 0 AND t.is_deleted = 0 " \
-                f"LEFT JOIN budgetdb.budgetdb_transaction ta ON c.db_date = ta.date_actual " \
-                f"    AND ta.audit = 1 AND ta.account_source_id = {self.pk} AND ta.is_deleted = 0 " \
-                f"WHERE c.db_date BETWEEN '{start_date}' AND '{end_date}' " \
-                f"GROUP BY c.db_date " \
-                f"ORDER BY c.db_date "
-
-        # get children account data
-        childaccounts = Account.view_objects.filter(account_parent_id=self.pk, is_deleted=False)
-        childcount = childaccounts.count()
-        # is this all done with DB queries?  Can I do it all in memory?
-        if (childcount > 0):  # If children, account is virtual, only check childrens
-            dailybalances = MyCalendar.objects.filter(db_date__gt=start_date, db_date__lte=end_date)
-            childbalances = []
-            # get the balances for the subaccounts
-            for childaccount in childaccounts:
-                childbalance = childaccount.build_balance_array(start_date, end_date)
-                childbalances.append(childbalance)
-            index = 0
-            for day in dailybalances:
-                # If the parent account has an audit, do not add the child accounts.
-                # good for the audited day but next day probably won't be OK...
-                day.balance = Decimal(0.00)
-                for i in range(childcount):
-                    day.balance += childbalances[i][index].balance
-                index += 1
-        else:  # no children, calculate account
-            # fetch audits and deltas
-            dailybalances = AccountBalances.objects.raw(sqlst)
-
-            # add the balances
-            previous_day = start_date + relativedelta(days=-1)
-            balance = self.balance_by_EOD(previous_day)
-            for day in dailybalances:
-                if day.audit is not None:
-                    balance = day.audit
-                else:
-                    if day.delta is not None:
-                        balance += day.delta
-                day.balance = balance
-
-        return dailybalances
+    
 
 
 class AccountCategory(MyMeta, BaseSoftDelete, UserPermissions):
