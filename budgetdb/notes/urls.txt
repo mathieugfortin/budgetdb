@@ -31,7 +31,7 @@ output of: python manage.py show_urls > budgetdb/notes/urls.txt
 /en-ca/accountcat/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:accountcategory_max_redirect
 /en-ca/accountcat/update/<int:pk>/	budgetdb.views.views.AccountCatUpdateView	budgetdb:update_accountcategory
 /en-ca/accountcat/yearreport/<int:pk>/<yyyy:year>/	budgetdb.views.views.AccountCatYearReportDetailView	budgetdb:year_report_accountcategory
-/en-ca/ajax/check-cat2-fuel/	budgetdb.views.views.load_cat2_fuel	budgetdb:ajax_check_cat2_fuel
+/en-ca/ajax/check-cat2-unit-price/	budgetdb.views.views.load_cat2_unit_price	budgetdb:ajax_check_cat2_unit_price
 /en-ca/ajax/get-template/	budgetdb.views.views.get_template	budgetdb:ajax_get_template
 /en-ca/ajax/load-cat2/	budgetdb.views.views.load_cat2	budgetdb:ajax_load_cat2
 /en-ca/ajax/load-payment-transaction/	budgetdb.views.transaction_views.load_payment_transaction	budgetdb:ajax_load_payment_transaction

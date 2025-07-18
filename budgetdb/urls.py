@@ -136,6 +136,8 @@ urlpatterns = [
          name='create_account'),
     path('account/update/<int:pk>/', views.AccountUpdateView.as_view(),
          name='update_account'),
+    path('ajax/check-account-unit-price/', views.load_account_unit_price,
+         name='ajax_check_account_unit_price'),
 
     # Account Transactions List View
     path('account/listactivityOLD/<int:pk>/', views.AccountTransactionListViewOLD.as_view(),
@@ -233,8 +235,8 @@ urlpatterns = [
          name='update_cat2'),
     path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
-    path('ajax/check-cat2-fuel/', views.load_cat2_fuel,
-         name='ajax_check_cat2_fuel'),
+    path('ajax/check-cat2-unit-price/', views.load_cat2_unit_price,
+         name='ajax_check_cat2_unit_price'),
 
     ##########################################################################################################
     # CatType

@@ -797,7 +797,7 @@ class Cat2Form(forms.ModelForm):
             'catbudget',
             'cattype',
             'cat1',
-            'fuel',
+            'unit_price',
             'is_deleted',
             'users_admin',
             'users_view',
@@ -826,7 +826,7 @@ class Cat2Form(forms.ModelForm):
                 css_class='row'
             ),
             Div(
-                Div('fuel', css_class='form-group col-md-4  '),
+                Div('unit_price', css_class='form-group col-md-4  '),
                 css_class='row'
             ),
             Div(
@@ -1068,8 +1068,8 @@ class TransactionModalForm(BSModalModelForm):
             'statement',
             'verified',
             'receipt',
-            'Fuel_L',
-            'Fuel_price',
+            'Unit_QTY',
+            'Unit_price',
             'date_actual',
             'budgetedevent',
             'amount_actual_foreign_currency',
@@ -1077,8 +1077,6 @@ class TransactionModalForm(BSModalModelForm):
             'ismanual',
             'is_deleted',
             'comment',
-            'Unit_QTY',
-            'Unit_price',
         ]
         widgets = {
             'date_actual': forms.DateInput(
@@ -1184,9 +1182,9 @@ class TransactionModalForm(BSModalModelForm):
                     css_class='row'
                 ),
                 Div(
-                    Div('Fuel_L', css_class='form-group col-4'),
-                    Div('Fuel_price', css_class='form-group col-4'),
-                    css_class='row fuel'
+                    Div('Unit_QTY', css_class='form-group col-4'),
+                    Div('Unit_price', css_class='form-group col-4'),
+                    css_class='row unit_price'
                 ),
                 Div(
                     Div('account_source', css_class='form-group col-5  '),
@@ -1228,7 +1226,7 @@ class TransactionModalForm(BSModalModelForm):
                 Div(
                     Div('Unit_QTY', css_class='form-group col-4'),
                     Div('Unit_price', css_class='form-group col-4'),
-                    css_class='row fuel'
+                    css_class='row unit_price'
                 ),
             ])
 
@@ -1257,8 +1255,8 @@ class TransactionFormFull(forms.ModelForm):
             'statement',
             'verified',
             'receipt',
-            'Fuel_L',
-            'Fuel_price',
+            'Unit_QTY',
+            'Unit_price',
             'date_actual',
             'budgetedevent',
             'amount_actual_foreign_currency',
@@ -1352,10 +1350,10 @@ class TransactionFormFull(forms.ModelForm):
         if audit_view is False:
             self.helper.layout.extend([
                 Div(
-                    # Div(AppendedText('Fuel_L', 'L', css_class='form-group col-2')),
-                    # Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-2')),
-                    Div(AppendedText('Fuel_L', 'L', css_class='form-group col-sm-6   mr-0  ')),
-                    Div(AppendedText('Fuel_price', '$/L', css_class='form-group col-sm-6  ')),
+                    # Div(AppendedText('Unit_QTY', 'L', css_class='form-group col-2')),
+                    # Div(AppendedText('Unit_price', '$/L', css_class='form-group col-2')),
+                    Div(AppendedText('Unit_QTY', 'L', css_class='form-group col-sm-6   mr-0  ')),
+                    Div(AppendedText('Unit_price', '$/L', css_class='form-group col-sm-6  ')),
                     css_class='row'
                 ),
                 Div(

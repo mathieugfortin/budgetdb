@@ -477,6 +477,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
     comment = models.CharField("Comment", max_length=200, blank=True, null=True)
     TFSA = models.BooleanField('Account is a TFSA for canadian fiscal considerations', default=False)
     RRSP = models.BooleanField('Account is a RRSP for canadian fiscal considerations', default=False)
+    unit_price = models.BooleanField('Do we keep unit quantity and cost per for this account', default=False)
 
     def __str__(self):
         user = get_current_user()
@@ -846,8 +847,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         for balance in balances:
             balance.set_delta_and_dirty()
 
-    
-
 
 class AccountCategory(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
@@ -1100,6 +1099,7 @@ class CatType(BaseSoftDelete, UserPermissions):
         cat1s_sums = transactions.values('cat1_id','month','year').annotate(Sum('amount_actual'))
         return cat1s_sums
 
+
 class Cat1(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Category'
@@ -1132,7 +1132,7 @@ class Cat2(BaseSoftDelete, UserPermissions):
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     catbudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
-    fuel = models.BooleanField('Is this fuel?  Do we keep quantity and cost per for this subcategory', default=False)
+    unit_price = models.BooleanField('Do we keep unit quantity and cost per for this subcategory', default=False)
     
     def __str__(self):
         return self.name
@@ -1237,10 +1237,10 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     date_actual = models.DateField('date of the transaction')
     amount_actual = models.DecimalField('Amount', decimal_places=2, max_digits=10, default=Decimal('0.00'))
     amount_actual_foreign_currency = models.DecimalField('original amount', decimal_places=2, max_digits=10, default=Decimal('0.00'))
-    Fuel_L = models.DecimalField('Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True)
-    Fuel_price = models.DecimalField('Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True)
-    Unit_QTY = models.DecimalField('Number of units', decimal_places=4, max_digits=9, blank=True, null=True)
-    Unit_price = models.DecimalField('Price per unit', decimal_places=4, max_digits=9, blank=True, null=True)
+    #Fuel_L = models.DecimalField('Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True)
+    #Fuel_price = models.DecimalField('Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True)
+    Unit_QTY = models.DecimalField('Quantity', decimal_places=4, max_digits=9, blank=True, null=True)
+    Unit_price = models.DecimalField('Price per', decimal_places=4, max_digits=9, blank=True, null=True)
     statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
     verified = models.BooleanField('Verified in a statement', default=False)
     audit = models.BooleanField('Audit', default=False)

@@ -190,7 +190,7 @@ class AccountActivityListTable(tables.Table):
         field = ''
         if record.vendor is not None:
             field = field + (f'<button type="button" '
-                f'class="update-transaction btn btn-outline-dark btn-sm"> '
+                f'class="update-transaction btn btn-sm"> '
                 f'{record.vendor}'
                 f'</button>')
         reverse_url = reverse("budgetdb:account_listview_update_transaction_modal", kwargs={"pk": record.id,
@@ -213,6 +213,11 @@ class AccountActivityListTable(tables.Table):
                 f'class="btn btn-info btn-sm" >'
                 f'{record.amount_actual_foreign_currency} '
                 f'{record.currency.name_short} '
+                f'</button>')
+        if record.Unit_price is not None:
+            field = field + (f'<button type="button" '
+                f'class="btn btn-sm" >'
+                f'{record.Unit_price:.2f}{record.currency.symbol}/unit '
                 f'</button>')
         joinedtransaction = None
         if record.budgetedevent is not None:

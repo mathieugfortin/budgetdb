@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10-slim
+FROM python:3.12-slim
 ARG BUILD_DATE
 ARG VERSION="0.8"
 ARG GIT_COMMIT="unknown"

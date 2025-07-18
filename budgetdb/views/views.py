@@ -480,15 +480,37 @@ def get_template(request):
     return JsonResponse(response.data, safe=False)
 
 
-def load_cat2_fuel(request):
+def load_cat2_unit_price(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     cat2_id = request.GET.get('cat2')
     if cat2_id != '' and cat2_id is not None:
-        isfuel = Cat2.admin_objects.get(id=cat2_id).fuel
-        return JsonResponse({"isfuel": isfuel}, safe=False)
+        unitprice = Cat2.admin_objects.get(id=cat2_id).unit_price
+        return JsonResponse({"unitprice": unitprice}, safe=False)
     else:
-        return JsonResponse({"isfuel": False}, safe=False)
+        return JsonResponse({"unitprice": False}, safe=False)
+
+
+def load_account_unit_price(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    account_id = request.GET.get('account')
+    if account_id != '' and account_id is not None:
+        unitprice = Account.admin_objects.get(id=account_id).unit_price
+        return JsonResponse({"unitprice": unitprice}, safe=False)
+    else:
+        return JsonResponse({"unitprice": False}, safe=False)
+
+
+def load_cat2_stock(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    cat2_id = request.GET.get('cat2')
+    if cat2_id != '' and cat2_id is not None:
+        unitprice = Cat2.admin_objects.get(id=cat2_id).unit_price
+        return JsonResponse({"unitprice": unitprice}, safe=False)
+    else:
+        return JsonResponse({"unitprice": False}, safe=False)
 
 
 def timeline2JSON(request):
