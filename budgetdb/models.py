@@ -539,13 +539,13 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 new_audit.delta = new_audit.audit
                 new_audit.save()
                 unused_balances = AccountBalanceDB.objects.filter(account=self.account,db_date__lt=self.new_audit_date).delete()
-            if self.date_closed > self._loaded_values.get('date_closed'):
+            if self.date_closed != None and self.date_closed > self._loaded_values.get('date_closed'):
                 #add later balances
                 self.new_balances(self._loaded_values.get('date_closed'),self.date_closed)
                 new_dirty = AccountBalanceDB.objects.get(account=self.account,db_date=new_audit_date)
                 new_audit.balance_is_dirty=True
                 new_audit.save()
-            elif self.date_closed < self._loaded_values.get('date_closed'):
+            elif self.date_closed != None and self.date_closed < self._loaded_values.get('date_closed'):
                 #remove unused balances 
                 unused_balances = AccountBalanceDB.objects.filter(account=self.account,db_date__gt=self.date_closed).delete()
 

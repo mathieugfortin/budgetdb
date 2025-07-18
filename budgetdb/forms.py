@@ -80,6 +80,7 @@ class AccountForm(forms.ModelForm):
             'TFSA',
             'RRSP',
             'currency',
+            'unit_price',
             'users_admin',
             'users_view',
             'date_open',
@@ -118,6 +119,7 @@ class AccountForm(forms.ModelForm):
                 css_class='row'
             ),
             Div(
+                Div('unit_price', css_class='form-group col-md-4  '),
                 Div('TFSA', css_class='form-group col-md-4  '),
                 Div('RRSP', css_class='form-group col-md-4  '),
                 css_class='row'
