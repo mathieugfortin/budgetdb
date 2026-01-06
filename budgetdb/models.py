@@ -268,6 +268,11 @@ class Preference(models.Model):
     # add ordre of listing, old first/ new first
 
 
+    def save(self, *args, **kwargs):
+
+        super(Preference, self).save(*args, **kwargs)
+
+
 class Messages(models.Model):
     MESSAGE_TYPE = {
         "tutorial": "Tutorial",
@@ -500,14 +505,33 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         return instance
 
     def new_balances(self, begin, end):
-        date = begin - timedelta(days=1)
-        new_balance = AccountBalanceDB(account=self,db_date=date,audit=Decimal('0.00'),balance=Decimal('0.00'),is_audit=True,balance_is_dirty=False)
-        new_balance.save()
+        existing_objects = AccountBalanceDB.objects.filter(account=self)
+        if existing_objects.exists():
+            last_object = existing_objects.latest('db_date')
+            date = last_object.db_date
+            if date > end:
+                return()
+            new_balance=last_object.balance
+            new_balance_is_dirty=True
+        else:
+            date = begin - timedelta(days=1)
+            new_balance=Decimal('0.00')
+            new_balance_is_dirty=False
+            new_balance_object = AccountBalanceDB(account=self,db_date=date,audit=Decimal('0.00'),balance=Decimal('0.00'),is_audit=True,balance_is_dirty=False)
+            new_balance_object.save()
+
         date = date + timedelta(days=1)
         while date <= end:
-            new_balance = AccountBalanceDB(account=self,db_date=date,balance_is_dirty=True)
-            new_balance.save()
+            new_balance_object = AccountBalanceDB(account=self,db_date=date,balance=new_balance,is_audit=False,balance_is_dirty=new_balance_is_dirty)
+            new_balance_object.save()
             date = date + timedelta(days=1)
+
+    def check_balances(self, end):
+        # verify if balances exist up to a given date.  create them if thy do not exist
+        last_balance = AccountBalanceDB.objects.filter(account=self).latest('db_date')
+        last_date = last_balance.db_date
+        if end > last_date:
+            self.new_balances(last_date,end)
 
     def save(self, *args, **kwargs):
 

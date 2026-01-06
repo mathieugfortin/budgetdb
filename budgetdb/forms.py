@@ -965,6 +965,13 @@ class PreferenceForm(forms.ModelForm):
             ),
         )
 
+    def save(self, commit=True):
+        if 'timeline_stop' in self.changed_data:
+            new_timeline_stop = self.cleaned_data['timeline_stop']
+            accounts = Account.view_objects.all()
+            for account in accounts:
+                account.check_balances(new_timeline_stop)
+        super(PreferenceForm, self).save(commit)
 
 class TransactionFormShort(forms.ModelForm):
     class Meta:
