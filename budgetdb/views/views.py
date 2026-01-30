@@ -1485,7 +1485,8 @@ class StatementListView(MyListView):
     table_class = StatementListTable
 
     def get_queryset(self):
-        return self.model.view_objects.all().order_by('-statement_date', 'account')
+        pk = self.kwargs.get('pk')
+        return self.model.view_objects.filter(account=pk).order_by('-statement_date', 'account')
 
 
 class StatementDetailView(MyDetailView):
@@ -1706,6 +1707,7 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
         context['pk'] = self.account.pk
         context['year'] = self.year
         context['account_name'] = self.account
+        context['statements_exist'] = Statement.view_objects.filter(account = self.account.pk).count
         return context
 
     def get_table_kwargs(self):

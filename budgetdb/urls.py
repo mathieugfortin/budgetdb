@@ -264,6 +264,8 @@ urlpatterns = [
     # Statement
     path('statement/', views.StatementListView.as_view(),
          name='list_statement'),
+    path('statement/account/<int:pk>/', views.StatementListView.as_view(),
+         name='list_statement_per_account'),         
     path('statement/<int:pk>/', views.StatementDetailView.as_view(),
          name='details_statement'),
     path('statement/create/', views.StatementCreateView.as_view(),

@@ -32,6 +32,10 @@
         <h3>{{ account_name }} 
         <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
             <span class="material-symbols-outlined">monitoring</span></a>
+        {% if statements_exist %}
+        <a href="{% url 'budgetdb:list_statement_per_account' pk %}" class="btn btn-info btn-sm"  >
+            <span class="material-symbols-outlined">cards_stack</span></a>
+        {% endif %}
         </h3>
       </div>
       <div class="col-1 text-end">
