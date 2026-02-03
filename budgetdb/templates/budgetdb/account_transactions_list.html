@@ -9,69 +9,104 @@
 {% endblock %}
 
 {% block content %}
-<div class="modal fade" id="transaction-modal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog mt-5">
-        <div class="modal-content">
+    <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog mt-5" role="document">
+            <div class="modal-content"></div>
         </div>
     </div>
-</div>
-
-<div class="modal fade" tabindex="-1" role="dialog" id="modal">
-    <div class="modal-dialog mt-5" role="document">
-        <div class="modal-content"></div>
+    <div class="container">
+        <div class="row no-gutters">
+        <div class="col-1 text-start">
+            <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
+                <span class="material-symbols-outlined">add_circle</span>
+            </button>
+        </div>
+        <div class="col text-center">
+            <h3>{{ account_name }} 
+            <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
+                <span class="material-symbols-outlined">monitoring</span></a>
+            {% if statements_exist %}
+            <a href="{% url 'budgetdb:list_statement_per_account' pk %}" class="btn btn-info btn-sm"  >
+                <span class="material-symbols-outlined">cards_stack</span></a>
+            {% endif %}
+            </h3>
+        </div>
+        <div class="col-1 text-end">
+            <button  type="button" title="Create audit for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
+                <span class="material-symbols-outlined">add_circle</span>
+            </button>
+        </div>
+        </div>
     </div>
-</div>
-<div class="container">
-    <div class="row no-gutters">
-      <div class="col-1 text-start">
-        <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
-            <span class="material-symbols-outlined">add_circle</span>
-        </button>
-      </div>
-      <div class="col text-center">
-        <h3>{{ account_name }} 
-        <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
-            <span class="material-symbols-outlined">monitoring</span></a>
-        {% if statements_exist %}
-        <a href="{% url 'budgetdb:list_statement_per_account' pk %}" class="btn btn-info btn-sm"  >
-            <span class="material-symbols-outlined">cards_stack</span></a>
-        {% endif %}
-        </h3>
-      </div>
-      <div class="col-1 text-end">
-        <button  type="button" title="Create audit for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
-            <span class="material-symbols-outlined">add_circle</span>
-        </button>
-      </div>
-    </div>
-</div>
 
     {% load render_table from django_tables2 %}
-    
+        
     {% if filter %}
-    <form action="" method="get" class="form form-inline">
-        {{ filter.form.as_p }}
-    </form>
+        <form action="" method="get" class="form form-inline">
+            {{ filter.form.as_p }}
+        </form>
     {% endif %}
 
     {% render_table table %}
 
-
 {% endblock %}
 
-
 {% block script %}
-<script type="text/javascript">
-    $(document).ready(function () {
-          $(".update-transaction").each(function () {
-            $(this).modalForm({
-              formURL: $(this).data("form-url")
-            });
-          });
-    });
+<script>
+   console.log("4Checking for jQuery...");
+   if (typeof jQuery == 'undefined') {
+       console.log("4jQuery is MISSING here!");
+   } else {
+       console.log("4jQuery is FOUND here!");
+   }
 </script>
+    {% include "budgetdb/js_flip_accounts.html" %}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $(".update-transaction").each(function () {
+                $(this).modalForm({
+                    formURL: $(this).data("form-url"),
+                    modalID: "#modal" 
+                });
+            });
 
-{% include "budgetdb/js_toggle_verify.html" %}
-{% include "budgetdb/js_toggle_receipt.html" %}
+            // This event fires when the bootstrap-modal-forms finishes loading the form
+            $("#modal").on("shown.bs.modal", function() {
+                const $modal = $(this);
+                $modal.find(".django-select2").each(function() {
+                        $(this).select2({
+                            dropdownParent: $modal,
+                            width: '100%', 
+                            placeholder: $(this).attr('data-placeholder'),
+                            allowClear: true
+                        });
+                });
+                // Specific initialization for statements if needed
+                // $('#id_statement').select2({
+                //     dropdownParent: $modal
+                // });
+
+                // Delay focus slightly to ensure the modal transition is finished
+                setTimeout(function (){
+                    $('#id_amount_actual').focus();
+                }, 300);
+            });
+        });
+        // This catches the form if it was re-injected due to an error
+        $(document).on('shown.bs.modal', '#modal', function() {
+            initSelect2InModal();
+        });
+
+        // Create a reusable function
+        function initSelect2InModal() {
+            $('#modal .django-select2').each(function() {
+                $(this).select2({
+                    dropdownParent: $('#modal'),
+                    width: '100%'
+                });
+            });
+        }
+    </script>
+    {% include "budgetdb/js_toggle_receipt_verify.html" %}
 
 {% endblock %}

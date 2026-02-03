@@ -1594,7 +1594,7 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
 
     def __str__(self):
         # return self.account.name + " " + self.statement_date.strftime('%Y-%m-%d')
-        return self.statement_date.strftime('%Y-%m-%d')
+        return f'{self.statement_date.strftime('%Y-%m-%d')} - {self.account.name} - {self.account.currency.symbol}{self.balance:,.2f}'
 
     def get_absolute_url(self):
         return reverse('budgetdb:details_statement', kwargs={'pk': self.pk})

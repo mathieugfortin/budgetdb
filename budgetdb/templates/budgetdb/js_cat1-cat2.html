@@ -1,17 +1,30 @@
-<script>
-// load subcategories when the category changes
-$("#id_cat1").change(function () {
-    var url = "{% url 'budgetdb:ajax_load_cat2' %}";
-    var cat1Id = $(this).val();    // get the selected cat1 ID from the HTML input
-    // debugger;
-    $.ajax({                       // initialize an AJAX request
-        url: url,                    
-        data: {
-            'cat1': cat1Id             // add the cat1 id to the GET parameters
-        },
-        success: function (data) {   
-            $("#id_cat2").html(data);  // replace the contents of the cat2 input with the data that came from the server
-        }
+<script type="text/javascript">
+(function($) {
+    $(function() {
+        // Use delegation to ensure it works even when the modal content is replaced/reloaded
+        $(document).on('change', '#id_cat1', function () {
+            var url = "{% url 'budgetdb:ajax_load_cat2' %}";
+            var cat1Id = $(this).val();
+
+            $.ajax({
+                url: url,
+                data: {
+                    'cat1': cat1Id
+                },
+                success: function (data) {
+                    var $cat2 = $("#id_cat2");
+                    
+                    // Update the subcategory dropdown HTML content
+                    $cat2.html(data);
+                    
+                    // If id_cat2 is a Select2 field, we notify it that the options changed
+                    // if ($cat2.hasClass("django-select2") || $cat2.data('select2')) { $cat2.trigger('change');  }
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error loading subcategories: " + error);
+                }
+            });
+        });
     });
-});
+})(jQuery);
 </script>

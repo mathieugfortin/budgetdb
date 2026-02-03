@@ -73,7 +73,7 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
 
 class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionFormFull
     task = 'Update'
     user = None
@@ -147,7 +147,7 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
 
 class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionFormFull
     task = 'Create'
     user = None
@@ -182,7 +182,7 @@ def load_payment_transaction(request):
 
 class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionModalForm
     task = 'Create'
     user = None
@@ -200,6 +200,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         self.user = get_current_user()
         kwargs['task'] = self.task
         kwargs['user'] = self.user
+        kwargs['request'] = self.request
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -222,13 +223,17 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         form.helper.form_method = 'POST'
         return form
 
-    def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.account.pk})
+    def form_valid(self, form):
+        pass
+        return super().form_valid(form)
 
+    def get_success_url(self):
+        return self.request.GET.get("next", self.request.META.get("HTTP_REFERER", "/")
+        )
 
 class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpdateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionModalForm
     task = 'Update'
     success_message = 'Success: Transaction was updated.'
@@ -247,6 +252,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         kwargs['audit'] = False
         kwargs['task'] = self.task
         kwargs['user'] = self.user
+        kwargs['request'] = self.request
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -260,8 +266,13 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         form.helper.form_method = 'POST'
         return form
 
+    def form_valid(self, form):
+        pass
+        return super().form_valid(form)
+
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('accountpk')})
+        return self.request.GET.get('next', self.request.META.get('HTTP_REFERER', '/')
+        )
 
 
 ###################################################################################################################
@@ -269,7 +280,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
 
 class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionModalForm
     task = 'Create'
     user = None

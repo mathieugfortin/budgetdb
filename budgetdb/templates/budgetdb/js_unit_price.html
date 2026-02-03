@@ -1,136 +1,106 @@
 <script>
-var accountSourceUnitPriceFlag = false;
-var accountDestinationUnitPriceFlag = false;
-var cat2UnitPriceFlag = false;
-var showUnitPriceFlag = false;
-var accountUrl = "{% url 'budgetdb:ajax_check_account_unit_price' %}";
-var cat2Url = "{% url 'budgetdb:ajax_check_cat2_unit_price' %}";
+(function($) {
+    $(function() {
+        var accountSourceUnitPriceFlag = false;
+        var accountDestinationUnitPriceFlag = false;
+        var cat2UnitPriceFlag = false;
+        var showUnitPriceFlag = false;
+        var accountUrl = "{% url 'budgetdb:ajax_check_account_unit_price' %}";
+        var cat2Url = "{% url 'budgetdb:ajax_check_cat2_unit_price' %}";
 
-function showUnitPrice() {
-    $('#div_id_Unit_QTY').removeClass('visually-hidden');
-    $('#id_Unit_QTY').removeAttr('tabindex')
-    $('#div_id_Unit_price').removeClass('visually-hidden');
-    $('#id_Unit_price').removeAttr('tabindex')
-}
-
-function hideUnitPrice() {
-    $('#div_id_Unit_QTY').addClass('visually-hidden');
-    $('#id_Unit_QTY').attr('tabindex', '-1');
-    $('#div_id_Unit_price').addClass('visually-hidden');  
-    $('#id_Unit_price').attr('tabindex', '-1');
-}
-
-function updateVisibilityUnitPrice() {
-    if (showUnitPriceFlag == false && (accountSourceUnitPriceFlag  == true || accountDestinationUnitPriceFlag == true || cat2UnitPriceFlag == true)) {
-        showUnitPrice();
-        showUnitPriceFlag = true;
-    } else if (accountSourceUnitPriceFlag  == false && accountDestinationUnitPriceFlag == false && cat2UnitPriceFlag == false) {
-        hideUnitPrice();
-        showUnitPriceFlag = false;
-    }
-}
-
-function getUnitPriceFlag(url, data) {
-    return $.ajax({
-        url: url,
-        data: data,
-    });
-}
-
-//set initial state
-$( document ).ready(function() {
-    // debugger;
-    var sourceAccountId = $('#id_account_source').val();    
-    var destAccountId = $('#id_account_destination').val();   
-    var cat2Id = $('#id_cat2').val();
-    // Create an array to hold our AJAX promises
-    var ajaxCalls = [];
-    
-    // Conditionally add calls to the array
-    if (sourceAccountId) {
-        ajaxCalls.push(getUnitPriceFlag(accountUrl, { 'account': sourceAccountId }).done(function(data) {
-            accountSourceUnitPriceFlag = data.unitprice;
-        }));
-    }
-    if (destAccountId) {
-        ajaxCalls.push(getUnitPriceFlag(accountUrl, { 'account': destAccountId }).done(function(data) {
-            accountDestinationUnitPriceFlag = data.unitprice;
-        }));
-    }
-    if (cat2Id) {
-        ajaxCalls.push(getUnitPriceFlag(cat2Url, { 'cat2': cat2Id }).done(function(data) {
-            cat2UnitPriceFlag = data.unitprice;
-        }));
-    }
-    // Use $.when() to wait for all AJAX calls to complete
-    // The .always() callback will execute after all promises are finished, success or fail.
-    $.when.apply($, ajaxCalls).always(function() {
-        console.log("All AJAX calls finished. Now updating UI.");
-        updateVisibilityUnitPrice();
-    });
-
-    $("#id_cat2").change(function() {
-        var cat2Id = $(this).val(); // Get the new value from the dropdown
-
-        if (cat2Id) {
-            // If a valid subcategory is selected, check its unit price status
-            getUnitPriceFlag(cat2Url, { 'cat2': cat2Id })
-                .done(function(data) {
-                    // Once we get a successful response, update the variable
-                    cat2UnitPriceFlag = data.unitprice;
-                })
-                .always(function() {
-                    // After the call is complete (success or fail), update the UI
-                    updateVisibilityUnitPrice();
-                });
-        } else {
-            // If the user selected the blank option ("----")
-            cat2UnitPriceFlag = false; // Clear the old value
-            updateVisibilityUnitPrice(); // Update the UI immediately
+        function showUnitPrice() {
+            $('#div_id_Unit_QTY, #div_id_Unit_price').removeClass('visually-hidden');
+            $('#id_Unit_QTY, #id_Unit_price').removeAttr('tabindex');
         }
-    });
 
-    $("#id_account_destination").change(function() {
-        var destAccountId = $(this).val(); // Get the new value from the dropdown
-
-        if (destAccountId) {
-            // If a valid subcategory is selected, check its unit price status
-            getUnitPriceFlag(accountUrl, { 'account': destAccountId })
-                .done(function(data) {
-                    // Once we get a successful response, update the variable
-                    accountDestinationUnitPriceFlag = data.unitprice;
-                })
-                .always(function() {
-                    // After the call is complete (success or fail), update the UI
-                    updateVisibilityUnitPrice();
-                });
-        } else {
-            // If the user selected the blank option ("----")
-            accountDestinationUnitPriceFlag = false; // Clear the old value
-            updateVisibilityUnitPrice(); // Update the UI immediately
+        function hideUnitPrice() {
+            $('#div_id_Unit_QTY, #div_id_Unit_price').addClass('visually-hidden');
+            $('#id_Unit_QTY, #id_Unit_price').attr('tabindex', '-1');
         }
-    });
 
-    $("#id_account_source").change(function() {
-        var sourceAccountId = $(this).val(); // Get the new value from the dropdown
+        function updateVisibilityUnitPrice() {
+            if (accountSourceUnitPriceFlag || accountDestinationUnitPriceFlag || cat2UnitPriceFlag) {
+                showUnitPrice();
+                showUnitPriceFlag = true;
+            } else {
+                hideUnitPrice();
+                showUnitPriceFlag = false;
+            }
+        }
 
-        if (sourceAccountId) {
-            // If a valid subcategory is selected, check its unit price status
-            getUnitPriceFlag(accountUrl, { 'account': sourceAccountId })
-                .done(function(data) {
-                    // Once we get a successful response, update the variable
+        function getUnitPriceFlag(url, data) {
+            return $.ajax({ url: url, data: data });
+        }
+
+        function initUnitPriceVisibility() {
+            var sourceAccountId = $('#id_account_source').val();    
+            var destAccountId = $('#id_account_destination').val();   
+            var cat2Id = $('#id_cat2').val();
+            var ajaxCalls = [];
+            
+            if (sourceAccountId) {
+                ajaxCalls.push(getUnitPriceFlag(accountUrl, { 'account': sourceAccountId }).done(function(data) {
                     accountSourceUnitPriceFlag = data.unitprice;
-                })
-                .always(function() {
-                    // After the call is complete (success or fail), update the UI
+                }));
+            }
+            if (destAccountId) {
+                ajaxCalls.push(getUnitPriceFlag(accountUrl, { 'account': destAccountId }).done(function(data) {
+                    accountDestinationUnitPriceFlag = data.unitprice;
+                }));
+            }
+            if (cat2Id) {
+                ajaxCalls.push(getUnitPriceFlag(cat2Url, { 'cat2': cat2Id }).done(function(data) {
+                    cat2UnitPriceFlag = data.unitprice;
+                }));
+            }
+
+            if (ajaxCalls.length > 0) {
+                $.when.apply($, ajaxCalls).always(function() {
                     updateVisibilityUnitPrice();
                 });
-        } else {
-            // If the user selected the blank option ("----")
-            accountSourceUnitPriceFlag = false; // Clear the old value
-            updateVisibilityUnitPrice(); // Update the UI immediately
+            } else {
+                updateVisibilityUnitPrice();
+            }
         }
-    });
-});
 
+        // 1. Delegation for Category 2
+        $(document).on('change', '#id_cat2', function() {
+            var val = $(this).val();
+            if (val) {
+                getUnitPriceFlag(cat2Url, { 'cat2': val }).done(function(data) {
+                    cat2UnitPriceFlag = data.unitprice;
+                    updateVisibilityUnitPrice();
+                });
+            } else {
+                cat2UnitPriceFlag = false;
+                updateVisibilityUnitPrice();
+            }
+        });
+
+        // 2. Delegation for Accounts
+        $(document).on('change', '#id_account_source, #id_account_destination', function() {
+            var id = $(this).attr('id');
+            var val = $(this).val();
+            if (val) {
+                getUnitPriceFlag(accountUrl, { 'account': val }).done(function(data) {
+                    if (id === 'id_account_source') accountSourceUnitPriceFlag = data.unitprice;
+                    else accountDestinationUnitPriceFlag = data.unitprice;
+                    updateVisibilityUnitPrice();
+                });
+            } else {
+                if (id === 'id_account_source') accountSourceUnitPriceFlag = false;
+                else accountDestinationUnitPriceFlag = false;
+                updateVisibilityUnitPrice();
+            }
+        });
+
+        // 3. Trigger on Modal Load
+        $(document).on('shown.bs.modal', '#modal', function() {
+            initUnitPriceVisibility();
+        });
+
+        // 4. Initial Run (for non-modal views)
+        initUnitPriceVisibility();
+    });
+})(jQuery);
 </script>

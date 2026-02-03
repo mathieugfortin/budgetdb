@@ -1,0 +1,11 @@
+{% load static %}
+{% block head_comment %}{% endblock %}
+
+{% csrf_token %}
+<div class="modal-body">
+    {% block content %}
+    {% endblock %}
+</div>
+
+{% block script %}
+{% endblock %}

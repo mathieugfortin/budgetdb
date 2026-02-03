@@ -42,13 +42,15 @@ register_converter(TwoDigitDayConverter, 'dd')
 app_name = 'budgetdb'
 
 urlpatterns = [
+    
+    
     path('', views.IndexView.as_view(), name='emptyhome'),
 
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
          name='setinterval_json'),
-
+    
     path('chart/timeline/', views.EChartTimelineView.as_view(),
          name='timeline_chart'),
     path('chart/echartOptionTimelineJSON', views.echartOptionTimeline2JSON, name='timeline_option_json'),
@@ -140,8 +142,8 @@ urlpatterns = [
          name='ajax_check_account_unit_price'),
 
     # Account Transactions List View
-    path('account/listactivityOLD/<int:pk>/', views.AccountTransactionListViewOLD.as_view(),
-         name='list_account_activity2'),
+    # path('account/listactivityOLD/<int:pk>/', views.AccountTransactionListViewOLD.as_view(),
+    #   name='list_account_activity2'),
     path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
     path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.AccountTransactionListView.as_view(),
@@ -272,8 +274,6 @@ urlpatterns = [
          name='create_statement'),
     path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
-    path('statement/addtransactions/<int:pk>/', views.StatementAddTransactionsRedirectView.as_view(),
-         name='add_transactions_to_statement'),
 
     ##########################################################################################################
     # Template
@@ -354,3 +354,4 @@ urlpatterns = [
     path('vendor/update/<int:pk>/', views.VendorUpdateView.as_view(),
          name='update_vendor'),
 ]
+# print("urlpatterns:", urlpatterns)

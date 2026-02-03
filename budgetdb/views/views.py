@@ -1034,7 +1034,7 @@ class AccountDetailView(MyDetailView):
     model = Account
 
 
-class AccountSummaryView(LoginRequiredMixin, ListView):
+class AccountSummaryView(MyListView):
     model = Account
     template_name = 'budgetdb/account_list_summary.html'
 
@@ -1486,6 +1486,8 @@ class StatementListView(MyListView):
 
     def get_queryset(self):
         pk = self.kwargs.get('pk')
+        if pk is None:
+            return self.model.view_objects.all().order_by('-statement_date', 'account')    
         return self.model.view_objects.filter(account=pk).order_by('-statement_date', 'account')
 
 
@@ -1499,7 +1501,7 @@ class StatementDetailView(MyDetailView):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
         # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
-        self.date_min = statement.statement_date - timedelta(days=35)
+        self.date_min = statement.statement_date - timedelta(days=32)
         self.title = f'Statement {statement.statement_date} for {statement.account}'
         statement.included_transactions = statement.transaction_set.filter(is_deleted=False).order_by('date_actual')
         if statement.included_transactions.count() > 0:
@@ -1523,10 +1525,9 @@ class StatementDetailView(MyDetailView):
         statement.possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
                                                                           date_actual__lte=self.date_max,
                                                                           date_actual__gt=self.date_min,
-                                                                          statement__isnull=True,
                                                                           audit=False
-                                                                          ).order_by('date_actual')
-
+                                                                          ).exclude(statement=statement).order_by('date_actual')
+                        
         transactions_sumP = statement.possible_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum')
         statement.transactions_sumP = transactions_sumP
         return statement
@@ -1537,32 +1538,15 @@ class StatementDetailView(MyDetailView):
         context["date2"] = self.date_max
         return context  
 
-
-class StatementAddTransactionsRedirectView(RedirectView):
-    permanent = False
-
-    def get_redirect_url(*args, **kwargs):
-        pk = kwargs.get('pk')
-        model = Statement
-        try:
-            statement = model.admin_objects.get(pk=pk)
-        except ObjectDoesNotExist:
-            raise PermissionDenied
-        min_date = statement.statement_date - relativedelta(days=40)
-        possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
-                                                                date_actual__lte=statement.statement_date,
-                                                                date_actual__gt=min_date,
-                                                                statement__isnull=True,
-                                                                audit=False
-                                                                ).update(statement=pk)
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        selected_ids = request.POST.getlist("selected")
+        if self.object.can_edit():
+            Transaction.admin_objects.filter(id__in=selected_ids).update(statement=self.object)
+        return redirect(self.object.get_absolute_url())
 
 
-        viewname = 'budgetdb:'
-        viewname = viewname + 'details_' + model._meta.model_name
-        return reverse_lazy(viewname, kwargs={'pk': pk})
-
-
-class StatementUpdateView(LoginRequiredMixin, UpdateView):
+class StatementUpdateView(MyUpdateView):
     model = Statement
     form_class = StatementForm
     task = 'Update'
@@ -1577,7 +1561,7 @@ class StatementUpdateView(LoginRequiredMixin, UpdateView):
         return form
 
 
-class StatementCreateView(LoginRequiredMixin, CreateView):
+class StatementCreateView(MyCreateView):
     model = Statement
     form_class = StatementForm
     task = 'Create'
@@ -1631,58 +1615,6 @@ class IndexView(LoginRequiredMixin, TemplateView):
     template_name = 'budgetdb/index.html'
 
 
-class AccountTransactionListViewOLD(LoginRequiredMixin, UserPassesTestMixin, ListView):
-    model = Account
-    template_name = 'budgetdb/AccountTransactionListView.html'
-
-    def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'), is_deleted=False)
-        return view_object.can_view()
-
-    def handle_no_permission(self):
-        raise PermissionDenied
-
-    def get_queryset(self):
-        pk = self.kwargs.get('pk')
-        preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.slider_start
-        end = preference.slider_stop
-
-        beginstr = self.request.GET.get('begin', None)
-        endstr = self.request.GET.get('end', None)
-        if beginstr is not None:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-            end = begin + relativedelta(months=1)
-        if endstr is not None:
-            end = datetime.strptime(endstr, "%Y-%m-%d").date()
-        if end < begin:
-            end = begin + relativedelta(months=1)
-
-        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
-        return events
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        pk = self.kwargs.get('pk')
-        preference = Preference.objects.get(user=self.request.user.id)
-        year = preference.slider_stop.year
-        decorated = []
-        for transaction in self.object_list:
-            transaction.show_currency = False
-            if transaction.account_destination is not None:
-                if transaction.account_destination.currency != transaction.currency:
-                    transaction.show_currency = True
-            if transaction.account_source is not None:
-                if transaction.account_source.currency != transaction.currency:
-                    transaction.show_currency = True
-            decorated.append(transaction)
-        context['pk'] = pk
-        context['year'] = year
-        context['decorated'] = decorated
-        context['account_name'] = Account.objects.get(id=pk).name
-        return context
-
-
 class AccountTransactionListView(UserPassesTestMixin, MyListView):
     model = Account
     table_class = AccountActivityListTable
@@ -1715,6 +1647,7 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
            'account_view': self.account.pk,
            'begin': self.begin,
            'end': self.end,
+           'request': self.request,
        }
 
     def get_queryset(self):
@@ -1880,7 +1813,7 @@ class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
         return super(auth_views.PasswordChangeView, self).form_valid(form) 
 
 
-class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
+class PreferencesUpdateView(MyUpdateView):
 
     model = Preference
     form_class = PreferenceForm

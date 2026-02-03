@@ -8,4 +8,5 @@ app_name = 'web_budget'
 
 urlpatterns = i18n_patterns(
     path('', include('budgetdb.urls')),
+    path("select2/", include("django_select2.urls")),
 )

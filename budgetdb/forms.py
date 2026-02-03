@@ -4,6 +4,7 @@ from django import forms
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User, Preference, Invitation
@@ -13,6 +14,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
 from crispy_forms.bootstrap import AppendedText, PrependedText, StrictButton
 from bootstrap_modal_forms.forms import BSModalModelForm
+from django_select2.forms import ModelSelect2Widget
 
 
 class UserSignUpForm(UserCreationForm):
@@ -1062,6 +1064,17 @@ TransactionFormSet = modelformset_factory(
 
 
 class TransactionModalForm(BSModalModelForm):
+    statement = forms.ModelChoiceField(
+        queryset=Statement.admin_objects.none(),  # populate in __init__
+        required=False, 
+        empty_label="---------"
+    )
+    vendor = forms.ModelChoiceField(
+        queryset=Vendor.view_objects.all(),
+        widget=forms.Select(attrs={'class': 'django-select2'}),
+        required=False, 
+        empty_label="---------"
+    )    
     class Meta:
         model = Transaction
         fields = [
@@ -1096,6 +1109,24 @@ class TransactionModalForm(BSModalModelForm):
                 format=('%Y-%m-%d'),
                 attrs={'class': 'form-control', 'placeholder': 'Select a date', 'type': 'date'}
             ),
+            'statement': ModelSelect2Widget(
+                model=Statement,
+                search_fields=['statement_date__icontains'],
+                attrs={
+                    'class': 'django-select2',
+                    'data-placeholder': 'Optional: Select a statement',
+                    'data-allow-clear': 'true',  # Select2 heavy widgets look for data-attributes
+                },
+            ),
+            'vendor': ModelSelect2Widget(
+                model=Vendor,
+                search_fields=['name__icontains'],
+                attrs={
+                    'class': 'django-select2',
+                    'data-placeholder': 'Optional: Select a vendor',
+                    'data-allow-clear': 'true',  # Select2 heavy widgets look for data-attributes
+                },                
+            )
         }
 
     def __init__(self, *args, **kwargs):
@@ -1105,8 +1136,8 @@ class TransactionModalForm(BSModalModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         if len(self.data) != 0:
-            # form is bound, no need to build the layout
-            # cat1 = int(self.data.get('cat1'))
+            # statement queryser somehow gets whiped out by the ajax requests anmd the form won't save.
+            self.fields['statement'].queryset = Statement.admin_objects.order_by('-statement_date')
             # self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             return
 
@@ -1138,7 +1169,13 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['account_source'].label = 'Source'
         self.fields['account_destination'].queryset = Account.admin_objects.all()
         self.fields['account_destination'].label = 'Destination'
-        self.fields['statement'].queryset = Statement.admin_objects.all()
+        self.fields['statement'].queryset = Statement.admin_objects.order_by('-statement_date')
+        self.fields['statement'].widget.attrs.update({
+                                                'class': 'django-select2',
+                                                'data-width': '100%' # Optional: helps Select2 fit inside modal widths
+                                                })
+        #self.fields['statement'].widget=StatementWidget()
+        # self.fields['statement'].label_from_instance = (lambda obj: f'{obj.date:%Y-%m-%d} – {obj.name[:25]}…' if len(obj.name) > 25   else f'{obj.date:%Y-%m-%d} – {obj.name}')
         self.fields['vendor'].queryset = Vendor.view_objects.all()
         self.fields['currency'].queryset = preference.currencies
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
@@ -1157,93 +1194,100 @@ class TransactionModalForm(BSModalModelForm):
 
         if audit_view is False:
             self.helper.layout = Layout(
-                Div(
-                    Field('vendor', css_class='form-group col-md-4  '),
-                    Field('description'),
-                )
+                Row(
+                    Column('vendor', css_class='col-6'),
+                    ),
+                Row(
+                    Column('description', css_class='col-12'),
+                    ),
             )
         else:
             self.helper.layout = Layout(
-                Div(
-                    Field('description'),
-                )
+                Row(
+                    Column('description', css_class='col-12'),
+                ),
             )
 
         self.helper.layout.extend([
-            Div(
-                Div('date_actual', css_class='form-group col-md-6  '),
-                css_class='row'
+            Row(
+                Column('date_actual', css_class=' col-6'),
             ),
-            Div(
-                Div(PrependedText('amount_actual', '$', css_class='form-group col-4 col-sm-4 ')),
-                # Div('amount_actual', css_class='form-group col-4'),
-                Div('currency', css_class='form-group col-4'),
-                Div('amount_actual_foreign_currency', css_class='form-group col-4  '),
-                css_class='row'
+            Row(
+                Column(PrependedText('amount_actual', '$', attributes={"step": "0.01", "type": "number"}), css_class='col-6'),
+                Column('currency', css_class='col-6' ),
+            ),
+            Row(
+                Column(PrependedText('amount_actual_foreign_currency', '$', attributes={"step": "0.01", "type": "number"}),css_class='col-4'),
             ),
         ])
 
         if audit_view is False:
             self.helper.layout.extend([
-                Div(
-                    Div('cat1', css_class='form-group col-md-4  '),
-                    Div('cat2', css_class='form-group col-md-4  '),
-                    css_class='row'
+                Row(
+                    Column('cat1', css_class='col-md-6'),
+                    Column('cat2', css_class='col-md-6'),
                 ),
-                Div(
-                    Div('Unit_QTY', css_class='form-group col-4'),
-                    Div('Unit_price', css_class='form-group col-4'),
-                    css_class='row unit_price'
+                Row(
+                    Column('Unit_QTY', css_class='col-6'),
+                    Column('Unit_price', css_class='col-6'),
                 ),
-                Div(
-                    Div('account_source', css_class='form-group col-5  '),
-                    StrictButton('<span class="material-symbols-outlined">swap_horiz</span>', name='flip', type="button",
-                                 css_class="btn btn-danger my-4 col-1", onclick="changeaccounts()"),
-                    Div('account_destination', css_class='form-group col-5   '),
-                    css_class='row'
+                Row(
+                    Column('account_source', css_class='col-5 mb-3'),
+                    Column(
+                        HTML('<label class="form-label">&nbsp;</label>'),
+                        StrictButton(
+                            '<span class="material-symbols-outlined">swap_horiz</span>',
+                            name='flip',
+                            type="button",
+                            css_class="btn btn-danger mb-5",
+                            onclick="changeaccounts()"
+                        ),
+                        css_class='col-2 mb-3 d-grid' # 'd-grid' makes the button fill the column width
+                    ),
+                    Column('account_destination', css_class='col-5 mb-3'),
                 ),
-                Div(
-                    Div('verified', css_class='form-group col-md-4  '),
-                    Div('receipt', css_class='form-group col-md-4   '),
-                    Div('is_deleted', css_class='form-group col-md-4   '),
-                    css_class='row'
+                Row(
+                    Column('statement', css_class='col-10'),
                 ),
-                Div(
-                    # Div('audit', css_class='form-group col-md-4  '),
-                    Field('audit', type='hidden'),
-                    Div('ismanual', css_class='form-group col-md-8   '),
-                    css_class='row'
+                Row(
+                    Column(css_class='col-2 mb-1'),
+                    Column(
+                        Row('verified', css_class='mb-1'),
+                        Row('receipt', css_class='mb-1'),
+                        Row('is_deleted', css_class='mb-1'),
+                        Row('ismanual', css_class='mb-1'),    
+                        css_class='col-8 mb-1 '
+                    ),
                 ),
-                Div(
-                    Div('budgetedevent', css_class='form-group col-md-5  '),
-                    # Div('vendor', css_class='form-group col-md-4  '),
-                    Div('statement', css_class='form-group col-md-6   '),
-                    css_class='row'
+                Row(
+                    Column('budgetedevent', css_class='col-12'),
                 ),
+                Field('audit', type='hidden'),
             ])
         else:
             self.helper.layout.extend([
-                Div(
-                    # Div(PrependedText('amount_actual', '$', css_class='form-group col-sm-6', input_size="input-group-sm")),
+                Row(
                     Field('account_source', type='hidden'),
-                    # Field('currency', type='hidden'),
                     Field('audit', type='hidden'),
-                    # Field('amount_actual_foreign_currency', type='hidden'),
-                    Div('is_deleted', css_class='form-group col-md-4   '),
-                    css_class='row'
+                    Div('is_deleted', css_class='col-md-4'),
                 ),
-                Div(
-                    Div('Unit_QTY', css_class='form-group col-4'),
-                    Div('Unit_price', css_class='form-group col-4'),
-                    css_class='row unit_price'
+                Row(
+                    Column('Unit_QTY', css_class='col-4'),
+                    Column('Unit_price', css_class='col-4'),
                 ),
             ])
 
         self.helper.layout.extend([
-            Field('comment'),
-            Div(
-                HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary" >{task}</button>'),
-                HTML('<input type="cancel" name="cancel" value="cancel" class="btn btn-secondary .btn-close"  data-bs-dismiss="modal">'),
+            Row(
+                    Column('comment', css_class='col-12'),
+                ),
+            Row(
+                Column(
+                    HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary">{task}</button>'),
+                ),
+                Column(
+                    HTML('<button type="button" name="cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>'),
+                ),                
             ),
         ])
 

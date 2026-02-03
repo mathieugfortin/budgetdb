@@ -1,8 +1,21 @@
 <script type="text/javascript">
-function changeaccounts(){
-    temp = document.getElementById( "id_account_source").value;
-    document.getElementById( "id_account_source" ).value = document.getElementById( "id_account_destination").value;
-    document.getElementById( "id_account_destination" ).value = temp;
-    
-};
+    // Using a wrapper to ensure '$' is mapped to jQuery safely
+    (function($) {
+        // Define the function on the window object so it's globally accessible
+        window.changeaccounts = function() {
+            var source = $("#id_account_source");
+            var dest = $("#id_account_destination");
+            
+            if (source.length && dest.length) {
+                // Store source value
+                var temp = source.val();
+                
+                // Swap and manually trigger 'change' for Select2/Plugins
+                source.val(dest.val()).trigger('change');
+                dest.val(temp).trigger('change');
+            } else {
+                console.warn("Account source or destination fields not found.");
+            }
+        };
+    })(jQuery);
 </script>
