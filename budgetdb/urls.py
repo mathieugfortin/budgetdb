@@ -290,7 +290,8 @@ urlpatterns = [
 
     ##########################################################################################################
     # Transaction
-    path('transaction/ListManualJSON', views.load_manual_transactionsJSON, name='manual_transaction_list_json'),
+    path('transaction/ListManualJSON', views.load_manual_transactionsJSON, 
+        name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
     path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
@@ -309,7 +310,10 @@ urlpatterns = [
          name='create_transaction_from_date_account'),
     path('transaction/update/<int:pk>/', views.TransactionUpdateView.as_view(),
          name='update_transaction'),
+    path('transaction/upload/', views.import_ofx_view,
+         name='upload_transactions'),         
 
+         
     # path('audit/<int:pk>/', views..as_view(),
     #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),

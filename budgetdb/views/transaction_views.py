@@ -2,19 +2,20 @@ from django import forms
 
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
-from budgetdb.utils import Calendar
+from budgetdb.utils import Calendar, import_ofx_transactions, analyze_ofx_transactions
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
 from budgetdb.models import JoinedTransactions
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
-from budgetdb.forms import TransactionModalForm
+from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
@@ -23,7 +24,7 @@ from crispy_forms.layout import Layout, Div
 from decimal import *
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView
 from crum import get_current_user
-
+import json
 
 ###################################################################################################################
 # Transactions
@@ -231,6 +232,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         return self.request.GET.get("next", self.request.META.get("HTTP_REFERER", "/")
         )
 
+
 class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpdateView):
     model = Transaction
     template_name = 'budgetdb/transaction_modal_form.html'
@@ -273,6 +275,79 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
     def get_success_url(self):
         return self.request.GET.get('next', self.request.META.get('HTTP_REFERER', '/')
         )
+
+
+def import_ofx_view(request):
+    # --- STEP 2: USER CLICKED "CONFIRM" ON PREVIEW PAGE ---
+    if request.method == 'POST' and 'confirm_import' in request.POST:
+        import_data = request.session.get('ofx_import_data')
+        account_id = request.session.get('ofx_account_id')
+        
+        # Get the list of indices the user wants to import
+        # Note: getlist returns strings, so we convert to int
+        to_import_indices = [int(i) for i in request.POST.getlist('import_idx')]
+
+        if not import_data or not account_id:
+            messages.error(request, "Session expired. Please re-upload.")
+            return redirect('budgetdb:upload_transactions')
+
+        account = Account.objects.get(id=account_id)
+        created_count = 0
+        matched_count = 0
+
+
+
+        for idx, item in enumerate(import_data):
+            # SKIP if the index wasn't checked OR if it's a duplicate
+            if idx not in to_import_indices or item['status'] == 'duplicate':
+                continue
+            
+            if item['status'] == 'match':
+                Transaction.objects.filter(id=item['existing_id']).update(fit_id=item['fit_id'])
+                matched_count += 1
+            
+            elif item['status'] == 'new':
+                vendor = None
+                category = None
+                if item.get('vendor_id'):
+                    vendor = Vendor.objects.get(id=item['vendor_id'])
+
+                Transaction.objects.create(
+                    account_source=account,
+                    date_actual=item['date_actual'],
+                    currency=account.currency,
+                    amount_actual=item['amount_actual'],
+                    description=item['description'],
+                    fit_id=item['fit_id'],
+                    vendor=vendor,
+                )
+                created_count += 1
+
+        del request.session['ofx_import_data']
+        messages.success(request, f"Imported {created_count} and linked {matched_count} transactions.")
+        return redirect('budgetdb:list_transaction2')
+        
+    # --- STEP 1: INITIAL UPLOAD ---
+    if request.method == 'POST':
+        form = TransactionOFXImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            account = form.cleaned_data['account']
+            try:
+                data = analyze_ofx_transactions(request.FILES['ofx_file'], account)
+                # Store in session for the next step
+                request.session['ofx_import_data'] = data
+                request.session['ofx_account_id'] = account.id
+
+                return render(request, 'budgetdb/transaction_import_preview.html', {
+                    'transactions': data,
+                    'account': account
+                })
+            except Exception as e:
+                messages.error(request, f"Error parsing OFX: {str(e)}")
+    else:
+        form = TransactionOFXImportForm()
+    
+    return render(request, 'budgetdb/transaction_import_ofx.html', {'form': form})
 
 
 ###################################################################################################################

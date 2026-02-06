@@ -549,9 +549,9 @@ class StatementListTable(MySharingColumns, tables.Table):
 
     def render_statement_date(self, value, record):
         return format_html(
-                    '<a href="{url}">{label}</a>',
-                    url=reverse("budgetdb:details_statement", kwargs={"pk": record.id}),
-                    label=record.statement_date
+                    '<a href="{statement_url}">{label}</a> ',
+                    statement_url=reverse("budgetdb:details_statement", kwargs={"pk": record.id}),
+                    label=record.statement_date,
                     )
 
 

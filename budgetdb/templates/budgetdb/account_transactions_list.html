@@ -52,60 +52,54 @@
 {% endblock %}
 
 {% block script %}
-<script>
-   console.log("4Checking for jQuery...");
-   if (typeof jQuery == 'undefined') {
-       console.log("4jQuery is MISSING here!");
-   } else {
-       console.log("4jQuery is FOUND here!");
-   }
+
 </script>
     {% include "budgetdb/js_flip_accounts.html" %}
     <script type="text/javascript">
-        $(document).ready(function () {
-            $(".update-transaction").each(function () {
-                $(this).modalForm({
-                    formURL: $(this).data("form-url"),
-                    modalID: "#modal" 
+        (function($) {
+            $(function() {
+                // 1. Initialize the Modal Forms
+                $(".update-transaction").each(function () {
+                    $(this).modalForm({
+                        formURL: $(this).data("form-url"),
+                        modalID: "#modal" 
+                    });
                 });
-            });
 
-            // This event fires when the bootstrap-modal-forms finishes loading the form
-            $("#modal").on("shown.bs.modal", function() {
-                const $modal = $(this);
-                $modal.find(".django-select2").each(function() {
-                        $(this).select2({
+                // 2. Combined Modal Logic (fires when the modal is visible)
+                $(document).on("shown.bs.modal", "#modal", function() {
+                    var $modal = $(this);
+
+                    // Initialize all Select2 fields inside the modal
+                    $modal.find(".django-select2").each(function() {
+                        var $el = $(this);
+                        $el.select2({
                             dropdownParent: $modal,
                             width: '100%', 
-                            placeholder: $(this).attr('data-placeholder'),
+                            placeholder: $el.attr('data-placeholder') || "Select an option",
                             allowClear: true
                         });
+                    });
+
+                    // Set focus on the amount field after modal transition
+                    setTimeout(function (){
+                        $('#id_amount_actual').focus();
+                    }, 300);
                 });
-                // Specific initialization for statements if needed
-                // $('#id_statement').select2({
-                //     dropdownParent: $modal
-                // });
 
-                // Delay focus slightly to ensure the modal transition is finished
-                setTimeout(function (){
-                    $('#id_amount_actual').focus();
-                }, 300);
-            });
-        });
-        // This catches the form if it was re-injected due to an error
-        $(document).on('shown.bs.modal', '#modal', function() {
-            initSelect2InModal();
-        });
-
-        // Create a reusable function
-        function initSelect2InModal() {
-            $('#modal .django-select2').each(function() {
-                $(this).select2({
-                    dropdownParent: $('#modal'),
-                    width: '100%'
+                // 3. Fix for Select2 search field focus
+                // This targets the search box that appears when you click a dropdown
+                $(document).on('select2:open', function(e) {
+                    setTimeout(function() {
+                        // Focus the search field inside the dropdown
+                        var searchField = document.querySelector('.select2-search__field');
+                        if (searchField) {
+                            searchField.focus();
+                        }
+                    }, 10); // Slight delay for rendering
                 });
             });
-        }
+        })(jQuery); 
     </script>
     {% include "budgetdb/js_toggle_receipt_verify.html" %}
 

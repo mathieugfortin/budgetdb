@@ -13,25 +13,10 @@
     {% crispy form %}
 {% endblock %}
 {% block script %}
-<script>
-   console.log("5Checking for jQuery...");
-   if (typeof jQuery == 'undefined') {
-       console.log("5jQuery is MISSING here!");
-   } else {
-       console.log("5jQuery is FOUND here!");
-   }
-</script>
+
     {% include "budgetdb/js_template_from_vendor.html" %}
     {% include "budgetdb/js_cat1-cat2.html" %}    
     {% include "budgetdb/js_unit_price.html" %}
     {% include "budgetdb/js_currency.html" %}
 
-<script>
-   console.log("6Checking for jQuery...");
-   if (typeof jQuery == 'undefined') {
-       console.log("6jQuery is MISSING here!");
-   } else {
-       console.log("6jQuery is FOUND here!");
-   }
-</script>
 {% endblock %}

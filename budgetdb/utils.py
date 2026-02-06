@@ -1,8 +1,10 @@
 # from datetime import datetime
 from calendar import HTMLCalendar
 from django.urls import reverse, reverse_lazy
-from .models import Transaction
-
+from ofxparse import OfxParser
+from .models import Transaction, Statement, Vendor
+from django.db.models import Q
+import datetime
 
 class Calendar(HTMLCalendar):
     def __init__(self, year=None, month=None):
@@ -118,3 +120,133 @@ class Bitmap():
         for i in range(self.n):
             intvalue += 2**i*self.bits[i]
         return intvalue
+
+
+def import_ofx_transactions(ofx_file, account, statement=None):
+    ofx = OfxParser.parse(ofx_file)
+    ofx_account = ofx.account
+    vendors = Vendor.view_objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
+    created_count = 0
+    matched_count = 0
+
+    for tx in ofx_account.statement.transactions:
+        # 1. Exact match by FIT_ID (Already imported)
+        if Transaction.admin_objects.filter(fit_id=tx.id).exists():
+            continue
+        
+
+        # 2. Match manual entries (Same date, amount, and account, but no fit_id)
+        # We use a tolerance or exact match depending on your bank's accuracy
+        # Find a manual entry within +/- 2 days of the bank date
+
+        date_start = tx.date - datetime.timedelta(days=2)
+        date_end = tx.date + datetime.timedelta(days=2)
+        existing_manual = Transaction.admin_objects.filter(
+            account_source=account,
+            # date_actual=tx.date,
+            date_actual__range=(date_start, date_end),
+            amount_actual=-tx.amount,
+            fit_id__isnull=True,  # Only match if it hasn't been linked to an ID yet
+        ).first()
+        if not existing_manual:
+            existing_manual = Transaction.admin_objects.filter(
+                account_destination=account,
+                # date_actual=tx.date,
+                date_actual__range=(date_start, date_end),
+                amount_actual=tx.amount,
+                fit_id__isnull=True,  # Only match if it hasn't been linked to an ID yet
+            ).first()
+
+        if existing_manual:
+            # Link the manual transaction to the Bank's ID
+            
+            existing_manual.fit_id = tx.id
+            existing_manual.comment=tx.memo or tx.payee
+            # Optionally update the description if the bank version is better
+            # existing_manual.description = tx.memo or tx.payee 
+            existing_manual.save()
+            matched_count += 1
+        else:
+            # 3. Create a brand new transaction
+            matched_vendor_id = None
+            bank_desc = (tx.memo or tx.payee or "").strip().lower()
+            for vendor in vendors:
+                    if vendor.OFX_name.lower() in bank_desc:
+                        matched_vendor = vendor
+                        break # Stop at the first match
+
+            Transaction.objects.create(
+                account_source=account,
+                currency=account.currency,
+                statement=statement,
+                date_actual=tx.date,
+                amount_actual=-tx.amount,
+                description=tx.memo or tx.payee,
+                fit_id=tx.id,
+                vendor=matched_vendor,
+            )
+            created_count += 1
+            
+    return created_count, matched_count
+
+
+def analyze_ofx_transactions(ofx_file, account):
+    ofx = OfxParser.parse(ofx_file)
+    ofx_account = ofx.account
+    transactions = []
+
+    # Get vendors with OFX aliases to avoid repeated DB calls in the loop
+    vendor_mappings = Vendor.objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
+
+    for tx in ofx_account.statement.transactions:
+        print(f"--- DEBUGGING 11 {tx.payee} {tx.date} ---")
+        status = "new"
+        existing_id = None
+        matched_vendor_id = None
+        matched_vendor = ""
+        bank_desc = (tx.memo or tx.payee or "").strip()
+        
+        # 1. Check for exact duplicate (FIT_ID)
+        if Transaction.objects.filter(fit_id=tx.id).exists():
+            status = "duplicate"
+        else:
+            # 2. Check for manual match (Same date, amount, and no fit_id)
+            # Find a manual entry within +/- 2 days of the bank date
+            date_start = tx.date - datetime.timedelta(days=2)
+            date_end = tx.date + datetime.timedelta(days=2)
+            match = Transaction.objects.filter(
+                account_source=account,
+                date_actual__range=(date_start, date_end),
+                amount_actual=-tx.amount,
+                fit_id__isnull=True
+            ).first()
+            if not match:
+                match = Transaction.objects.filter(
+                    account_destination=account,
+                    date_actual__range=(date_start, date_end),
+                    amount_actual=tx.amount,
+                    fit_id__isnull=True
+                ).first()
+
+            if match:
+                status = "match"
+                existing_id = match.id
+            else:
+                # 3. Smart Vendor Lookup
+                for vendor in vendor_mappings:
+                    if vendor.OFX_name.lower() in bank_desc.lower():
+                        matched_vendor_id = vendor.id
+                        matched_vendor = vendor.name
+                        break 
+
+        transactions.append({
+            'fit_id': tx.id,
+            'date_actual': tx.date.strftime('%Y-%m-%d'), # Strings are session-friendly
+            'amount_actual': float(tx.amount),
+            'description': bank_desc,
+            'status': status,
+            'existing_id': existing_id,
+            'vendor_id': matched_vendor_id,
+            'vendor': matched_vendor,
+        })
+    return transactions

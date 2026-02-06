@@ -13,7 +13,7 @@ from .models import BudgetedEvent, Transaction, JoinedTransactions
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
 from crispy_forms.bootstrap import AppendedText, PrependedText, StrictButton
-from bootstrap_modal_forms.forms import BSModalModelForm
+from bootstrap_modal_forms.forms import BSModalModelForm, BSModalForm
 from django_select2.forms import ModelSelect2Widget
 
 
@@ -199,6 +199,7 @@ class VendorForm(forms.ModelForm):
         model = Vendor
         fields = (
             'name',
+            'OFX_name',
             'users_admin',
             'users_view',
             'is_deleted',
@@ -216,6 +217,10 @@ class VendorForm(forms.ModelForm):
         self.helper.layout = Layout(
             Div(
                 Div('name', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Div(
+                Div('OFX_name', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
             Div(
@@ -975,6 +980,7 @@ class PreferenceForm(forms.ModelForm):
                 account.check_balances(new_timeline_stop)
         super(PreferenceForm, self).save(commit)
 
+
 class TransactionFormShort(forms.ModelForm):
     class Meta:
         model = Transaction
@@ -1060,6 +1066,20 @@ TransactionFormSet = modelformset_factory(
             'receipt',
         ],
     extra=0,
+    )
+
+
+class TransactionOFXImportForm(forms.Form):
+    account = forms.ModelChoiceField(
+        queryset=Account.admin_objects.all(),
+        help_text="Which account do these transactions belong to?"
+    )
+    ofx_file = forms.FileField(
+        label="Select OFX File",
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.ofx'  # This filters the file dialog
+        })
     )
 
 

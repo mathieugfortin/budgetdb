@@ -1,0 +1,49 @@
+{% extends 'budgetdb/generic_form.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Transaction import preview{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Preview Import for {{ account.name }}</h2>
+<form method="post" action="{% url 'budgetdb:upload_transactions' %}">
+    {% csrf_token %}
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th class="text-center">Import?</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr class="{% if tx.status == 'duplicate' %}table-light text-muted{% endif %}">
+                <td>{{ tx.date }}</td>
+                <td>
+                    {{ tx.description }}
+                    {% if tx.vendor_id %}
+                        <br><span class="badge bg-info">Mapped to {{ tx.vendor }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ tx.amount }}</td>
+                <td>{{ tx.status|title }}</td>
+                <td class="text-center">
+                    {% if tx.status != 'duplicate' %}
+                        <input type="checkbox" name="import_idx" value="{{ forloop.counter0 }}" checked>
+                    {% else %}
+                        <i class="fa fa-ban text-danger"></i>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" name="confirm_import" class="btn btn-success">Confirm Import Selected</button>
+    <a href="{% url 'budgetdb:upload_transactions' %}" class="btn btn-secondary">Cancel</a>
+</form>
+</div>
+{% endblock %}

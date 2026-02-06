@@ -1173,6 +1173,7 @@ class Vendor(BaseSoftDelete, UserPermissions):
 
     user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='vendor_permissions_child')
     name = models.CharField(max_length=200)
+    OFX_name = models.CharField('Bank import key', max_length=200, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -1270,6 +1271,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     audit = models.BooleanField('Audit', default=False)
     receipt = models.BooleanField('Checked with receipt', default=False)
     balance = models.DecimalField('Balance', decimal_places=2, max_digits=10, blank=True, null=True)
+    fit_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f'{self.description} - {self.date_actual}'
