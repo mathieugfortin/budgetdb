@@ -16,6 +16,14 @@ jobs:
           DB_PORT: 3306
           DEBUG: "False"
           ALLOWED_HOSTS: "localhost,127.0.0.1"
+          EMAIL_HOST_USER: "budgetdbtest"
+          EMAIL_HOST_PASSWORD: "testpw"
+          EMAIL_PORT: 587
+          PIP_ROOT_USER_ACTION: ignore
+          EMAIL_BACKEND: "django.core.mail.backends.smtp.EmailBackend"
+          EMAIL_HOST: "budgetdb.test"
+          EMAIL_USE_SSL: "False"
+          EMAIL_USE_TLS: "True"
           # Mapping your GitHub Secrets to Env Variables
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
