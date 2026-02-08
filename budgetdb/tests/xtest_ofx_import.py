@@ -10,15 +10,17 @@ class OFXImportTests(BudgetBaseTestCase):
         # 1. Mock session data
         session = self.client.session
         session['ofx_import_data'] = [
-            {'amount': -50.00, 'date': '2026-02-01', 'memo': 'Grocery Store'},
-            {'amount': 1200.00, 'date': '2026-02-02', 'memo': 'Paycheck'}
+            {'amount': -50.00, 'date': '2026-02-01', 'description': 'Grocery Store', 'fit_id':'1234'},
+            {'amount': 1200.00, 'date': '2026-02-02', 'description': 'Paycheck', 'fit_id':'2345'}
         ]
-        session['ofx_account_id'] = self.acc_a.id
+        session['ofx_account_id'] = self.acc_b.ofx_acct_id
+
         session.save()
 
         # 2. Act: Confirm both transactions (indices 0 and 1)
         url = reverse('budgetdb:upload_transactions_OFX') # Or your specific confirm URL
         response = self.client.post(url, {
+            'description': 'Test Transaction',  # Add this!
             'confirm_import': 'true',
             'import_idx': [0, 1],
             'verify_signage': 'on' # Test the flip logic
@@ -31,13 +33,3 @@ class OFXImportTests(BudgetBaseTestCase):
         
         paycheck_tx = Transaction.objects.get(description='Paycheck')
         self.assertEqual(paycheck_tx.amount_actual, Decimal('-1200.00'))
-
-def test_confirm_import_uses_account_multiplier(self):
-    # Set the multiplier to -1 on the account
-    self.acc_a.ofx_flip_sign = -1
-    self.acc_a.save()
-
-    # ... run import ...
-    
-    # Assert that a -50.00 bank amount became 50.00 in the DB
-    self.assertEqual(created_tx.amount_actual, Decimal('50.00'))        

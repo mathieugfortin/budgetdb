@@ -52,5 +52,18 @@ class BudgetBaseTestCase(TestCase):
                 account_host=self.host,
                 currency=self.cad,
                 owner=self.user_a,
+                ofx_account_id = '1234',
+                ofx_org = 'orga',
+                date_open=date(2026, 1, 1)
+            )
+
+            self.acc_b = Account.objects.create(
+                name="Main Credit Card",
+                account_host=self.host,
+                currency=self.cad,
+                owner=self.user_a,
+                ofx_flip_sign=True,
+                ofx_account_id = '2345',
+                ofx_org = 'orga',
                 date_open=date(2026, 1, 1)
             )

@@ -3,14 +3,16 @@
   "python.testing.unittestArgs": [
     "-v",
     "-s",
-    "./budgetdb",
+    ".",
     "-p",
-    "*test.py",
-    "-Wa",
-  ],
+    "test*.py"
+],
   "python.testing.pytestEnabled": false,
   "python.testing.nosetestsEnabled": false,
   "python.testing.unittestEnabled": true,
   "python.linting.pycodestyleArgs": ["--max-line-length=160"],
   "git.enableCommitSigning": true,
+  "env": {
+        "DJANGO_SETTINGS_MODULE": "web_budget.settings"
+  }
 }

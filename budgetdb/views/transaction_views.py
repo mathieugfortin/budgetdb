@@ -297,7 +297,7 @@ def import_ofx_view(request):
         transactions_to_create = []
         for idx in to_import_indices:
             data = import_data[idx]
-            
+            # budgetdb/views/transaction_views.py
             # Create the instance in memory
             new_tx = Transaction(
                 account_source=account,
