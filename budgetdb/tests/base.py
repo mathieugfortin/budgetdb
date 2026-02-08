@@ -14,7 +14,7 @@ class BudgetBaseTestCase(TestCase):
         # Note: We use .create() because your model has username=None
         self.user_a = User.objects.create(
             email='owner@example.com', 
-            first_name='Owner',
+            first_name='test_user_a_Owner',
             is_active=True,
             email_verified=True
         )
@@ -23,7 +23,7 @@ class BudgetBaseTestCase(TestCase):
 
         self.user_b = User.objects.create(
             email='admin@example.com', 
-            first_name='Admin'
+            first_name='test_user_b_Admin'
         )
 
         # 2. Setup Hierarchical Data

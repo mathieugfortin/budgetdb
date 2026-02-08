@@ -29,9 +29,11 @@ LOGOUT_REDIRECT_URL = reverse_lazy('budgetdb:home')
 SECRET_KEY = env.str('SECRET_KEY')
 
 ALLOWED_HOSTS = [
-    env.str('APP_HOST1'),
-    env.str('APP_HOST2'),
+    env.str('APP_HOST1', default='localhost'),
+    env.str('APP_HOST2', default='127.0.0.1'),
 ]
+
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 # Application definition
 

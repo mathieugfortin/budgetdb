@@ -15,6 +15,7 @@ jobs:
           DB_USER: root
           DB_PORT: 3306
           DEBUG: "False"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
           # Mapping your GitHub Secrets to Env Variables
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
