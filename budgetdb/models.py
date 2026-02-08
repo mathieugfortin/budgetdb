@@ -870,7 +870,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         previous_day_balance = last_clean_balance.balance
         balances = AccountBalanceDB.objects.filter(account=self, db_date__gte=first_dirty_date, db_date__lte=end_date).order_by('db_date')
         for balance in balances:
-            if balance.is_audit or (balance.audit is not None and balance.audit != decimal('0.0')):
+            if balance.is_audit or (balance.audit is not None and balance.audit != Decimal('0.0')):
                 balance.balance = balance.audit
                 balance.is_audit = True
                 balance.delta = balance.audit - previous_day_balance

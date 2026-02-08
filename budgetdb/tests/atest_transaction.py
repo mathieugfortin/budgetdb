@@ -28,7 +28,7 @@ class MockOFX:
         if institution:
             self.institution = institution
 
-class OFXLogicTest(TestBudgetBaseTestCaseCase):
+class OFXLogicTest(BudgetBaseTestCase):
     def setUp(self):
         self.currency_a = Currency.objects.create(
             name="canadian", 
