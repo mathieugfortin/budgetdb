@@ -1070,10 +1070,10 @@ TransactionFormSet = modelformset_factory(
 
 
 class TransactionOFXImportForm(forms.Form):
-    account = forms.ModelChoiceField(
-        queryset=Account.admin_objects.all(),
-        help_text="Which account do these transactions belong to?"
-    )
+    #account = forms.ModelChoiceField(
+    #    queryset=Account.admin_objects.all(),
+    #    help_text="Which account do these transactions belong to?"
+    #)
     ofx_file = forms.FileField(
         label="Select OFX File",
         widget=forms.FileInput(attrs={

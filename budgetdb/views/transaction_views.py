@@ -9,11 +9,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
-from budgetdb.utils import Calendar, import_ofx_transactions, analyze_ofx_transactions
+from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
-from budgetdb.models import JoinedTransactions
+from budgetdb.models import JoinedTransactions, AccountBalanceDB
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
 from datetime import datetime, date
@@ -21,6 +21,7 @@ from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
+from ofxparse import OfxParser
 from decimal import *
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView
 from crum import get_current_user
@@ -278,76 +279,126 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
 
 
 def import_ofx_view(request):
-    # --- STEP 2: USER CLICKED "CONFIRM" ON PREVIEW PAGE ---
+    # --- STEP 4: FINAL CONFIRMATION (Save to DB) ---
     if request.method == 'POST' and 'confirm_import' in request.POST:
         import_data = request.session.get('ofx_import_data')
         account_id = request.session.get('ofx_account_id')
-        
-        # Get the list of indices the user wants to import
-        # Note: getlist returns strings, so we convert to int
         to_import_indices = [int(i) for i in request.POST.getlist('import_idx')]
 
         if not import_data or not account_id:
             messages.error(request, "Session expired. Please re-upload.")
-            return redirect('budgetdb:upload_transactions')
+            return redirect('budgetdb:upload_transactions_OFX')
 
         account = Account.objects.get(id=account_id)
-        created_count = 0
-        matched_count = 0
+        if account.ofx_flip_sign:
+            sign_changer = account.ofx_flip_sign
+        else: sign_changer = 1
 
-
-
-        for idx, item in enumerate(import_data):
-            # SKIP if the index wasn't checked OR if it's a duplicate
-            if idx not in to_import_indices or item['status'] == 'duplicate':
-                continue
+        transactions_to_create = []
+        for idx in to_import_indices:
+            data = import_data[idx]
             
-            if item['status'] == 'match':
-                Transaction.objects.filter(id=item['existing_id']).update(fit_id=item['fit_id'])
-                matched_count += 1
+            # Create the instance in memory
+            new_tx = Transaction(
+                account_source=account,
+                amount_actual=Decimal(str(data['amount'])) * sign_changer,
+                date_actual=data['date'],
+                description=data['description'][:200], # Ensure it fits char limit
+                currency=account.currency,
+                fit_id=data['fit_id'],
+            )
+            transactions_to_create.append(new_tx)
+
+        if transactions_to_create:
+            # bulk_create is fast but skips .save() and .full_clean()
+            Transaction.objects.bulk_create(transactions_to_create)
+            # Find the earliest date in the imported batch
+            earliest_date = min(t.date_actual for t in transactions_to_create)
+            latest_date = max(t.date_actual for t in transactions_to_create)
             
-            elif item['status'] == 'new':
-                vendor = None
-                category = None
-                if item.get('vendor_id'):
-                    vendor = Vendor.objects.get(id=item['vendor_id'])
+            # Mark parent/account balances as dirty from that date forward
+            AccountBalanceDB.objects.filter(
+                account=account,
+                db_date__gte=earliest_date
+            ).update(balance_is_dirty=True)
+            messages.success(request, f"Successfully imported {len(transactions_to_create)} transactions.")
 
-                Transaction.objects.create(
-                    account_source=account,
-                    date_actual=item['date_actual'],
-                    currency=account.currency,
-                    amount_actual=item['amount_actual'],
-                    description=item['description'],
-                    fit_id=item['fit_id'],
-                    vendor=vendor,
-                )
-                created_count += 1
-
+        # Clean up session
         del request.session['ofx_import_data']
-        messages.success(request, f"Imported {created_count} and linked {matched_count} transactions.")
-        return redirect('budgetdb:list_transaction2')
+        del request.session['ofx_account_id']
+        if transactions_to_create:
+            return redirect('budgetdb:list_account_activity_period', pk=account.pk, date1=earliest_date, date2=latest_date)
+        else:
+            return redirect('budgetdb:list_account_activity', pk=account.pk)
+
+    # --- STEP 3: LIVE SIGN FLIP (Ajax-like update to session) ---
+    if request.method == 'POST' and 'flip_now' in request.POST:
+        import_data = request.session.get('ofx_import_data')
+        account = Account.objects.get(id=request.session.get('ofx_account_id'))
         
+        # Flip data in session
+        for item in import_data:
+            item['amount'] = float(item['amount']) * -1
+        
+        # Save preference to account permanently
+        account.ofx_flip_sign = not account.ofx_flip_sign
+        account.save()
+        
+        request.session['ofx_import_data'] = import_data
+        messages.info(request, "Signs flipped and preference saved.")
+        return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': import_data, 'account': account})
+
+    # --- STEP 2: ACCOUNT IDENTIFICATION (After Mapping Template) ---
+    if request.method == 'POST' and 'identify_account' in request.POST:
+        account = Account.objects.get(id=request.POST.get('identify_account'))
+        
+        if request.POST.get('save_id') == 'on':
+            account.ofx_acct_id = request.session.get('pending_ofx_acct_id')
+            account.ofx_org = request.session.get('pending_ofx_org')
+            account.ofx_fid = request.session.get('pending_ofx_fid')
+            account.save()
+            
+        # Analyze the serialized data now that we have an account context
+        serialized_list = request.session.get('ofx_serialized_list')
+        data = analyze_ofx_serialized_data(serialized_list, account)
+        # Pass a flag to the template to show the "Verify" UI only if needed
+        show_verify_signage_ui = (account.ofx_flip_sign is None)
+
+        request.session['ofx_import_data'] = data
+        request.session['ofx_account_id'] = account.id
+        return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': data, 'account': account, 'show_verify_signage_ui': show_verify_signage_ui})
+
     # --- STEP 1: INITIAL UPLOAD ---
-    if request.method == 'POST':
-        form = TransactionOFXImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            account = form.cleaned_data['account']
-            try:
-                data = analyze_ofx_transactions(request.FILES['ofx_file'], account)
-                # Store in session for the next step
+    if request.method == 'POST' and 'ofx_file' in request.FILES:
+        try:
+            ofx = OfxParser.parse(request.FILES['ofx_file'])
+            ofx_id = ofx.account.number
+            org = ofx.institution.organization if hasattr(ofx, 'institution') else ""
+            fid = ofx.institution.fid if hasattr(ofx, 'institution') else ""
+
+            account = Account.objects.filter(ofx_acct_id=ofx_id, ofx_org=org, ofx_fid=fid).first()
+            serialized_list, _, _ = serialize_ofx(ofx, account)
+
+            if account:
+                # Account known: Go straight to preview
+                data = analyze_ofx_serialized_data(serialized_list, account)
                 request.session['ofx_import_data'] = data
                 request.session['ofx_account_id'] = account.id
-
-                return render(request, 'budgetdb/transaction_import_preview.html', {
-                    'transactions': data,
-                    'account': account
+                return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': data, 'account': account})
+            else:
+                # Account unknown: Go to mapping
+                request.session['pending_ofx_acct_id'] = ofx_id
+                request.session['pending_ofx_org'] = org
+                request.session['pending_ofx_fid'] = fid
+                request.session['ofx_serialized_list'] = serialized_list
+                return render(request, 'budgetdb/account_ofx_mapping.html', {
+                    'acct_id': ofx_id, 'org': org, 'accounts': Account.admin_objects.all()
                 })
-            except Exception as e:
-                messages.error(request, f"Error parsing OFX: {str(e)}")
-    else:
-        form = TransactionOFXImportForm()
-    
-    return render(request, 'budgetdb/transaction_import_ofx.html', {'form': form})
+        except Exception as e:
+            messages.error(request, f"Parse error: {str(e)}")
+
+    # DEFAULT: Show upload form
+    return render(request, 'budgetdb/transaction_import_ofx.html', {'form': TransactionOFXImportForm()})
 
 
 ###################################################################################################################

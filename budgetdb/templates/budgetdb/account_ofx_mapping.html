@@ -1,0 +1,37 @@
+{% extends "budgetdb/base.html" %}
+{% block title %}Account OFX mapping{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">New Bank Account Detected</h4>
+        </div>
+        <div class="card-body">
+            <p>We found a file from bank account <strong>{{ acct_id }}</strong>, but it isn't linked to any account in your budget.</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Which account in your budget matches this file?</label>
+                    <select name="identify_account" class="form-select" required>
+                        <option value="" selected disabled>Choose an account...</option>
+                        {% for acc in accounts %}
+                        <option value="{{ acc.id }}">{{ acc.name }} ({{ acc.currency.name_short }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" name="save_id" id="saveId" checked>
+                    <label class="form-check-label" for="saveId">
+                        Remember this bank link for future imports
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Link Account & Continue</button>
+                <a href="{% url 'budgetdb:upload_transactions_OFX' %}" class="btn btn-link text-muted">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

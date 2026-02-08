@@ -310,8 +310,8 @@ urlpatterns = [
          name='create_transaction_from_date_account'),
     path('transaction/update/<int:pk>/', views.TransactionUpdateView.as_view(),
          name='update_transaction'),
-    path('transaction/upload/', views.import_ofx_view,
-         name='upload_transactions'),         
+    path('transaction/uploadOFX/', views.import_ofx_view,
+         name='upload_transactions_OFX'),         
 
          
     # path('audit/<int:pk>/', views..as_view(),

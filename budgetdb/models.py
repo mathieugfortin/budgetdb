@@ -1,4 +1,4 @@
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
 
@@ -22,6 +22,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager #, Group
 from crum import get_current_user
 from django.template.loader import render_to_string
 from .tokens import account_activation_token
+from django.core.exceptions import ValidationError
 
 class MyMeta(models.Model):
     class Meta:
@@ -225,8 +226,8 @@ class UserPermissions(ClassOwner):
 
 class BaseSoftDelete(models.Model):
     is_deleted = models.BooleanField(default=False)
-    deleted_at = models.DateTimeField(null=True)
-    deleted_by = models.ForeignKey("User", null=True, on_delete=models.CASCADE, related_name='deleted_by_%(app_label)s_%(class)s')
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey("User", null=True, blank=True, on_delete=models.CASCADE, related_name='deleted_by_%(app_label)s_%(class)s')
 
     class Meta:
         abstract = True
@@ -357,20 +358,35 @@ class AccountBalanceDB(models.Model):
         return self.account.name + " - " + self.db_date.strftime("%Y-%m-%d")
 
     def save(self, *args, **kwargs):
-        
+        # Ensure db_date is a date object for math
+        if isinstance(self.db_date, str):
+            self.db_date = datetime.strptime(self.db_date, '%Y-%m-%d').date()
+
         if self.balance_is_dirty:
-            account = Account.objects.get(id=self.account.id)
-            if account.account_parent is not None:
-                dirtyparent = AccountBalanceDB.objects.get(account=account.account_parent, db_date=self.db_date)
-                dirtyparent.balance_is_dirty = True
-                dirtyparent.save()
+            if self.account.account_parent:
+                AccountBalanceDB.objects.filter(
+                    account=self.account.account_parent, 
+                    db_date=self.db_date
+                ).update(balance_is_dirty=True)
 
         if self.is_audit:
+            target_date = self.db_date - timedelta(days=1)
             try:
-                previous = AccountBalanceDB.objects.get(account=self.account, db_date=self.db_date-timedelta(days=1)).balance
+                # previous = AccountBalanceDB.objects.get(account=self.account, db_date=target_date).balance
+
+
+                # Use .filter().first() to avoid DoesNotExist exceptions
+                prev_record = AccountBalanceDB.objects.filter(
+                    account=self.account, 
+                    db_date=self.db_date - timedelta(days=1)
+                ).first()
+                previous_bal = prev_record.balance if prev_record else Decimal('0.00')
             except ObjectDoesNotExist:
-                previous = Decimal('0.00')
-            self.delta = self.audit - previous
+                previous_bal = Decimal('0.00')
+            # If audit is set, delta is the gap between audit and yesterday
+            if self.audit is not None:
+                self.delta = self.audit - previous_bal
+                self.balance = self.audit
 
         super(AccountBalanceDB, self).save(*args, **kwargs)
     
@@ -472,6 +488,12 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         ordering = ['account_host__name', 'name']
 
     user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='account_permissions_child')
+
+    ofx_acct_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bank's ACCTID from OFX")  # <ACCTID>
+    ofx_org = models.CharField(max_length=50, blank=True, null=True) # <ORG>
+    ofx_fid = models.CharField(max_length=50, blank=True, null=True) # <FID>
+    ofx_flip_sign = models.BooleanField(default=False, help_text="Check if outflows are positive in OFX")
+
     date_open = models.DateField('date opened', blank=False, null=False, default='2018-01-01')
     date_closed = models.DateField('date closed', blank=True, null=True)
     account_host = models.ForeignKey(AccountHost, on_delete=models.CASCADE)
@@ -505,26 +527,54 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         return instance
 
     def new_balances(self, begin, end):
+        # Ensure begin is a date object, not a string
+        if isinstance(begin, str):
+            begin = datetime.strptime(begin, '%Y-%m-%d').date()
+        # Ensure end is a date object
+        if isinstance(end, str):
+            end = datetime.strptime(end, '%Y-%m-%d').date()
+
         existing_objects = AccountBalanceDB.objects.filter(account=self)
+        balances_to_create = []
+        
         if existing_objects.exists():
             last_object = existing_objects.latest('db_date')
-            date = last_object.db_date
-            if date > end:
+            date_cursor = last_object.db_date
+            if date_cursor > end:
                 return()
             new_balance=last_object.balance
             new_balance_is_dirty=True
         else:
-            date = begin - timedelta(days=1)
+            date_cursor = begin - timedelta(days=1)
+            balances_to_create.append(
+                AccountBalanceDB(
+                    account=self,
+                    db_date=date_cursor,
+                    audit=Decimal('0.00'),
+                    balance=Decimal('0.00'),
+                    is_audit=True,
+                    balance_is_dirty=False
+                )
+            )
             new_balance=Decimal('0.00')
             new_balance_is_dirty=False
-            new_balance_object = AccountBalanceDB(account=self,db_date=date,audit=Decimal('0.00'),balance=Decimal('0.00'),is_audit=True,balance_is_dirty=False)
-            new_balance_object.save()
 
-        date = date + timedelta(days=1)
-        while date <= end:
-            new_balance_object = AccountBalanceDB(account=self,db_date=date,balance=new_balance,is_audit=False,balance_is_dirty=new_balance_is_dirty)
-            new_balance_object.save()
-            date = date + timedelta(days=1)
+        date_cursor = date_cursor + timedelta(days=1)
+        while date_cursor <= end:
+            balances_to_create.append(
+                AccountBalanceDB(
+                    account=self,
+                    db_date=date_cursor,
+                    balance=new_balance,
+                    is_audit=False,
+                    balance_is_dirty=new_balance_is_dirty
+                )
+            )
+            date_cursor = date_cursor + timedelta(days=1)
+        if balances_to_create:
+            AccountBalanceDB.objects.bulk_create(balances_to_create)
+        if new_balance_is_dirty and self.account_parent is not None:
+            AccountBalanceDB.objects.filter(account=self.account_parent,db_date__range=(begin, end)).update(balance_is_dirty=True)
 
     def check_balances(self, end):
         # verify if balances exist up to a given date.  create them if thy do not exist
@@ -534,6 +584,11 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             self.new_balances(last_date,end)
 
     def save(self, *args, **kwargs):
+        # Convert string dates to date objects if necessary
+        if isinstance(self.date_open, str):
+            self.date_open = datetime.strptime(self.date_open, '%Y-%m-%d').date()
+        if isinstance(self.date_closed, str):
+            self.date_closed = datetime.strptime(self.date_closed, '%Y-%m-%d').date()
 
         if self._state.adding is True:
             super(Account, self).save(*args, **kwargs)            
@@ -543,18 +598,24 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             else:
                 end_generate = self.date_closed
             self.new_balances(self.date_open,end_generate)
+            
         else:
+            # Safely get old values; default to current values if _loaded_values is missing
+            loaded = getattr(self, '_loaded_values', {})
+            old_date_open = loaded.get('date_open', self.date_open)
+            old_date_closed = loaded.get('date_closed', self.date_closed)
+
             super(Account, self).save(*args, **kwargs)
-            if self.date_open < self._loaded_values.get('date_open'):
+            if self.date_open < old_date_open:
                 #add earlier balances and add an audit just before the old date_open to keep the balances
-                new_audit_date = self._loaded_values.get('date_open') - timedelta(days=1)
+                new_audit_date = old_date_open - timedelta(days=1)
                 self.new_balances(self.date_open,new_audit_date)
                 new_audit = AccountBalanceDB.objects.get(account=self.account,db_date=new_audit_date)
-                new_audit.audit = self.get_balance(self._loaded_values.get('date_open')) 
+                new_audit.audit = self.get_balance(old_date_open) 
                 new_audit.is_audit=True
                 new_audit.delta = new_audit.audit
                 new_audit.save()
-            elif self.date_open > self._loaded_values.get('date_open'):
+            elif self.date_open > old_date_open:
                 #remove unused balances and add an audit just before the new date_open
                 new_audit_date = self.date_open - timedelta(days=1)
                 new_audit = AccountBalanceDB.objects.get(account=self.account,db_date=new_audit_date)
@@ -563,13 +624,13 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 new_audit.delta = new_audit.audit
                 new_audit.save()
                 unused_balances = AccountBalanceDB.objects.filter(account=self.account,db_date__lt=self.new_audit_date).delete()
-            if self.date_closed != None and self.date_closed > self._loaded_values.get('date_closed'):
+            if self.date_closed != None and self.date_closed > old_date_closed:
                 #add later balances
-                self.new_balances(self._loaded_values.get('date_closed'),self.date_closed)
+                self.new_balances(old_date_closed,self.date_closed)
                 new_dirty = AccountBalanceDB.objects.get(account=self.account,db_date=new_audit_date)
                 new_audit.balance_is_dirty=True
                 new_audit.save()
-            elif self.date_closed != None and self.date_closed < self._loaded_values.get('date_closed'):
+            elif self.date_closed != None and self.date_closed < old_date_closed:
                 #remove unused balances 
                 unused_balances = AccountBalanceDB.objects.filter(account=self.account,db_date__gt=self.date_closed).delete()
 
@@ -1250,7 +1311,13 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     class Meta:
         verbose_name = 'Transaction'
         verbose_name_plural = 'Transactions'
-
+        constraints = [
+            models.UniqueConstraint(
+                fields=['account_source', 'fit_id'], 
+                condition=models.Q(is_deleted=False),
+                name='unique_fit_id_per_account'
+            )
+        ]
     objects = models.Manager()  # The default manager.
     view_objects = TransactionViewerManager()
     view_deleted_objects = TransactionDeletedViewerManager()
@@ -1287,9 +1354,28 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
         instance._loaded_values = dict(zip(field_names, values))
         
         return instance
+        
+    def clean(self):
+        super().clean()
+        
+        # 1. Audit must have an amount
+        if self.audit and self.amount_actual is None:
+            raise ValidationError({
+                'amount_actual': _('An audited transaction must have an actual amount.')
+            })
+            
+        # 2. Prevent transfers to the same account
+        if self.account_source == self.account_destination and self.account_source is not None:
+            raise ValidationError(
+                _('Source and destination accounts cannot be the same.')
+            )
+
+        # 3. Ensure dates aren't in the far future (optional sanity check)
+        if self.date_actual and self.date_actual > date.today() + relativedelta(years=5):
+            raise ValidationError({'date_actual': _('Date is too far in the future.')})
 
     def save(self, *args, **kwargs):
-        
+        self.full_clean()
         if self.can_edit() is True:
             if self.audit is True:
                 if Transaction.objects.filter(date_actual=self.date_actual,account_source=self.account_source,audit=True,is_deleted=False).exclude(pk=self.pk).count() > 0:

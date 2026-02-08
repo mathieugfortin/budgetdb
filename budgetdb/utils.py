@@ -122,131 +122,72 @@ class Bitmap():
         return intvalue
 
 
-def import_ofx_transactions(ofx_file, account, statement=None):
-    ofx = OfxParser.parse(ofx_file)
-    ofx_account = ofx.account
-    vendors = Vendor.view_objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
-    created_count = 0
-    matched_count = 0
+def serialize_ofx(ofx, account=None):
+    """
+    Converts OfxParser object into a JSON-serializable list of dicts.
+    """
+    serialized_data = []
+    org = ""
+    fid = ""
+    if hasattr(ofx, 'institution'):
+        org = ofx.institution.organization
+        fid = ofx.institution.fid
 
-    for tx in ofx_account.statement.transactions:
-        # 1. Exact match by FIT_ID (Already imported)
-        if Transaction.admin_objects.filter(fit_id=tx.id).exists():
-            continue
-        
-
-        # 2. Match manual entries (Same date, amount, and account, but no fit_id)
-        # We use a tolerance or exact match depending on your bank's accuracy
-        # Find a manual entry within +/- 2 days of the bank date
-
-        date_start = tx.date - datetime.timedelta(days=2)
-        date_end = tx.date + datetime.timedelta(days=2)
-        existing_manual = Transaction.admin_objects.filter(
-            account_source=account,
-            # date_actual=tx.date,
-            date_actual__range=(date_start, date_end),
-            amount_actual=-tx.amount,
-            fit_id__isnull=True,  # Only match if it hasn't been linked to an ID yet
-        ).first()
-        if not existing_manual:
-            existing_manual = Transaction.admin_objects.filter(
-                account_destination=account,
-                # date_actual=tx.date,
-                date_actual__range=(date_start, date_end),
-                amount_actual=tx.amount,
-                fit_id__isnull=True,  # Only match if it hasn't been linked to an ID yet
-            ).first()
-
-        if existing_manual:
-            # Link the manual transaction to the Bank's ID
-            
-            existing_manual.fit_id = tx.id
-            existing_manual.comment=tx.memo or tx.payee
-            # Optionally update the description if the bank version is better
-            # existing_manual.description = tx.memo or tx.payee 
-            existing_manual.save()
-            matched_count += 1
-        else:
-            # 3. Create a brand new transaction
-            matched_vendor_id = None
-            bank_desc = (tx.memo or tx.payee or "").strip().lower()
-            for vendor in vendors:
-                    if vendor.OFX_name.lower() in bank_desc:
-                        matched_vendor = vendor
-                        break # Stop at the first match
-
-            Transaction.objects.create(
-                account_source=account,
-                currency=account.currency,
-                statement=statement,
-                date_actual=tx.date,
-                amount_actual=-tx.amount,
-                description=tx.memo or tx.payee,
-                fit_id=tx.id,
-                vendor=matched_vendor,
-            )
-            created_count += 1
-            
-    return created_count, matched_count
+    for tx in ofx.account.statement.transactions:
+        amount = float(tx.amount)
+        # Flip sign if the account settings require it
+        if account and account.ofx_flip_sign:
+            amount *= -1        
+        serialized_data.append({
+            'fit_id': tx.id,
+            'date': tx.date.strftime('%Y-%m-%d'),
+            'amount': float(tx.amount),
+            'description': (tx.memo or tx.payee or "").strip(),
+        })
+    return serialized_data, org, fid
 
 
-def analyze_ofx_transactions(ofx_file, account):
-    ofx = OfxParser.parse(ofx_file)
-    ofx_account = ofx.account
-    transactions = []
+def analyze_ofx_serialized_data(serialized_list, account):
+    """
+    Takes the flattened session data and adds Vendor/Duplicate/Match context.
+    """
+    final_data = []
+    vendor_mappings = Vendor.view_objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
 
-    # Get vendors with OFX aliases to avoid repeated DB calls in the loop
-    vendor_mappings = Vendor.objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
-
-    for tx in ofx_account.statement.transactions:
-        print(f"--- DEBUGGING 11 {tx.payee} {tx.date} ---")
+    for item in serialized_list:
         status = "new"
         existing_id = None
         matched_vendor_id = None
-        matched_vendor = ""
-        bank_desc = (tx.memo or tx.payee or "").strip()
         
-        # 1. Check for exact duplicate (FIT_ID)
-        if Transaction.objects.filter(fit_id=tx.id).exists():
+        # 1. Duplicate Check
+        if Transaction.view_objects.filter(fit_id=item['fit_id']).exists():
             status = "duplicate"
         else:
-            # 2. Check for manual match (Same date, amount, and no fit_id)
-            # Find a manual entry within +/- 2 days of the bank date
-            date_start = tx.date - datetime.timedelta(days=2)
-            date_end = tx.date + datetime.timedelta(days=2)
+            # 2. Manual Match Check
             match = Transaction.objects.filter(
                 account_source=account,
-                date_actual__range=(date_start, date_end),
-                amount_actual=-tx.amount,
+                date_actual=item['date'], # Using your specific field name
+                amount_actual=item['amount'],
                 fit_id__isnull=True
             ).first()
-            if not match:
-                match = Transaction.objects.filter(
-                    account_destination=account,
-                    date_actual__range=(date_start, date_end),
-                    amount_actual=tx.amount,
-                    fit_id__isnull=True
-                ).first()
-
+            
             if match:
                 status = "match"
                 existing_id = match.id
             else:
-                # 3. Smart Vendor Lookup
+                # 3. Vendor Match
                 for vendor in vendor_mappings:
-                    if vendor.OFX_name.lower() in bank_desc.lower():
+                    if vendor.OFX_name.lower() in item['description'].lower():
                         matched_vendor_id = vendor.id
-                        matched_vendor = vendor.name
-                        break 
+                        break
 
-        transactions.append({
-            'fit_id': tx.id,
-            'date_actual': tx.date.strftime('%Y-%m-%d'), # Strings are session-friendly
-            'amount_actual': float(tx.amount),
-            'description': bank_desc,
+        # Merge the analysis back into the item
+        item.update({
             'status': status,
             'existing_id': existing_id,
             'vendor_id': matched_vendor_id,
-            'vendor': matched_vendor,
+            'vendor_name': Vendor.objects.get(id=matched_vendor_id).name if matched_vendor_id else ""
         })
-    return transactions
+        final_data.append(item)
+        
+    return final_data

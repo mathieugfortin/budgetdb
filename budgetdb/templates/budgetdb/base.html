@@ -7,7 +7,20 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <style>
+        /* Prevent horizontal overflow globally */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+        }
+        
+        /* Fix for IonRangeSlider in collapsed Navbars */
+        .navbar-collapse .irs {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+    </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/css/ion.rangeSlider.min.css"/>
@@ -30,7 +43,7 @@
 </head>
 <!--red for test environment
 <body style="background-color:red">-->
-    <body>
+    <body style="padding-top: 70px;">
         {% csrf_token %}
         {% block navtools %}
         <nav class="navbar navbar-expand-lg fixed-top bg-body-tertiary">
@@ -68,7 +81,7 @@
                             <div class="dropdown-menu" aria-labelledby="navbarDropdown" id="transaction_menu">
                                 <a class="dropdown-item" href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a>
                                 <a class="dropdown-item" href="{% url 'budgetdb:list_transaction2' %}">All transaction</a>     
-                                <a class="dropdown-item" href="{% url 'budgetdb:upload_transactions' %}">Import ODX file</a>     
+                                <a class="dropdown-item" href="{% url 'budgetdb:upload_transactions_OFX' %}">Import ODX file</a>     
         <!--                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>           removed, need to think about permissions       -->
                             </div>
                         </li>
@@ -124,9 +137,10 @@
                             </div>
                         </li>
                     </ul>
-                    <ul class="navbar-nav nav-fill flex-grow-1">
-                        <li class="nav-item">
-                                <input id="input_range" type="text" class="js-range-slider flex-grow-1" name="my_range" value=""/>
+                    <ul class="navbar-nav flex-grow-1 mx-lg-3"> 
+                        <li class="nav-item w-100"> 
+                            <div class="px-3 px-lg-0"> <input id="input_range" type="text" class="js-range-slider" name="my_range" value=""/>
+                            </div>
                         </li>
                     </ul>
                     <ul class="navbar-nav">
@@ -146,7 +160,7 @@
                                 <a class="dropdown-item">
                                     <form id="logout-form" method="post" action="{% url 'budgetdb:logout' %}" class="px-3">
                                         {% csrf_token %}
-                                        <button type="submit class="dropdown-item p-0">Log out</button>
+                                        <button type="submit" class="dropdown-item p-0">Log out</button>
                                     </form>
                                 </a>
                             </div>
