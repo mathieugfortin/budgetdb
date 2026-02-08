@@ -1,10 +1,10 @@
 {% extends "budgetdb/base.html" %}
-
-{% block title %}Statement - {{ statement.account }} for {{ statement.statement_date }}{% endblock %}
+{% block head_comment %}<!--statement_detail template-->{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
 
-<h1>{{ statement.account }}</h1>
+<h1>Statement {{ statement.statement_date|date:"Y-m-d"  }} for <a href="{% url 'budgetdb:list_account_activity_period' statement.account.id date1 date2 %}?sort=date_actual" >{{ statement.account.name }}</a></h1>
 
 <table class="table">
     <thead class="thead-dark">
@@ -16,19 +16,25 @@
     </tr>
     </thead>
     <tr>
-        <td>{{ statement.statement_date }}</td>
+        <td>{{ statement.statement_date|date:"Y-m-d"  }}</td>
         <td>{{ statement.balance }}$</td>
         <td>{{ statement.minimum_payment }}$</td>
-        <td>{{ statement.statement_due_date }}</td>
+        <td>{{ statement.statement_due_date|date:"Y-m-d"  }}</td>
     </tr>
     {% if statement.error != 0 %}
     <tr>
         <td></td>
         <td>Transactions total: {{ statement.transactions_sum }}$</td>
-        <td>error: {{ statement.error }}$ </td>
+        {% if statement.errorsign == '-' %}
+            <td>error: Missing transactions for {{ statement.error }}$ </td>
+        {% else %}
+            <td>error: Too many transactions by {{ statement.error }}$ </td>
+        {% endif %}
         <td></td>
     </tr>
     {% endif %}
+
+
 
 </table>
 
@@ -46,7 +52,7 @@
     <button type="button" class="btn btn-outline-secondary" onclick="javascript:history.back();">Back</button>
 </div>
 {% if statement.included_transactions %}
-<h2>Transactions</h2>
+<h2>Transactions {{ statement.transactions_sum }}$</h2>
 <table class="table table-hover table-striped">
     <thead class="thead-dark">
     <tr>
@@ -57,7 +63,7 @@
     </thead>
     {% for transaction in statement.included_transactions %}
     <tr>
-        <td>{{ transaction.date_actual }}</td>
+        <td>{{ transaction.date_actual|date:"Y-m-d"  }}</td>
         <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
         <td>{{ transaction.amount_actual }}$</td>
     </tr>
@@ -69,30 +75,43 @@
 
 
 {% if statement.possible_transactions %}
-<h2>Transactions potentielles, {{ statement.transactions_sumP }}$</h2>
+<form method="post">
+    {% csrf_token %}
+<h2>Potential Transactions, {{ statement.transactions_sumP }}$</h2>
+
 <table class="table table-hover table-striped">
     <thead class="thead-dark">
     <tr>
+        <th><input type="checkbox" id="select-all"> select all</th>
         <th>date</th>
         <th>Description</th>
         <th>Amount</th>
     </tr>
     </thead>
     {% for transaction in statement.possible_transactions %}
-    <tr>
-        <td>{{ transaction.date_actual }}</td>
-        <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
-        <td>{{ transaction.amount_actual }}$</td>
-    </tr>
+        <tr>
+            <td><input type="checkbox" name="selected" value="{{ transaction.id }}"></td>
+            <td>{{ transaction.date_actual|date:"Y-m-d"  }}</td>
+            <td><a href="{% url 'budgetdb:transaction_max_redirect' transaction.id %}">{{ transaction.description }}</a></td>
+            <td>{{ transaction.amount_actual }}$</td>
+        </tr>
     {% endfor %}
 </table>
-
+{% if statement.editable %}
+    <button class="btn btn-outline-primary" type="submit">Add the selected transactions to this statement</button>
+{% endif %}
+</form>
 {% endif %}
 
 
+{% endblock %}
 
-
-
-
-
+{% block script %}
+<script>
+document.getElementById("select-all").addEventListener("change", function () {
+    document.querySelectorAll('input[name="selected"]').forEach(cb => {
+        cb.checked = this.checked;
+    });
+});
+</script>
 {% endblock %}

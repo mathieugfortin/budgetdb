@@ -1,0 +1,82 @@
+{% extends "budgetdb/basecrispy.html" %}
+{% load static %}
+
+{% block head_comment %}<!--echart template-->{% endblock %}
+{% block title %}{{echart_title}}{% endblock %}
+{% block content %}
+    <div>
+        <p id="data_series">pouet</p>
+        <div id="chartdiv" style="width: 600px;height:400px;">
+        </div>
+    </div>
+{% endblock %}
+{% block script %}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"> </script>        
+    <script type="text/javascript">
+        // Initialize the echarts instance based on the prepared dom
+        var chartDom = document.getElementById('chartdiv');
+        var myChart = echarts.init(chartDom);
+        var option;
+        // Specify the configuration items and data for the chart
+        option = {
+    "title": {
+        "text": "February balance"
+    },
+    "tooltip": {
+    "trigger": 'axis',
+    "axisPointer": {
+
+      "type": 'shadow' 
+    }
+},
+    "xAxis": {
+        "type": "value",
+        "position": "top",
+
+    },
+    "yAxis": {
+        "type": "category",
+
+        "data": [
+            "February",
+        ]
+    },
+    "series": [
+        {
+            "name": "Balance",
+            "type": "bar",
+            
+
+            "data": [
+                "12406.01",
+             
+            ]
+        },
+        {
+            "name": "Depenses",
+            "type": "bar",
+           
+
+            "data": [
+               
+                "-7755.11",
+             
+            ]
+        },
+        {
+            "name": "Revenu",
+            "type": "bar",
+           
+
+            "data": [
+               
+                "20161.12"
+            ]
+        }
+    ]
+};
+                
+        // Display the chart using the configuration items and data just specified.
+        option && myChart.setOption(option);
+    </script>
+{% endblock %}

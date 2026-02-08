@@ -59,7 +59,7 @@
         var myChart;
         var ctx;
 
-        $.get('{% url "budgetdb:timeline2_chart_json" %}?ac={{ ac }}', function(data) {
+        $.get('{% url "budgetdb:timeline2_chart_json_old" %}?ac={{ ac }}', function(data) {
             ctx = $("#myChart").get(0).getContext("2d");
             myChart = new Chart(ctx, {
                 type: 'line', 

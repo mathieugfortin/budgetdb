@@ -1,5 +1,6 @@
-from datetime import date, datetime
+from datetime import datetime,date
 from decimal import *
+import json
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Submit
@@ -58,13 +59,13 @@ def next_color(color_list=COLORS):
 
 
 def PreferenceSetIntervalJSON(request):
-    start_interval = request.POST.get("begin_interval", None)
-    end_interval = request.POST.get("end_interval", None)
+    slider_start = request.POST.get("begin_interval", None)
+    slider_stop = request.POST.get("end_interval", None)
     preference = Preference.objects.get(user=request.user.id)
-    if start_interval:
-        preference.start_interval = datetime.strptime(start_interval, "%Y-%m-%d")
-    if end_interval:
-        preference.end_interval = datetime.strptime(end_interval, "%Y-%m-%d")
+    if slider_start:
+        preference.slider_start = datetime.strptime(slider_start, "%Y-%m-%d")
+    if slider_stop:
+        preference.slider_stop = datetime.strptime(slider_stop, "%Y-%m-%d")
     preference.save()
     return HttpResponse(status=200)
 
@@ -103,23 +104,18 @@ def PreferenceGetJSON(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     preference = Preference.objects.get(user=request.user.id)
-    transactions = Transaction.view_objects.all().order_by("date_actual")
-
-    if (preference.min_interval_slider is None):
-        start_slider = transactions.first().date_actual
-    else:
-        start_slider = preference.min_interval_slider
-
-    if (preference.max_interval_slider is None):
-        stop_slider = transactions.last().date_actual
-    else:
-        stop_slider = preference.max_interval_slider
+    
+    if (preference.timeline_start is None or preference.timeline_stop is None):
+        transactions = Transaction.view_objects.all().order_by("date_actual")
+        preference.timeline_start = preference.timeline_start or transactions.first().date_actual
+        preference.timeline_stop = preference.timeline_stop or transactions.last().date_actual
+        preference.save()
 
     data = {
-        'start_interval': preference.start_interval,
-        'end_interval': preference.end_interval,
-        'begin_data': start_slider,
-        'end_data': stop_slider,
+        'slider_start': preference.slider_start,
+        'slider_stop': preference.slider_stop,
+        'timeline_start': preference.timeline_start,
+        'timeline_stop': preference.timeline_stop,
         # 'begin_data': transactions.first().date_actual,
         # 'end_data': transactions.last().date_actual,
     }
@@ -241,16 +237,23 @@ def GetCat1TotalPieChartData(request):
     data = []  # totals
     indexes = []  # cat1_ids
 
-    cat1sums = CatSums()
-    cat_totals = cat1sums.build_cat1_totals_array(begin, end)
 
-    for cat in cat_totals:
-        if cat.cattype_id == cattype.id:
-            labels.append(cat.cat1.name)
-            data.append(cat.total)
-            indexes.append(cat.cat1_id)
-            color = next(colors)
-            color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
+    cat1s = Cat1.view_objects.all()
+    accounts = Account.admin_objects.all()
+    transactions = Transaction.view_objects.filter(date_actual__gte=begin, date_actual__lt=end,account_destination__in=accounts)
+    transactions = transactions | Transaction.view_objects.filter(date_actual__gte=begin, date_actual__lt=end,account_source__in=accounts)
+    # zbrocoli not dealing with account currencies
+    cat1s_sums = cattype.get_cat1_totals(begin,end)
+
+
+    for cat in cat1s_sums:
+        cat1_pk=cat.get('cat1_id')
+        cat1 = Cat1.objects.get(pk=cat1_pk)
+        labels.append(cat1.name)
+        data.append(cat.get('amount_actual__sum'))
+        indexes.append(cat1_pk)
+        color = next(colors)
+        color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
 
     data = {
         'type': 'doughnut',
@@ -316,13 +319,15 @@ def GetCat1TotalBarChartData(request):
     endstr = request.GET.get('end', None)
     cat_type_pk = request.GET.get('ct', None)
     cattype = CatType.view_objects.get(pk=cat_type_pk)
-    cats = Cat1.view_objects.all()
 
     if endstr is not None and endstr != 'None':
         end = datetime.strptime(endstr, "%Y-%m-%d").date()
 
     if beginstr is not None and beginstr != 'None':
         begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
+
+
+    cat1s_sums = cattype.get_cat1_monthly_totals(begin,end)
 
     labels = []  # months
     datasets = []
@@ -337,13 +342,15 @@ def GetCat1TotalBarChartData(request):
         i = i + relativedelta(months=1)
         nbmonths += 1
 
-    for cat in cats:
+    for cat in cat1s_sums:
         data = [None] * nbmonths
         cat1sums = CatSums()
-        cat_totals = cat1sums.build_monthly_cat1_totals_array(beginstr, endstr, cat.id)
+        #cat_totals = cat1sums.build_monthly_cat1_totals_array(beginstr, endstr, cat.id)
+        transactions = Transaction.objects.filter(date_actual__gte=begin,date_actual__lte=end,is_deleted=False,cat1__in=cats)
+        cat1_totals = transactions.values('cat1').annotate(Sum('amount_actual'))
         color = next(colors)
         empty = True
-        for total in cat_totals:
+        for total in cat1_totals:
             if total.cattype_id == cattype.id:
                 empty = False
                 index = indexdict[f'{total.year}-{total.month:02d}']
@@ -473,15 +480,37 @@ def get_template(request):
     return JsonResponse(response.data, safe=False)
 
 
-def load_cat2_fuel(request):
+def load_cat2_unit_price(request):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
     cat2_id = request.GET.get('cat2')
     if cat2_id != '' and cat2_id is not None:
-        isfuel = Cat2.admin_objects.get(id=cat2_id).fuel
-        return JsonResponse({"isfuel": isfuel}, safe=False)
+        unitprice = Cat2.admin_objects.get(id=cat2_id).unit_price
+        return JsonResponse({"unitprice": unitprice}, safe=False)
     else:
-        return JsonResponse({"isfuel": False}, safe=False)
+        return JsonResponse({"unitprice": False}, safe=False)
+
+
+def load_account_unit_price(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    account_id = request.GET.get('account')
+    if account_id != '' and account_id is not None:
+        unitprice = Account.admin_objects.get(id=account_id).unit_price
+        return JsonResponse({"unitprice": unitprice}, safe=False)
+    else:
+        return JsonResponse({"unitprice": False}, safe=False)
+
+
+def load_cat2_stock(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    cat2_id = request.GET.get('cat2')
+    if cat2_id != '' and cat2_id is not None:
+        unitprice = Cat2.admin_objects.get(id=cat2_id).unit_price
+        return JsonResponse({"unitprice": unitprice}, safe=False)
+    else:
+        return JsonResponse({"unitprice": False}, safe=False)
 
 
 def timeline2JSON(request):
@@ -495,8 +524,8 @@ def timeline2JSON(request):
         accounts = Account.view_objects.filter(account_categories=accountcategoryID).order_by('account_host', 'name')
 
     preference = get_object_or_404(Preference, user=request.user.id)
-    begin = preference.start_interval
-    end = preference.end_interval
+    begin = preference.slider_start
+    end = preference.slider_stop
 
     colors = next_color()
 
@@ -521,7 +550,7 @@ def timeline2JSON(request):
             if account.date_closed < begin:
                 continue
         color = next(colors)
-        balances = account.build_balance_array(begin, end)
+        balances = account.get_balances(begin, end)
         linedata = []
         i = 0
         for day in balances:
@@ -576,12 +605,12 @@ class CatTotalPieChart(TemplateView):
         preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
-            end = preference.end_interval
+            end = preference.slider_stop
         else:
             end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
-            begin = preference.start_interval
+            begin = preference.slider_start
         else:
             begin = datetime.strptime(begin, "%Y-%m-%d")
 
@@ -604,12 +633,12 @@ class CatTotalBarChart(TemplateView):
         preference = Preference.objects.get(user=self.request.user.id)
 
         if end is None or end == 'None':
-            end = preference.end_interval
+            end = preference.slider_stop
         else:
             end = datetime.strptime(end, "%Y-%m-%d")
 
         if begin is None or begin == 'None':
-            begin = preference.start_interval
+            begin = preference.slider_start
         else:
             begin = datetime.strptime(begin, "%Y-%m-%d")
 
@@ -657,7 +686,7 @@ class ObjectMaxRedirect(RedirectView):
         model_name = args[0].model
         model = apps.get_model('budgetdb', model_name)
         try:
-            redirect_object = model.view_objects.get(pk=pk)
+            redirect_object = model.objects.get(pk=pk)
         except ObjectDoesNotExist:
             raise PermissionDenied
         viewname = 'budgetdb:'
@@ -736,6 +765,10 @@ class MyCreateView(LoginRequiredMixin, CreateView):
 
 
 class MyDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    task = 'View'
+    url = ''
+    title = ''
+
     def test_func(self):
         try:
             view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
@@ -750,6 +783,14 @@ class MyDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         my_object = super().get_object(queryset=queryset)
         my_object.editable = my_object.can_edit()
         return my_object
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = self.model._meta.verbose_name
+        context["task"] = self.task
+        context["url"] = self.url
+        context["title"] = self.title
+        return context        
 
 
 class MyListView(LoginRequiredMixin, SingleTableView):
@@ -796,6 +837,186 @@ class MyNotificationLoggedout(TemplateView):
         return context
 
 
+def echartOptionTimeline2JSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    title = ''
+    preference = get_object_or_404(Preference, user=request.user.id)
+    begin = preference.slider_start
+    end = preference.slider_stop
+    accountcategoryID = request.GET.get('ac', None)
+    period = request.GET.get('period', None)
+    if period == 'nextmonth':
+        begin = date.today()
+        end = begin + timedelta(days=40)
+    if accountcategoryID  == 'favorites':
+        accounts = preference.favorite_accounts.all()
+    elif accountcategoryID is None or accountcategoryID == 'None':
+        accounts = Account.view_objects.all().order_by('account_host', 'name')
+        title = 'All'
+    else:
+        try:
+            accountcategory = AccountCategory.view_objects.get(pk=accountcategoryID)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        title = accountcategory.name
+        accounts = Account.view_objects.filter(account_categories=accountcategory.pk).order_by('account_host', 'name')
+
+
+
+
+    series = []  # lines
+    x_axis = []  # Dates, x axis
+    series_label = []  # series label
+
+    dates = MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date')
+    index_today = None
+    i = 0
+    for day in dates:
+        x_axis.append(f'{day.db_date}')
+        if day.db_date == date.today():
+            index_today = i
+        i += 1
+    if index_today is not None:
+        vert_line =  {
+                'type': 'line',
+                'silent': 'true',
+                
+                'markLine': {
+                    'symbol': 'circle',
+                    'lineStyle': {
+                        'color': 'rgb(255,0,0)',
+                        'type': 'solid',
+                    },
+                    'data': [
+                    {
+                        'name': 'Today',
+                        'xAxis': date.today(),
+                    }
+                    ]
+                }
+                }
+        series.append(vert_line)
+
+    nb_days = len(x_axis)
+    linetotaldata = [Decimal(0.00)] * nb_days
+    for account in accounts:
+        if account.can_view() is False:
+            continue
+        if account.date_closed is not None:
+            if account.date_closed < begin:
+                continue
+        series_label.append(f'{account}')
+        balances = account.get_balances(begin, end)
+        linedata = []
+        i = 0
+        for day in balances:
+            linetotaldata[i] += day.balance
+            linedata.append(day.balance)
+            i += 1
+        linedict = {
+            'name': f'{account}',
+            'type': 'line',
+            'smooth': 'true',
+            'areaStyle': {},
+            'symbol': account.currency.symbol,  # doesn't work...
+            'data': linedata,
+        }
+        series.append(linedict)
+
+
+
+
+    # datasets.append(linedict)
+    data = {
+        'title': {
+                'text': title
+                },
+        'legend': {
+                'data': series_label,
+                'type': 'scroll',
+                'orient': 'vertical',
+                'right': '10',
+                'top': '20',
+                'bottom': '20',
+            },
+        'grid': {
+            'left': '1%',
+            'right': '2%',
+            'bottom': '2%',
+            'containLabel': 'true'
+        },
+       # 'tooltip': {
+        #    'trigger': 'axis',
+         #   'valueFormatter': '(value) => "$" + value.toFixed(2)'
+            #'formatter': 'callback'
+        #},
+        'dataZoom': [
+            {
+            'type': 'inside',
+            'start': 0,
+            'end': 100,
+            },
+        ],
+        'markLine': {
+            'data': [ 
+                { 'name': 'bang', 
+                'xAxis': '2024-01-28' } 
+            ]
+        },
+        'xAxis': {
+            'boundaryGap': 'false',
+            'data': x_axis,
+           # 'type': 'time',
+        },
+        'yAxis': {
+            'type': 'value'
+        },
+        'series': series
+    }
+
+    return JsonResponse(data, safe=False)
+
+
+class EChartTimelineView(LoginRequiredMixin, TemplateView):
+    # template_name = 'budgetdb/echart_template.html'
+    template_name = 'budgetdb/echart_template_json.html'
+    echart_title = 'Account Timeline'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        accountcategoryID = self.request.GET.get('ac', None)
+
+        if accountcategoryID is not None:
+            accountcategory = get_object_or_404(AccountCategory, pk=accountcategoryID)
+            if not accountcategory.can_view():
+                raise PermissionDenied
+            context['accountcategory'] = accountcategory
+        else:
+            context['accountcategory'] = None
+
+        accountcategories = AccountCategory.view_objects.all()
+        context['accountcategories'] = accountcategories
+        context['ac'] = accountcategoryID
+        context['echart_title'] = self.echart_title
+        return context
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'budgetdb/dashboard.html'
+    title = ''
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        messages = Messages.objects.filter(message_type='tutorial')
+
+        context['messages'] = messages
+        context['title'] = 'Dashboard'
+        return context
+
+
 ###################################################################################################################
 ###################################################################################################################
 # Account
@@ -813,20 +1034,20 @@ class AccountDetailView(MyDetailView):
     model = Account
 
 
-class AccountSummaryView(LoginRequiredMixin, ListView):
+class AccountSummaryView(MyListView):
     model = Account
     template_name = 'budgetdb/account_list_summary.html'
 
     def get_queryset(self):
         accounts = Account.view_objects.all().order_by('account_host__name', 'name')
-        accounts = accounts.exclude(date_closed__lt=datetime.today())
+        accounts = accounts.exclude(date_closed__lt=date.today())
         return accounts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         decorated = []
         for account in self.object_list:
-            account.balance = account.balance_by_EOD(datetime.today())
+            account.balance = account.get_balance(date.today()).balance
             if account.owner != get_current_user():
                 account.nice_name = f'{account.account_host} - {account.owner} - {account.name}'
             else:
@@ -1031,6 +1252,80 @@ class CatTypeDetailView(MyDetailView):
     template_name = 'budgetdb/cattype_detail.html'
 
 
+def CatTypeMonthJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+
+    today = date.today()
+    #today = date.fromisoformat('2024-06-04')
+    series = []
+    total = Decimal('0.00')
+    i = 1
+    param = request.GET.get(f'pk{i}', None)    
+    while param is not None:
+        id = param
+        sign = 1
+        cattype = None
+        if id[0] == '-':
+            sign = -1
+            id = id.replace('-','',1)
+        try:
+            cattype = CatType.view_objects.get(pk=id)
+            value = sign * cattype.get_month_total(today)
+            total = total + value
+            linedict = {
+                'name': cattype.name,
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [value],
+            }
+            series.append(linedict)
+        except ObjectDoesNotExist:
+            continue
+        
+        i = i + 1
+        param = request.GET.get(f'pk{i}', None)    
+
+
+    linedict = {
+                'name': 'balance',
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [total],
+            }
+    series.append(linedict)
+
+    month_name = today.strftime("%B")
+
+
+    data = {
+ 
+        "tooltip": {
+            "trigger": 'axis',
+            "axisPointer": {
+         "type": 'shadow' 
+            }
+        },
+        'xAxis': {
+            'type': 'value',
+            'position': 'top',
+            'splitLine': {
+                'lineStyle': {
+                    'type': 'dashed'
+                }
+            }
+        },
+        'yAxis': {
+            'type': 'category',
+            'show': False,
+            'data': [month_name]
+        },
+        'series': series
+    
+    }
+    return JsonResponse(data, safe=False)
+
+
 class CatTypeUpdateView(MyUpdateView):
     model = CatType
     form_class = CatTypeForm
@@ -1190,37 +1485,68 @@ class StatementListView(MyListView):
     table_class = StatementListTable
 
     def get_queryset(self):
-        return self.model.view_objects.all().order_by('-statement_date', 'account')
+        pk = self.kwargs.get('pk')
+        if pk is None:
+            return self.model.view_objects.all().order_by('-statement_date', 'account')    
+        return self.model.view_objects.filter(account=pk).order_by('-statement_date', 'account')
 
 
 class StatementDetailView(MyDetailView):
     model = Statement
     template_name = 'budgetdb/statement_detail.html'
+    date_min = None
+    date_max = None
 
     def get_object(self, queryset=None):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
-        statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
-        transactions_sum = 0
-        for transaction in statement.included_transactions:
-            transactions_sum += transaction.amount_actual
+        # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
+        self.date_min = statement.statement_date - timedelta(days=32)
+        self.title = f'Statement {statement.statement_date} for {statement.account}'
+        statement.included_transactions = statement.transaction_set.filter(is_deleted=False).order_by('date_actual')
+        if statement.included_transactions.count() > 0:
+            first_transaction_date = statement.included_transactions.first().date_actual
+            if first_transaction_date < self.date_min:
+                self.date_min = first_transaction_date
+            
+        sum_from = statement.included_transactions.filter(account_source=statement.account).aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        sum_to = statement.included_transactions.filter(account_destination=statement.account).aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        
+        # switching sign because the CC balance is positive in the statement even if it's a debt
+        transactions_sum = - (sum_to or Decimal('0.00')) + (sum_from or Decimal('0.00'))
+        
         statement.transactions_sum = transactions_sum
         statement.error = transactions_sum - statement.balance
-        min_date = statement.statement_date - relativedelta(months=2)
-        statement.possible_transactions = Transaction.view_objects.filter(account_source=statement.account,
-                                                                          date_actual__lte=statement.statement_date,
-                                                                          date_actual__gt=min_date,
-                                                                          statement__isnull=True,
+        if statement.error < 0:
+            statement.errorsign = '-'
+            statement.error = -statement.error
+        
+        self.date_max = statement.statement_date
+        statement.possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
+                                                                          date_actual__lte=self.date_max,
+                                                                          date_actual__gt=self.date_min,
                                                                           audit=False
-                                                                          ).order_by('date_actual')
-        transactions_sumP = 0
-        for transaction in statement.possible_transactions:
-            transactions_sumP += transaction.amount_actual
+                                                                          ).exclude(statement=statement).order_by('date_actual')
+                        
+        transactions_sumP = statement.possible_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum')
         statement.transactions_sumP = transactions_sumP
         return statement
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["date1"] = self.date_min
+        context["date2"] = self.date_max
+        return context  
 
-class StatementUpdateView(LoginRequiredMixin, UpdateView):
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        selected_ids = request.POST.getlist("selected")
+        if self.object.can_edit():
+            Transaction.admin_objects.filter(id__in=selected_ids).update(statement=self.object)
+        return redirect(self.object.get_absolute_url())
+
+
+class StatementUpdateView(MyUpdateView):
     model = Statement
     form_class = StatementForm
     task = 'Update'
@@ -1235,7 +1561,7 @@ class StatementUpdateView(LoginRequiredMixin, UpdateView):
         return form
 
 
-class StatementCreateView(LoginRequiredMixin, CreateView):
+class StatementCreateView(MyCreateView):
     model = Statement
     form_class = StatementForm
     task = 'Create'
@@ -1289,62 +1615,16 @@ class IndexView(LoginRequiredMixin, TemplateView):
     template_name = 'budgetdb/index.html'
 
 
-class AccountTransactionListViewOLD(LoginRequiredMixin, UserPassesTestMixin, ListView):
-    model = Account
-    template_name = 'budgetdb/AccountTransactionListView.html'
-
-    def test_func(self):
-        view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'), is_deleted=False)
-        return view_object.can_view()
-
-    def handle_no_permission(self):
-        raise PermissionDenied
-
-    def get_queryset(self):
-        pk = self.kwargs.get('pk')
-        preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
-
-        beginstr = self.request.GET.get('begin', None)
-        endstr = self.request.GET.get('end', None)
-        if beginstr is not None:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-            end = begin + relativedelta(months=1)
-        if endstr is not None:
-            end = datetime.strptime(endstr, "%Y-%m-%d").date()
-        if end < begin:
-            end = begin + relativedelta(months=1)
-
-        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
-        return events
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        pk = self.kwargs.get('pk')
-        preference = Preference.objects.get(user=self.request.user.id)
-        year = preference.end_interval.year
-        decorated = []
-        for transaction in self.object_list:
-            transaction.show_currency = False
-            if transaction.account_destination is not None:
-                if transaction.account_destination.currency != transaction.currency:
-                    transaction.show_currency = True
-            if transaction.account_source is not None:
-                if transaction.account_source.currency != transaction.currency:
-                    transaction.show_currency = True
-            decorated.append(transaction)
-        context['pk'] = pk
-        context['year'] = year
-        context['decorated'] = decorated
-        context['account_name'] = Account.objects.get(id=pk).name
-        return context
-
-
 class AccountTransactionListView(UserPassesTestMixin, MyListView):
     model = Account
     table_class = AccountActivityListTable
     template_name = 'budgetdb/account_transactions_list.html'
+    begin = None
+    end = None
+    year = None
+    create = False
+    account = None
+    # SingleTableView.table_pagination = False
 
     def test_func(self):
         view_object = get_object_or_404(self.model, pk=self.kwargs.get('pk'), is_deleted=False)
@@ -1355,33 +1635,44 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs.get('pk')
-        preference = Preference.objects.get(user=self.request.user.id)
-        year = preference.end_interval.year
-        context['pk'] = pk
-        context['year'] = year
-        context['account_name'] = Account.objects.get(id=pk).name
+       
+        context['pk'] = self.account.pk
+        context['year'] = self.year
+        context['account_name'] = self.account
+        context['statements_exist'] = Statement.view_objects.filter(account = self.account.pk).count
         return context
+
+    def get_table_kwargs(self):
+       return {
+           'account_view': self.account.pk,
+           'begin': self.begin,
+           'end': self.end,
+           'request': self.request,
+       }
 
     def get_queryset(self):
         pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
-        self.title = Account.objects.get(pk=pk).name
+        date1 = self.kwargs.get('date1')
+        date2 = self.kwargs.get('date2')
+        if date1 is not None and date2 is not None:
+            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
+            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
+            preference.slider_start = self.begin
+            preference.slider_stop = self.end
+            preference.save() 
+        else:
+            self.begin = preference.slider_start
+            self.end = preference.slider_stop
+        self.year = preference.slider_stop.year
+        self.account = Account.objects.get(pk=pk)
+        self.title = self.account.name
 
-        beginstr = self.request.GET.get('begin', None)
-        endstr = self.request.GET.get('end', None)
-        if beginstr is not None:
-            begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-            end = begin + relativedelta(months=1)
-        if endstr is not None:
-            end = datetime.strptime(endstr, "%Y-%m-%d").date()
-        if end < begin:
-            end = begin + relativedelta(months=1)
-
-        events = Account.objects.get(id=pk).build_report_with_balance(begin, end)
-        return events
+        childaccounts = Account.view_objects.filter(account_parent_id=pk, is_deleted=False)
+        accounts = childaccounts | Account.view_objects.filter(pk=pk)
+        events_source = Transaction.view_objects.filter(account_source__in=accounts,date_actual__gte=self.begin,date_actual__lte=self.end)
+        events_destination = Transaction.view_objects.filter(account_destination__in=accounts,date_actual__gte=self.begin,date_actual__lte=self.end)
+        return events_source | events_destination
 
 
 ###################################################################################################################
@@ -1438,10 +1729,10 @@ class UserSignupView(CreateView):
         user = form.save()
         preference = Preference.objects.create(
             user=user,
-            start_interval=datetime.today().date()-relativedelta(months=6),
-            end_interval=datetime.today().date()+relativedelta(months=6),
-            min_interval_slider=datetime.today().date()-relativedelta(months=6),
-            max_interval_slider=datetime.today().date()+relativedelta(months=6),
+            slider_start=date.today()-relativedelta(months=6),
+            slider_stop=date.today()+relativedelta(months=6),
+            timeline_start=date.today()-relativedelta(months=6),
+            timeline_stop=date.today()+relativedelta(months=6),
             currency_prefered = Currency.objects.get(name_short='CAD')
             )
         preference.save()
@@ -1467,6 +1758,21 @@ class UserLoginView(auth_views.LoginView):
     def form_valid(self, form):
         login(self.request, form.get_user())
         return redirect('budgetdb:home')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # julie = User.objects.get(first_name='julie')
+        # julie.set_password('etpatatietpatata')
+        # julie.save()
+        form.helper = FormHelper()
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
+        return form
+
+class UserPasswordResetView(auth_views.PasswordResetView):
+    model = User
+    template_name = 'budgetdb/user_forgot_password.html'
+    email_template_name = "budgetdb/email_password_reset.html"
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -1507,7 +1813,7 @@ class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
         return super(auth_views.PasswordChangeView, self).form_valid(form) 
 
 
-class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
+class PreferencesUpdateView(MyUpdateView):
 
     model = Preference
     form_class = PreferenceForm
@@ -1522,8 +1828,8 @@ class PreferencesUpdateView(LoginRequiredMixin, UpdateView):
             stop = transactions.last().date_actual
             preference = Preference.objects.create(
                 user=user,
-                start_interval=start,
-                end_interval=stop,
+                slider_start=start,
+                slider_stop=stop,
                 begin_data=start,
                 end_data=stop
                 )

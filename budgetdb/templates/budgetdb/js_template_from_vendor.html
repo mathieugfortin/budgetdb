@@ -1,40 +1,66 @@
-<script>
-    // load template data when the vendor field changes
-    $("#id_vendor").change(function () {
-        var url = "{% url 'budgetdb:ajax_get_template' %}";
-        var vendor_id = $(this).val();    // get the selected cat1 ID from the HTML input
-        debugger;
-        $.ajax({                       // initialize an AJAX request
-            url: url,                    
-            data: {
-                'vendor_id': vendor_id             // add the cat1 id to the GET parameters
-            },
-            success: function (data) {   
-                $("#id_cat1").val(data.cat1);
-                $("#id_description").val(data.description);
-                $("#id_comment").val("created from template");
-                $("#id_account_source").val(data.account_source);
-                $("#id_account_destination").val(data.account_destination);
-                $("#id_amount_planned").val(data.amount_actual);
-                $("#id_currency").val(data.currency);
-                $("#id_amount_planned_foreign_currency").val(data.amount_planned_foreign_currency);
-                $("#id_ismanual").val(data.ismanual);
-                // load cat2
-                var url = "{% url 'budgetdb:ajax_load_cat2' %}";
-                var cat1Id = data.cat1
-                var cat2Id = data.cat2
-                $.ajax({                       
-                    url: url,                    
-                    data: {
-                        'cat1': cat1Id             
-                    },
-                    success: function (data) {   
-                        $("#id_cat2").html(data);  // fill the cat2 dropdown
-                        $("#id_cat2").val(cat2Id); // set cat2
+<script type="text/javascript">
+(function($) {
+    $(function() {
+        // Use delegation so it works in modals and reloaded content
+        $(document).on('change', '#id_vendor', function () {
+            var url = "{% url 'budgetdb:ajax_get_template' %}";
+            var vendor_id = $(this).val();
+            
+            if (!vendor_id) return;
+
+            $.ajax({
+                url: url,
+                data: { 'vendor_id': vendor_id },
+                success: function (data) {
+                    // 1. Set text/numeric values
+                    $("#id_description").val(data.description);
+                    $("#id_comment").val("created from template");
+                    $("#id_amount_planned").val(data.amount_actual);
+                    $("#id_amount_planned_foreign_currency").val(data.amount_planned_foreign_currency);
+                    $("#id_ismanual").val(data.ismanual);
+
+                    // 2. Helper function to set value and trigger all necessary events
+                    function setAndTrigger(selector, value) {
+                        var $el = $(selector);
+                        if ($el.length) {
+                            $el.val(value).trigger('change');
+                            // Specifically notify Select2 if it's initialized on this element
+                            if ($el.data('select2')) {
+                                $el.trigger('change.select2');
+                            }
+                        }
                     }
-                });                
-            }
+
+                    // 3. Update Category 1, Accounts, and Currency
+                    // These triggers will fire the other scripts you just fixed!
+                    setAndTrigger("#id_cat1", data.cat1);
+                    setAndTrigger("#id_account_source", data.account_source);
+                    setAndTrigger("#id_account_destination", data.account_destination);
+                    setAndTrigger("#id_currency", data.currency);
+                    // In your success function where you set the statement
+                    $("#id_statement").val(data.statement_id).trigger('change.select2');
+                    // 4. Chain the Cat2 load manually
+                    var cat2Url = "{% url 'budgetdb:ajax_load_cat2' %}";
+                    $.ajax({
+                        url: cat2Url,
+                        data: { 'cat1': data.cat1 },
+                        success: function (cat2Html) {
+                            var $cat2 = $("#id_cat2");
+                            $cat2.html(cat2Html); 
+                            
+                            // Set the specific subcategory from the template
+                            $cat2.val(data.cat2); 
+                            
+                            // Trigger change so the Unit Price script sees the new value
+                            $cat2.trigger("change");
+                            if ($cat2.data('select2')) {
+                                $cat2.trigger('change.select2');
+                            }
+                        }
+                    });
+                }
+            });
         });
     });
-
-    </script>
+})(jQuery);
+</script>

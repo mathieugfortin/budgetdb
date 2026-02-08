@@ -1,28 +1,31 @@
 from django import forms
+
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
-from budgetdb.utils import Calendar
+from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
-from budgetdb.models import JoinedTransactions
+from budgetdb.models import JoinedTransactions, AccountBalanceDB
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
-from budgetdb.forms import TransactionModalForm
+from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
+from ofxparse import OfxParser
 from decimal import *
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView
 from crum import get_current_user
-
+import json
 
 ###################################################################################################################
 # Transactions
@@ -42,7 +45,7 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
 
     def test_func(self):
         try:
-            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+            view_object = self.model.view_all_objects.get(pk=self.kwargs.get('pk'))
         except ObjectDoesNotExist:
             raise PermissionDenied
         return view_object.can_edit()
@@ -72,7 +75,7 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
 
 class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionFormFull
     task = 'Update'
     user = None
@@ -146,7 +149,7 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
 
 class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionFormFull
     task = 'Create'
     user = None
@@ -162,7 +165,7 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
         form = super().get_form(form_class)
         form_date = self.kwargs.get('date')
         if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
+            form_date = date.today().strftime("%Y-%m-%d")
         try:
             account = Account.admin_objects.get(pk=self.kwargs.get('account_pk'))
         except ObjectDoesNotExist:
@@ -181,14 +184,15 @@ def load_payment_transaction(request):
 
 class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionModalForm
     task = 'Create'
     user = None
+    account = None
 
     def test_func(self):
         try:
-            admin_object = Account.admin_objects.get(pk=self.kwargs.get('pk'))
+            self.account = Account.admin_objects.get(pk=self.kwargs.get('accountpk'))
         except ObjectDoesNotExist:
             raise PermissionDenied
         return True
@@ -198,6 +202,7 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         self.user = get_current_user()
         kwargs['task'] = self.task
         kwargs['user'] = self.user
+        kwargs['request'] = self.request
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -210,24 +215,28 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         form = super().get_form(form_class)
         form_date = self.kwargs.get('date')
         if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
-        account = get_object_or_404(Account, id=self.kwargs.get('pk'))
+            form_date = date.today().strftime("%Y-%m-%d")
         preference = get_object_or_404(Preference, user=self.user)
         form.initial['date_actual'] = form_date
-        form.initial['account_source'] = account
+        form.initial['account_source'] = self.account
         form.initial['currency'] = preference.currency_prefered.id
         form.initial['amount_actual_foreign_currency'] = Decimal(0)
         form.initial['audit'] = False
         form.helper.form_method = 'POST'
         return form
 
+    def form_valid(self, form):
+        pass
+        return super().form_valid(form)
+
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('pk')})
+        return self.request.GET.get("next", self.request.META.get("HTTP_REFERER", "/")
+        )
 
 
 class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpdateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionModalForm
     task = 'Update'
     success_message = 'Success: Transaction was updated.'
@@ -246,6 +255,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         kwargs['audit'] = False
         kwargs['task'] = self.task
         kwargs['user'] = self.user
+        kwargs['request'] = self.request
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -259,8 +269,136 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         form.helper.form_method = 'POST'
         return form
 
+    def form_valid(self, form):
+        pass
+        return super().form_valid(form)
+
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('accountid')})
+        return self.request.GET.get('next', self.request.META.get('HTTP_REFERER', '/')
+        )
+
+
+def import_ofx_view(request):
+    # --- STEP 4: FINAL CONFIRMATION (Save to DB) ---
+    if request.method == 'POST' and 'confirm_import' in request.POST:
+        import_data = request.session.get('ofx_import_data')
+        account_id = request.session.get('ofx_account_id')
+        to_import_indices = [int(i) for i in request.POST.getlist('import_idx')]
+
+        if not import_data or not account_id:
+            messages.error(request, "Session expired. Please re-upload.")
+            return redirect('budgetdb:upload_transactions_OFX')
+
+        account = Account.objects.get(id=account_id)
+        if account.ofx_flip_sign:
+            sign_changer = account.ofx_flip_sign
+        else: sign_changer = 1
+
+        transactions_to_create = []
+        for idx in to_import_indices:
+            data = import_data[idx]
+            
+            # Create the instance in memory
+            new_tx = Transaction(
+                account_source=account,
+                amount_actual=Decimal(str(data['amount'])) * sign_changer,
+                date_actual=data['date'],
+                description=data['description'][:200], # Ensure it fits char limit
+                currency=account.currency,
+                fit_id=data['fit_id'],
+            )
+            transactions_to_create.append(new_tx)
+
+        if transactions_to_create:
+            # bulk_create is fast but skips .save() and .full_clean()
+            Transaction.objects.bulk_create(transactions_to_create)
+            # Find the earliest date in the imported batch
+            earliest_date = min(t.date_actual for t in transactions_to_create)
+            latest_date = max(t.date_actual for t in transactions_to_create)
+            
+            # Mark parent/account balances as dirty from that date forward
+            AccountBalanceDB.objects.filter(
+                account=account,
+                db_date__gte=earliest_date
+            ).update(balance_is_dirty=True)
+            messages.success(request, f"Successfully imported {len(transactions_to_create)} transactions.")
+
+        # Clean up session
+        del request.session['ofx_import_data']
+        del request.session['ofx_account_id']
+        if transactions_to_create:
+            return redirect('budgetdb:list_account_activity_period', pk=account.pk, date1=earliest_date, date2=latest_date)
+        else:
+            return redirect('budgetdb:list_account_activity', pk=account.pk)
+
+    # --- STEP 3: LIVE SIGN FLIP (Ajax-like update to session) ---
+    if request.method == 'POST' and 'flip_now' in request.POST:
+        import_data = request.session.get('ofx_import_data')
+        account = Account.objects.get(id=request.session.get('ofx_account_id'))
+        
+        # Flip data in session
+        for item in import_data:
+            item['amount'] = float(item['amount']) * -1
+        
+        # Save preference to account permanently
+        account.ofx_flip_sign = not account.ofx_flip_sign
+        account.save()
+        
+        request.session['ofx_import_data'] = import_data
+        messages.info(request, "Signs flipped and preference saved.")
+        return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': import_data, 'account': account})
+
+    # --- STEP 2: ACCOUNT IDENTIFICATION (After Mapping Template) ---
+    if request.method == 'POST' and 'identify_account' in request.POST:
+        account = Account.objects.get(id=request.POST.get('identify_account'))
+        
+        if request.POST.get('save_id') == 'on':
+            account.ofx_acct_id = request.session.get('pending_ofx_acct_id')
+            account.ofx_org = request.session.get('pending_ofx_org')
+            account.ofx_fid = request.session.get('pending_ofx_fid')
+            account.save()
+            
+        # Analyze the serialized data now that we have an account context
+        serialized_list = request.session.get('ofx_serialized_list')
+        data = analyze_ofx_serialized_data(serialized_list, account)
+        # Pass a flag to the template to show the "Verify" UI only if needed
+        show_verify_signage_ui = (account.ofx_flip_sign is None)
+
+        request.session['ofx_import_data'] = data
+        request.session['ofx_account_id'] = account.id
+        return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': data, 'account': account, 'show_verify_signage_ui': show_verify_signage_ui})
+
+    # --- STEP 1: INITIAL UPLOAD ---
+    if request.method == 'POST' and 'ofx_file' in request.FILES:
+        try:
+            ofx = OfxParser.parse(request.FILES['ofx_file'])
+            ofx_id = ofx.account.number
+            org = ofx.institution.organization if hasattr(ofx, 'institution') else ""
+            fid = ofx.institution.fid if hasattr(ofx, 'institution') else ""
+
+            account = Account.objects.filter(ofx_acct_id=ofx_id, ofx_org=org, ofx_fid=fid).first()
+            serialized_list, _, _ = serialize_ofx(ofx, account)
+
+            if account:
+                # Account known: Go straight to preview
+                data = analyze_ofx_serialized_data(serialized_list, account)
+                request.session['ofx_import_data'] = data
+                request.session['ofx_account_id'] = account.id
+                return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': data, 'account': account})
+            else:
+                # Account unknown: Go to mapping
+                request.session['pending_ofx_acct_id'] = ofx_id
+                request.session['pending_ofx_org'] = org
+                request.session['pending_ofx_fid'] = fid
+                request.session['ofx_serialized_list'] = serialized_list
+                return render(request, 'budgetdb/account_ofx_mapping.html', {
+                    'acct_id': ofx_id, 'org': org, 'accounts': Account.admin_objects.all()
+                })
+        except Exception as e:
+            messages.error(request, f"Parse error: {str(e)}")
+
+    # DEFAULT: Show upload form
+    return render(request, 'budgetdb/transaction_import_ofx.html', {'form': TransactionOFXImportForm()})
 
 
 ###################################################################################################################
@@ -268,14 +406,15 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
 
 class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
     model = Transaction
-    template_name = 'budgetdb/transaction_popup_form.html'
+    template_name = 'budgetdb/transaction_modal_form.html'
     form_class = TransactionModalForm
     task = 'Create'
     user = None
+    account = None
 
     def test_func(self):
-        view_object = get_object_or_404(Account, pk=self.kwargs.get('pk'))
-        return view_object.can_edit()
+        self.account = get_object_or_404(Account, pk=self.kwargs.get('accountpk'))
+        return self.account.can_edit()
 
     def handle_no_permission(self):
         raise PermissionDenied
@@ -293,7 +432,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         form_date = self.kwargs.get('date')
         form_amount = self.kwargs.get('amount')
         if form_date is None:
-            form_date = datetime.now().strftime("%Y-%m-%d")
+            form_date = date.today().strftime("%Y-%m-%d")
             form.initial['description'] = f'Ajustement du marché'
         else:
             form.initial['description'] = f'Confirmation de solde'
@@ -301,11 +440,9 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
             length = len(form_amount)
             clean_amount = form_amount[:length-2] + '.' + form_amount[-2:]
             form.initial['amount_actual'] = clean_amount
-        account_id = self.kwargs.get('pk')
-        account = get_object_or_404(Account, id=account_id)
         preference = get_object_or_404(Preference, user=self.user)
         form.initial['date_actual'] = form_date
-        form.initial['account_source'] = account
+        form.initial['account_source'] = self.account
         form.initial['audit'] = True
         form.initial['verified'] = True
         form.initial['currency'] = preference.currency_prefered
@@ -321,7 +458,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         return context
 
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.kwargs.get('pk')})
+        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.account.pk})
 
 
 ###################################################################################################################
@@ -520,8 +657,8 @@ class TransactionListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         preference = Preference.objects.get(user=self.request.user.id)
-        begin = preference.start_interval
-        end = preference.end_interval
+        begin = preference.slider_start
+        end = preference.slider_stop
 
         beginstr = self.request.GET.get('begin', None)
         endstr = self.request.GET.get('end', None)
@@ -548,6 +685,18 @@ class TransactionUnverifiedListView(MyListView):
     def get_queryset(self):
         return self.model.view_objects.filter(is_deleted=0, verified=0, audit=0, date_actual__lt=date.today()).order_by('date_actual')
 
+def load_manual_transactionsJSON(request):
+
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
+    transactions = Transaction.view_objects.filter(verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
+
+    array = []
+    for entry in transactions:
+        array.append([{"pk": entry.pk}, {"date": entry.date_actual}, {"description": entry.description}, {"amount": entry.amount_actual}])
+
+    return JsonResponse(array, safe=False)
 
 class TransactionManualListView(MyListView):
     model = Transaction
@@ -556,7 +705,7 @@ class TransactionManualListView(MyListView):
 
     def get_queryset(self):
         inamonth = (date.today() + relativedelta(months=+1)).strftime("%Y-%m-%d")
-        return self.model.view_objects.filter(is_deleted=0, verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
+        return self.model.view_objects.filter(verified=0, receipt=0, ismanual=1, date_actual__lt=inamonth).order_by('date_actual')
 
 
 class TransactionDeletedListView(MyListView):

@@ -43,7 +43,7 @@
             {% for report in reports %}
             <tr>
                 <td>
-                    <a href="{% url 'budgetdb:year_report_account' report.0.accountid year %}" > {{ report.0.accountname }} </a>
+                    <a href="{% url 'budgetdb:year_report_account' report.0.accountpk year %}" > {{ report.0.accountname }} </a>
                 </td>
                 {% for month in report %}
                 <td>{% if month.balance_end != 0 %}

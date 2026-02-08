@@ -1,8 +1,21 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10-slim
+FROM python:alpine
+ARG BUILD_DATE
+ARG VERSION="0.8"
+ARG GIT_COMMIT="unknown"
+LABEL build_version="version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL maintainer="mathieugfortin"
+LABEL git_commit=$GIT_COMMIT
 
 # Set the working directory in the container
 WORKDIR /app
+
+# Install build dependencies for mysqlclient
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    mariadb-connector-c-dev \
+    pkgconfig
 
 # Copy requirements into the container at /app
 COPY requirements.txt /app

@@ -38,7 +38,7 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     # 'django_addanother',
     'budgetdb.apps.BudgetdbConfig',
-    # 'django.contrib.admin',
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     # 'dal_select2',
     'django_tables2',
     'django_filters',
+    'django_select2',
 ]
 
 AUTH_USER_MODEL = 'budgetdb.User'
@@ -97,6 +98,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'budgetdb.context_processors.theme_processor',
             ],
         },
     },
@@ -142,6 +144,7 @@ AUTH_PASSWORD_VALIDATORS = [
 INTERNAL_IPS = [
     # ...
     '192.168.1.11',
+    '192.168.1.133',
     '192.168.1.228',
     # ...
 ]

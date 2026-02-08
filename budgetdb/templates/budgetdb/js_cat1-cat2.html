@@ -1,78 +1,30 @@
-<script>
-// load subcategories when the category changes
-$("#id_cat1").change(function () {
-    var url = "{% url 'budgetdb:ajax_load_cat2' %}";
-    var cat1Id = $(this).val();    // get the selected cat1 ID from the HTML input
-    // debugger;
-    $.ajax({                       // initialize an AJAX request
-        url: url,                    
-        data: {
-            'cat1': cat1Id             // add the cat1 id to the GET parameters
-        },
-        success: function (data) {   
-            $("#id_cat2").html(data);  // replace the contents of the cat2 input with the data that came from the server
-        }
+<script type="text/javascript">
+(function($) {
+    $(function() {
+        // Use delegation to ensure it works even when the modal content is replaced/reloaded
+        $(document).on('change', '#id_cat1', function () {
+            var url = "{% url 'budgetdb:ajax_load_cat2' %}";
+            var cat1Id = $(this).val();
+
+            $.ajax({
+                url: url,
+                data: {
+                    'cat1': cat1Id
+                },
+                success: function (data) {
+                    var $cat2 = $("#id_cat2");
+                    
+                    // Update the subcategory dropdown HTML content
+                    $cat2.html(data);
+                    
+                    // If id_cat2 is a Select2 field, we notify it that the options changed
+                    // if ($cat2.hasClass("django-select2") || $cat2.data('select2')) { $cat2.trigger('change');  }
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error loading subcategories: " + error);
+                }
+            });
+        });
     });
-});
-
-function showFuel() {
-    $('#div_id_Fuel_L').removeClass('visually-hidden');
-    $('#id_Fuel_L').removeAttr('tabindex')
-    $('#div_id_Fuel_price').removeClass('visually-hidden');
-    $('#id_Fuel_price').removeAttr('tabindex')
-}
-
-function hideFuel() {
-    $('#div_id_Fuel_L').addClass('visually-hidden');
-    $('#id_Fuel_L').attr('tabindex', '-1');
-    $('#div_id_Fuel_price').addClass('visually-hidden');  
-    $('#id_Fuel_price').attr('tabindex', '-1');
-}
-
-//check if subcategory is fuel when subcategory changes
-$("#id_cat2").change(function () {
-    var url = "{% url 'budgetdb:ajax_check_cat2_fuel' %}";
-    var cat2Id = $(this).val();    // get the selected cat2 ID from the HTML input
-
-    if (cat2Id != "") {
-        $.ajax({                       // initialize an AJAX request
-            url: url,                    
-            data: {
-                'cat2': cat2Id             // add the cat2 id to the GET parameters
-            },
-            success: function (data) {   
-                if (data.isfuel) {
-                    showFuel();
-                } else {
-                    hideFuel();
-                }  
-            }
-        });
-    }
-});
-
-// check if initial subcategory is fuel
-$( document ).ready(function() {
-    var url = "{% url 'budgetdb:ajax_check_cat2_fuel' %}";
-    var cat2Id = $('#id_cat2').val();    // get the selected cat1 ID from the HTML input
-    // debugger;
-    if (cat2Id != "") {
-        $.ajax({                       // initialize an AJAX request
-            url: url,                    
-            data: {
-                'cat2': cat2Id             // add the cat2 id to the GET parameters
-            },
-            success: function (data) {   
-                if (data.isfuel) {
-                    showFuel();
-                } else {
-                    hideFuel();
-                }  
-            }
-        });
-    } else {
-        hideFuel();
-    } 
-});
-
+})(jQuery);
 </script>

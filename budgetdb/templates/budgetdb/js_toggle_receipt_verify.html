@@ -1,0 +1,38 @@
+<script type="text/javascript">
+(function($) {
+    // We attach the function to 'window' so it can be called from 
+    // 'onclick' attributes in your HTML/Tables
+    window.togglereceiptT = function(transaction_id) {
+        var data = {
+            'transaction_id': transaction_id, 
+            'csrfmiddlewaretoken': '{{csrf_token}}'
+        };
+
+        // Perform the POST request
+        $.post('{% url "budgetdb:togglereceipttransaction_json" %}', data)
+         .fail(function() {
+            console.error("Failed to toggle receipt for: " + transaction_id);
+         });
+
+        // Use jQuery for the class toggling for consistency
+        var $button = $('#R' + transaction_id);
+        var $row = $('#T' + transaction_id);
+
+        $button.toggleClass('RECEIPT NORECEIPT');
+        $row.toggleClass('RECEIPT NORECEIPT');
+    };
+    
+    // If you have a toggleverifyT, add it here too:
+    window.toggleverifyT = function(transaction_id) {
+        var data = {
+            'transaction_id': transaction_id, 
+            'csrfmiddlewaretoken': '{{csrf_token}}'
+        };
+        $.post('{% url "budgetdb:toggleverifytransaction_json" %}', data);
+        
+        $('#V' + transaction_id).toggleClass('VERIFIED UNVERIFIED');
+        $('#T' + transaction_id).toggleClass('VERIFIED UNVERIFIED');
+    };
+
+})(jQuery);
+</script>

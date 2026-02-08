@@ -42,16 +42,24 @@ register_converter(TwoDigitDayConverter, 'dd')
 app_name = 'budgetdb'
 
 urlpatterns = [
-    path('', views.IndexView.as_view(), name='home'),
+    
+    
+    path('', views.IndexView.as_view(), name='emptyhome'),
 
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
          name='setinterval_json'),
+    
+    path('chart/timeline/', views.EChartTimelineView.as_view(),
+         name='timeline_chart'),
+    path('chart/echartOptionTimelineJSON', views.echartOptionTimeline2JSON, name='timeline_option_json'),
 
     # chart JS
-    path('timeline2/', views.timeline2.as_view(), name='timeline_chart'),
-    path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json'),
+    # path('timeline2/', views.timeline2.as_view(), name='timeline_chart_old'),
+    # path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json_old'),
+
+    path('dashboard/', views.DashboardView.as_view(), name='home'),
 
     # User
     path('user/signup/', views.UserSignupView.as_view(),
@@ -68,6 +76,10 @@ urlpatterns = [
          name='email_verification_link'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
+    path('user/password/reset/', views.UserPasswordResetView.as_view(),
+         name='password_reset'),
+    path('user/password/resetdone/', views.UserPasswordResetView.as_view(),
+         name='password_reset_done'),
     path('user/password/update', views.UserPasswordUpdateView.as_view(),
          name='password_update'),
     path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
@@ -126,21 +138,25 @@ urlpatterns = [
          name='create_account'),
     path('account/update/<int:pk>/', views.AccountUpdateView.as_view(),
          name='update_account'),
+    path('ajax/check-account-unit-price/', views.load_account_unit_price,
+         name='ajax_check_account_unit_price'),
 
     # Account Transactions List View
-    path('account/listactivityOLD/<int:pk>/', views.AccountTransactionListViewOLD.as_view(),
-         name='list_account_activity2'),
+    # path('account/listactivityOLD/<int:pk>/', views.AccountTransactionListViewOLD.as_view(),
+    #   name='list_account_activity2'),
     path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
-    path('account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
+    path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.AccountTransactionListView.as_view(),
+         name='list_account_activity_period'),
+    path('transaction/update_modal/<int:accountpk>/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
-    path('account/listactivity/<int:pk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+    path('transaction/add_audit_modal/<int:accountpk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
          name='list_account_activity_create_audit_from_account'),
-    path('account/listactivity/<int:pk>/audit_add/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+    path('transaction/add_audit_modal/<int:accountpk>/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
          name='list_account_activity_create_audit_from_account'),
-    path('account/listactivity/add/<int:pk>/<slug:date>/', views.TransactionCreateModal.as_view(),
+    path('transaction/add_modal/<int:accountpk>/<slug:date>/', views.TransactionCreateModal.as_view(),
          name='create_transaction_from_date_account_modal'),
-    path('account/listactivity/add/<int:pk>/', views.TransactionCreateModal.as_view(),
+    path('transaction/add_modal/<int:accountpk>/', views.TransactionCreateModal.as_view(),
          name='create_transaction_from_date_account_modal'),
 
     ##########################################################################################################
@@ -221,8 +237,8 @@ urlpatterns = [
          name='update_cat2'),
     path('ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
-    path('ajax/check-cat2-fuel/', views.load_cat2_fuel,
-         name='ajax_check_cat2_fuel'),
+    path('ajax/check-cat2-unit-price/', views.load_cat2_unit_price,
+         name='ajax_check_cat2_unit_price'),
 
     ##########################################################################################################
     # CatType
@@ -234,6 +250,8 @@ urlpatterns = [
          name='list_cattype'),
     path('cattype/<int:pk>/', views.CatTypeDetailView.as_view(),
          name='details_cattype'),
+    path('cattype/JSONcard/month/', views.CatTypeMonthJSON,
+         name='cattype_month_JSON'),
     path('cattype/add/', views.CatTypeCreateView.as_view(),
          name='create_cattype'),
     path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),
@@ -248,6 +266,8 @@ urlpatterns = [
     # Statement
     path('statement/', views.StatementListView.as_view(),
          name='list_statement'),
+    path('statement/account/<int:pk>/', views.StatementListView.as_view(),
+         name='list_statement_per_account'),         
     path('statement/<int:pk>/', views.StatementDetailView.as_view(),
          name='details_statement'),
     path('statement/create/', views.StatementCreateView.as_view(),
@@ -270,6 +290,8 @@ urlpatterns = [
 
     ##########################################################################################################
     # Transaction
+    path('transaction/ListManualJSON', views.load_manual_transactionsJSON, 
+        name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
     path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
@@ -288,7 +310,10 @@ urlpatterns = [
          name='create_transaction_from_date_account'),
     path('transaction/update/<int:pk>/', views.TransactionUpdateView.as_view(),
          name='update_transaction'),
+    path('transaction/uploadOFX/', views.import_ofx_view,
+         name='upload_transactions_OFX'),         
 
+         
     # path('audit/<int:pk>/', views..as_view(),
     #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),
@@ -333,3 +358,4 @@ urlpatterns = [
     path('vendor/update/<int:pk>/', views.VendorUpdateView.as_view(),
          name='update_vendor'),
 ]
+# print("urlpatterns:", urlpatterns)

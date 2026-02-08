@@ -1,19 +1,20 @@
-output of: python manage.py show_urls
+output of: python manage.py show_urls > budgetdb/notes/urls.txt
 
-/en-ca/	budgetdb.views.views.IndexView	budgetdb:home
+/en-ca/	budgetdb.views.views.IndexView	budgetdb:emptyhome
 /en-ca/account/	budgetdb.views.views.AccountListViewSimple	budgetdb:list_account_simple
 /en-ca/account/<int:pk>/	budgetdb.views.views.AccountDetailView	budgetdb:details_account
 /en-ca/account/ListDetailedJSON	budgetdb.views.views.GetAccountDetailedViewListJSON	budgetdb:account_list_detailed_view_json
 /en-ca/account/ListJSON	budgetdb.views.views.GetAccountViewListJSON	budgetdb:account_list_view_json
 /en-ca/account/add/	budgetdb.views.views.AccountCreateView	budgetdb:create_account
 /en-ca/account/details	budgetdb.views.views.AccountSummaryView	budgetdb:list_account_summary
-/en-ca/account/listactivity/<int:accountid>/transaction_update_modal/<int:pk>/	budgetdb.views.transaction_views.TransactionModalUpdate	budgetdb:account_listview_update_transaction_modal
+/en-ca/account/listactivity/<int:accountpk>/transaction_update_modal/<int:pk>/	budgetdb.views.transaction_views.TransactionModalUpdate	budgetdb:account_listview_update_transaction_modal
 /en-ca/account/listactivity/<int:pk>/	budgetdb.views.views.AccountTransactionListView	budgetdb:list_account_activity
+/en-ca/account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/	budgetdb.views.views.AccountTransactionListView	budgetdb:list_account_activity_period
 /en-ca/account/listactivity/<int:pk>/audit_add	budgetdb.views.transaction_views.TransactionAuditCreateModalViewFromDateAccount	budgetdb:list_account_activity_create_audit_from_account
-/en-ca/account/listactivity/<int:pk>/audit_add/<slug:date>/<slug:amount>	budgetdb.views.transaction_views.TransactionAuditCreateModalViewFromDateAccount	budgetdb:list_account_activity_create_audit_from_account
+/en-ca/account/listactivity/<int:pk>/audit_add/<slug:date>/<str:amount>	budgetdb.views.transaction_views.TransactionAuditCreateModalViewFromDateAccount	budgetdb:list_account_activity_create_audit_from_account
 /en-ca/account/listactivity/add/<int:pk>/	budgetdb.views.transaction_views.TransactionCreateModal	budgetdb:create_transaction_from_date_account_modal
 /en-ca/account/listactivity/add/<int:pk>/<slug:date>/	budgetdb.views.transaction_views.TransactionCreateModal	budgetdb:create_transaction_from_date_account_modal
-/en-ca/account/listactivity2/<int:pk>/	budgetdb.views.views.AccountTransactionListView2	budgetdb:list_account_activity2
+/en-ca/account/listactivityOLD/<int:pk>/	budgetdb.views.views.AccountTransactionListViewOLD	budgetdb:list_account_activity2
 /en-ca/account/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:account_max_redirect
 /en-ca/account/update/<int:pk>/	budgetdb.views.views.AccountUpdateView	budgetdb:update_account
 /en-ca/account/yearreport/<int:pk>/<yyyy:year>/	budgetdb.views.views.AccountYearReportDetailView	budgetdb:year_report_account
@@ -30,7 +31,7 @@ output of: python manage.py show_urls
 /en-ca/accountcat/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:accountcategory_max_redirect
 /en-ca/accountcat/update/<int:pk>/	budgetdb.views.views.AccountCatUpdateView	budgetdb:update_accountcategory
 /en-ca/accountcat/yearreport/<int:pk>/<yyyy:year>/	budgetdb.views.views.AccountCatYearReportDetailView	budgetdb:year_report_accountcategory
-/en-ca/ajax/check-cat2-fuel/	budgetdb.views.views.load_cat2_fuel	budgetdb:ajax_check_cat2_fuel
+/en-ca/ajax/check-cat2-unit-price/	budgetdb.views.views.load_cat2_unit_price	budgetdb:ajax_check_cat2_unit_price
 /en-ca/ajax/get-template/	budgetdb.views.views.get_template	budgetdb:ajax_get_template
 /en-ca/ajax/load-cat2/	budgetdb.views.views.load_cat2	budgetdb:ajax_load_cat2
 /en-ca/ajax/load-payment-transaction/	budgetdb.views.transaction_views.load_payment_transaction	budgetdb:ajax_load_payment_transaction
@@ -41,6 +42,7 @@ output of: python manage.py show_urls
 /en-ca/budgetedEvent/anormal3	budgetdb.views.budgetedevent_views.budgetedEventsAnormal3ListView	budgetdb:list_anormal3_be
 /en-ca/budgetedEvent/create/	budgetdb.views.budgetedevent_views.BudgetedEventCreate	budgetdb:create_budgetedevent
 /en-ca/budgetedEvent/createfromt/<int:transaction_id>/	budgetdb.views.budgetedevent_views.BudgetedEventCreateFromTransaction	budgetdb:create_budgetedevent_from_t
+/en-ca/budgetedEvent/generate/<int:pk>/	budgetdb.views.budgetedevent_views.BudgetedEventGenerateTransactions	budgetdb:generate_budgetedevent_transactions
 /en-ca/budgetedEvent/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:budgetedevent_max_redirect
 /en-ca/budgetedEvent/update/<int:pk>/	budgetdb.views.budgetedevent_views.BudgetedEventUpdate	budgetdb:update_be
 /en-ca/calendar/	budgetdb.views.transaction_views.TransactionCalendarView	budgetdb:calendar_transaction
@@ -62,16 +64,20 @@ output of: python manage.py show_urls
 /en-ca/catbudget/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:catbudget_max_redirect
 /en-ca/cattype/	budgetdb.views.views.CatTypeListView	budgetdb:list_cattype
 /en-ca/cattype/<int:pk>/	budgetdb.views.views.CatTypeDetailView	budgetdb:details_cattype
+/en-ca/cattype/JSONcard/month/	budgetdb.views.views.CatTypeMonthJSON	budgetdb:cattype_month_JSON
 /en-ca/cattype/ListJSON	budgetdb.views.views.GetCatTypeListJSON	budgetdb:cattype_list_json
 /en-ca/cattype/add/	budgetdb.views.views.CatTypeCreateView	budgetdb:create_cattype
 /en-ca/cattype/bar-chart/<int:cat_type_pk>	budgetdb.views.views.CatTotalBarChart	budgetdb:cattype_bar
 /en-ca/cattype/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:cattype_max_redirect
 /en-ca/cattype/pie-chart/<int:cat_type_pk>	budgetdb.views.views.CatTotalPieChart	budgetdb:cattype_pie
 /en-ca/cattype/update/<int:pk>/	budgetdb.views.views.CatTypeUpdateView	budgetdb:update_cattype
-/en-ca/favicon.ico	django.views.generic.base.RedirectView
-/en-ca/favicon.ico	django.views.generic.base.RedirectView
-/en-ca/friend/	budgetdb.views.views.InvitationListView	budgetdb:list_invitation
-/en-ca/friend/add/	budgetdb.views.views.InvitationCreateView	budgetdb:create_invitation
+/en-ca/chart/timeline/	budgetdb.views.views.EChartTimelineView	budgetdb:timeline_chart
+/en-ca/dashboard/	budgetdb.views.views.DashboardView	budgetdb:home
+/en-ca/echartOptionTimelineJSON	budgetdb.views.views.echartOptionTimeline2JSON	budgetdb:echart_option_json
+/en-ca/invitation/	budgetdb.views.views.InvitationListView	budgetdb:list_invitation
+/en-ca/invitation/accept/<int:pk>/	budgetdb.views.views.InvitationAcceptView	budgetdb:accept_invitation
+/en-ca/invitation/add/	budgetdb.views.views.InvitationCreateView	budgetdb:create_invitation
+/en-ca/invitation/reject/<int:pk>/	budgetdb.views.views.InvitationRejectView	budgetdb:reject_invitation
 /en-ca/joinedtransactions/<int:pk>/	budgetdb.views.transaction_views.JoinedTransactionsConfigDetailView	budgetdb:details_joinedtransactionsconfig
 /en-ca/joinedtransactions/<int:pk>/<slug:date>/	budgetdb.views.transaction_views.JoinedTransactionsDetailView	budgetdb:details_joinedtransactions
 /en-ca/joinedtransactions/add/	budgetdb.views.transaction_views.JoinedTransactionsConfigUpdateView	budgetdb:create_joinedtransactions
@@ -84,6 +90,7 @@ output of: python manage.py show_urls
 /en-ca/preferences/update/	budgetdb.views.views.PreferencesUpdateView	budgetdb:update_preferences
 /en-ca/statement/	budgetdb.views.views.StatementListView	budgetdb:list_statement
 /en-ca/statement/<int:pk>/	budgetdb.views.views.StatementDetailView	budgetdb:details_statement
+/en-ca/statement/addtransactions/<int:pk>/	budgetdb.views.views.StatementAddTransactionsRedirectView	budgetdb:add_transactions_to_statement
 /en-ca/statement/create/	budgetdb.views.views.StatementCreateView	budgetdb:create_statement
 /en-ca/statement/update/<int:pk>/	budgetdb.views.views.StatementUpdateView	budgetdb:update_statement
 /en-ca/template/	budgetdb.views.views.TemplateListView	budgetdb:list_template
@@ -91,8 +98,6 @@ output of: python manage.py show_urls
 /en-ca/template/add/	budgetdb.views.views.TemplateCreateView	budgetdb:create_template
 /en-ca/template/max_redirect/<int:pk>/	budgetdb.views.views.ObjectMaxRedirect	budgetdb:template_max_redirect
 /en-ca/template/update/<int:pk>/	budgetdb.views.views.TemplateUpdateView	budgetdb:update_template
-/en-ca/timeline2/	budgetdb.views.views.timeline2	budgetdb:timeline_chart
-/en-ca/timeline2JSON	budgetdb.views.views.timeline2JSON	budgetdb:timeline2_chart_json
 /en-ca/transaction/<int:pk>/	budgetdb.views.transaction_views.TransactionDetailView	budgetdb:details_transaction
 /en-ca/transaction/add/	budgetdb.views.transaction_views.TransactionCreateView	budgetdb:create_transaction
 /en-ca/transaction/add/<int:account_pk>	budgetdb.views.transaction_views.TransactionCreateViewFromDateAccount	budgetdb:create_transaction_from_date_account
@@ -109,7 +114,13 @@ output of: python manage.py show_urls
 /en-ca/transaction/update/<int:pk>/	budgetdb.views.transaction_views.TransactionUpdateView	budgetdb:update_transaction
 /en-ca/user/login/	budgetdb.views.views.UserLoginView	budgetdb:login
 /en-ca/user/logout/	django.contrib.auth.views.LogoutView	budgetdb:logout
+/en-ca/user/password/update	budgetdb.views.views.UserPasswordUpdateView	budgetdb:password_update
 /en-ca/user/signup/	budgetdb.views.views.UserSignupView	budgetdb:signup
+/en-ca/user/signup/<email>	budgetdb.views.views.UserSignupView	budgetdb:signup_with_email
+/en-ca/user/verified/	budgetdb.views.views.UserVerifiedEmailView	budgetdb:email_verified
+/en-ca/user/verified/bad	budgetdb.views.views.UserVerifiedEmailBadLinkView	budgetdb:email_verified_bad_link
+/en-ca/user/verify/	budgetdb.views.views.UserVerifyEmailView	budgetdb:send_email_verification
+/en-ca/user/verify/<uidb64>/<token>	budgetdb.views.views.UserVerifyLinkView	budgetdb:email_verification_link
 /en-ca/vendor/	budgetdb.views.views.VendorListView	budgetdb:list_vendor
 /en-ca/vendor/<int:pk>/	budgetdb.views.views.VendorDetailView	budgetdb:details_vendor
 /en-ca/vendor/add/	budgetdb.views.views.VendorCreateView	budgetdb:create_vendor

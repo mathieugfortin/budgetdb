@@ -1,8 +1,10 @@
-from datetime import datetime
+# from datetime import datetime
 from calendar import HTMLCalendar
 from django.urls import reverse, reverse_lazy
-from .models import Transaction
-
+from ofxparse import OfxParser
+from .models import Transaction, Statement, Vendor
+from django.db.models import Q
+import datetime
 
 class Calendar(HTMLCalendar):
     def __init__(self, year=None, month=None):
@@ -118,3 +120,74 @@ class Bitmap():
         for i in range(self.n):
             intvalue += 2**i*self.bits[i]
         return intvalue
+
+
+def serialize_ofx(ofx, account=None):
+    """
+    Converts OfxParser object into a JSON-serializable list of dicts.
+    """
+    serialized_data = []
+    org = ""
+    fid = ""
+    if hasattr(ofx, 'institution'):
+        org = ofx.institution.organization
+        fid = ofx.institution.fid
+
+    for tx in ofx.account.statement.transactions:
+        amount = float(tx.amount)
+        # Flip sign if the account settings require it
+        if account and account.ofx_flip_sign:
+            amount *= -1        
+        serialized_data.append({
+            'fit_id': tx.id,
+            'date': tx.date.strftime('%Y-%m-%d'),
+            'amount': float(tx.amount),
+            'description': (tx.memo or tx.payee or "").strip(),
+        })
+    return serialized_data, org, fid
+
+
+def analyze_ofx_serialized_data(serialized_list, account):
+    """
+    Takes the flattened session data and adds Vendor/Duplicate/Match context.
+    """
+    final_data = []
+    vendor_mappings = Vendor.view_objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
+
+    for item in serialized_list:
+        status = "new"
+        existing_id = None
+        matched_vendor_id = None
+        
+        # 1. Duplicate Check
+        if Transaction.view_objects.filter(fit_id=item['fit_id']).exists():
+            status = "duplicate"
+        else:
+            # 2. Manual Match Check
+            match = Transaction.objects.filter(
+                account_source=account,
+                date_actual=item['date'], # Using your specific field name
+                amount_actual=item['amount'],
+                fit_id__isnull=True
+            ).first()
+            
+            if match:
+                status = "match"
+                existing_id = match.id
+            else:
+                # 3. Vendor Match
+                for vendor in vendor_mappings:
+                    if vendor.OFX_name.lower() in item['description'].lower():
+                        matched_vendor_id = vendor.id
+                        break
+
+        # Merge the analysis back into the item
+        item.update({
+            'status': status,
+            'existing_id': existing_id,
+            'vendor_id': matched_vendor_id,
+            'vendor_name': Vendor.objects.get(id=matched_vendor_id).name if matched_vendor_id else ""
+        })
+        final_data.append(item)
+        
+    return final_data

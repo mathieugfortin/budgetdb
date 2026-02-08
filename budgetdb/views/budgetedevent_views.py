@@ -7,7 +7,7 @@ from budgetdb.forms import BudgetedEventForm
 from budgetdb.filters import BudgetedEventFilter
 from django.views.generic.base import RedirectView
 from budgetdb.views import MyListView
-from datetime import datetime, date
+from datetime import date
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -65,7 +65,7 @@ class budgetedEventsAnormal3ListView(MyListView):
         # last generated transaction not set
         needs_generation = BudgetedEvent.view_objects.filter(generated_interval_stop__isnull=True).distinct()
         # last generation is before the end of the timeline
-        needs_generation = needs_generation | BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.end_interval).distinct()
+        needs_generation = needs_generation | BudgetedEvent.view_objects.filter(generated_interval_stop__lt=preference.slider_stop).distinct()
         # only those that haven't reached the end (repeat_stop) of the recurrence
         not_finished = [be.id for be in needs_generation if be.isGenerateNeeded()]
         return needs_generation.filter(id__in=not_finished)
@@ -87,9 +87,9 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
-        budgetedEvent = BudgetedEvent.view_objects.get(pk=self.kwargs.get('pk'))
-        editable = budgetedEvent.can_edit()
-        dayWeekMapBin = budgetedEvent.repeat_weekday_mask
+        budgeted_event = BudgetedEvent.view_objects.get(pk=self.kwargs.get('pk'))
+        editable = budgeted_event.can_edit()
+        dayWeekMapBin = budgeted_event.repeat_weekday_mask
         weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
         dayWeekMapDic = {}
@@ -98,21 +98,21 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
                 dayWeekMapDic[weekdays[day]] = True
             else:
                 dayWeekMapDic[weekdays[day]] = False
-        monthMapBin = budgetedEvent.repeat_months_mask
+        monthMapBin = budgeted_event.repeat_months_mask
         monthMapDic = {}
         for month in range(12):
             if monthMapBin & 2**month > 0:
                 monthMapDic[months[month]] = True
             else:
                 monthMapDic[months[month]] = False
-        dayMonthMapBin = budgetedEvent.repeat_dayofmonth_mask
+        dayMonthMapBin = budgeted_event.repeat_dayofmonth_mask
         dayMonthMapDic = {}
         for day in range(31):
             if dayMonthMapBin & 2**day > 0:
                 dayMonthMapDic[day+1] = True
             else:
                 dayMonthMapDic[day+1] = False
-        weekMonthMapBin = budgetedEvent.repeat_weekofmonth_mask
+        weekMonthMapBin = budgeted_event.repeat_weekofmonth_mask
         weekMonthMapDic = {}
         for week in range(5):
             if weekMonthMapBin & 2**week > 0:
@@ -125,8 +125,8 @@ class BudgetedEventDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context['dayWeekMapDic'] = dayWeekMapDic
         context['dayMonthMapDic'] = dayMonthMapDic
         context['weekMonthMapDic'] = weekMonthMapDic
-        begin_interval = datetime.today().date() + relativedelta(months=-13)
-        context['next_transactions'] = budgetedEvent.listNextTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
+        begin_interval = date.today() + relativedelta(months=-18)
+        context['next_transactions'] = budgeted_event.listLinkedTransactions(n=60, begin_interval=begin_interval, interval_length_months=60)
         return context
 
 

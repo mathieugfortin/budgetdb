@@ -1,0 +1,101 @@
+{% extends "budgetdb/base.html" %}
+{% load static %}
+{% block head_comment %}<!--dashboard-->{% endblock %}
+{% block title %}{{title}}{% endblock %}
+{% block content %}
+<div class="row row-cols-1 row-cols-md-2 ">
+    <div class="col">
+        <div class="card">
+            <div class="card-body"  style="height:300px;" > 
+                <h5 class="card-title">This Month's Balance</h5>
+                <div id="chart1" style="height:300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Favorite Accounts</h5>
+          <div id="chart2" style="height:300px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        
+        <div class="card-body">
+          <h5 class="card-title">Manual Transactions Reminder</h5>
+          <div id="chart3">
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        
+        <div class="card-body" style="width: 600px;height:400px;">
+          <h5 class="card-title">graph 1</h5>
+          
+          <div id="chartdiv" style="width: 90%;height:90%;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block script %}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"> </script>        
+     <script>
+        var chart1Dom = document.getElementById('chart1');
+        var chart1 = echarts.init(chart1Dom);
+        let option1;
+        // debugger
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:cattype_month_JSON" %}?pk1=116&pk2=-117&pk3=-125', function(data) {
+                    option1 = data
+                    option1 && chart1.setOption(option1);
+                    }
+                );
+            }
+        );
+    </script>  
+    <script type="text/javascript" src="{% static 'budgetdb/js/echarts_timeline.js' %}" 
+            defer
+            jsonurl="{% url 'budgetdb:timeline_option_json' %}?ac=favorites&period=nextmonth"
+            target="chart2"
+            >
+    </script>
+       
+    <script>
+
+        let listManual;
+        var listDom = document.getElementById('chart3');
+        // debugger
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:manual_transaction_list_json" %}', function(result) {
+                    var UL = document.createElement('ul');
+                    
+                    // debugger
+                    $.each(result, function(i, field){
+                        // debugger
+                        LI = document.createElement('li');
+                        A = document.createElement('a');
+                        baseURL = '{% url "budgetdb:details_transaction" 12345 %}';
+                        baseURL=baseURL.replace(/12345/,field[0].pk.toString());
+                        A.setAttribute('href',baseURL);
+                        A.innerHTML =  field[2].description;
+                        LI.innerHTML = field[1].date + ' ';
+                        LI.append(A);
+                        LI.innerHTML = LI.innerHTML + ' ' + field[3].amount + '$';
+                        UL.append(LI);
+                    });            
+                    document.getElementById('chart3').append(UL);        
+                    }
+                );
+            }
+        );
+    </script>
+
+{% endblock %}

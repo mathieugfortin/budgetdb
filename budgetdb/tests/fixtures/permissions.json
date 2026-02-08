@@ -1,0 +1,11 @@
+[
+{
+    "model": "budgetdb.userpermissions",
+    "pk": 69,
+    "fields": {
+        "owner": 1,
+        "users_admin": [],
+        "users_view": []
+    }
+}
+]

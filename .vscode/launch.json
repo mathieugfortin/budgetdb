@@ -7,7 +7,7 @@
 
     {
       "name": "Python: Django 8000",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/manage.py",
       "justMyCode": false,
@@ -20,7 +20,7 @@
     },
     {
         "name": "Python: Django 8010",
-        "type": "python",
+        "type": "debugpy",
         "request": "launch",
         "program": "${workspaceFolder}/manage.py",
         "justMyCode": false,
@@ -30,6 +30,18 @@
           
         ],
         "django": true
-      }
+      },
+      {
+        "name": "Django TEST",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder}/manage.py",
+        "args": [
+            "test",
+            "budgetdb",
+            "--keepdb"
+        ],
+        "django": true
+    },
   ]
 }

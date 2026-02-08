@@ -1,0 +1,22 @@
+{% extends 'budgetdb/base_modal.html' %}
+{% block head_comment %}<!--Transaction_modal_form template-->{% endblock %}
+{% load static %}
+
+{% load crispy_forms_tags %}
+{% block content %}
+    {{ form.media }}
+    {% if context.form_invalid %}
+        <div class="alert alert-danger" role="alert">
+            {{ context.form_invalid }}
+        </div>
+    {% endif %}
+    {% crispy form %}
+{% endblock %}
+{% block script %}
+
+    {% include "budgetdb/js_template_from_vendor.html" %}
+    {% include "budgetdb/js_cat1-cat2.html" %}    
+    {% include "budgetdb/js_unit_price.html" %}
+    {% include "budgetdb/js_currency.html" %}
+
+{% endblock %}
