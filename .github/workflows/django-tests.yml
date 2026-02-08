@@ -1,0 +1,71 @@
+name: Django CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: budget_db_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y default-libmysqlclient-dev build-essential pkg-config
+
+    - name: Create .env file
+      run: |
+        echo "DB_NAME=budget_db_test" >> .env
+        echo "DB_USER=root" >> .env
+        echo "DB_PASSWORD=root" >> .env
+        echo "DB_HOST=127.0.0.1" >> .env
+        echo "DB_PORT=3306" >> .env
+        echo "DEBUG=False" >> .env
+        echo "SECRET_KEY=ci-test-key-12345" >> .env
+        
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Migrations
+      env:
+        DB_HOST: 127.0.0.1
+        DB_NAME: budget_db_test
+        DB_USER: root
+        DB_PASSWORD: root
+      run: python manage.py migrate
+
+    - name: Lint with Flake8
+      run: |
+        pip install flake8
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Run Tests
+      env:
+        DB_HOST: 127.0.0.1
+        DB_NAME: budget_db_test
+        DB_USER: root
+        DB_PASSWORD: root
+      run: python manage.py test
