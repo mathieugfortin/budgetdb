@@ -9,13 +9,22 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: budget_db_test
+          DB_USER: root
+          DB_PORT: 3306
+          DEBUG: "False"
+          # Mapping your GitHub Secrets to Env Variables
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
     services:
       mysql:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: budget_db_test
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -53,11 +62,4 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
     - name: Run Tests
-      env:
-        DB_HOST: 127.0.0.1
-        DB_NAME: budget_db_test
-        DB_USER: root
-        DB_PASSWORD: root
-        SECRET_KEY: "ci-test-key-12345"
-        DEBUG: "False"
       run: python manage.py test
