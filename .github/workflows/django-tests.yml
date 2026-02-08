@@ -33,16 +33,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y default-libmysqlclient-dev build-essential pkg-config
 
-    - name: Create .env file
-      run: |
-        echo "DB_NAME=budget_db_test" >> .env
-        echo "DB_USER=root" >> .env
-        echo "DB_PASSWORD=root" >> .env
-        echo "DB_HOST=127.0.0.1" >> .env
-        echo "DB_PORT=3306" >> .env
-        echo "DEBUG=False" >> .env
-        echo "SECRET_KEY=ci-test-key-12345" >> .env
-        
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
@@ -68,4 +58,6 @@ jobs:
         DB_NAME: budget_db_test
         DB_USER: root
         DB_PASSWORD: root
+        SECRET_KEY: "ci-test-key-12345"
+        DEBUG: "False"
       run: python manage.py test
