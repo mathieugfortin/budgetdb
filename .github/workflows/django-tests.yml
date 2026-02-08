@@ -60,7 +60,7 @@ jobs:
         DB_HOST: 127.0.0.1
         DB_NAME: budget_db_test
         DB_USER: root
-        DB_PASSWORD: root
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       run: python manage.py migrate
 
     - name: Lint with Flake8
