@@ -10,6 +10,13 @@ LABEL git_commit=$GIT_COMMIT
 # Set the working directory in the container
 WORKDIR /app
 
+# Install build dependencies for mysqlclient
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    mariadb-connector-c-dev \
+    pkgconfig
+
 # Copy requirements into the container at /app
 COPY requirements.txt /app
 
