@@ -10,18 +10,20 @@ LABEL git_commit=$GIT_COMMIT
 # Set the working directory in the container
 WORKDIR /app
 
-# Install build dependencies for mysqlclient
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    mariadb-connector-c-dev \
-    pkgconfig
+
 
 # Copy requirements into the container at /app
 COPY requirements.txt /app
 
+# Install build dependencies for mysqlclient
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apk add --no-cache mariadb-connector-c-dev \
+    && apk add --no-cache --virtual .build-deps \
+        gcc \
+        musl-dev \
+        pkgconfig \
+    && pip install --no-cache-dir -r requirements.txt \
+    && apk del .build-deps
 
 # Copy the current directory contents into the container at /app
 COPY . /app
