@@ -17,13 +17,23 @@ class BudgetBaseTestCase(TestCase):
             is_active=True,
             email_verified=True
         )
-        self.user_a.set_password('secret')
+        self.user_a.set_password('secreta')
         self.user_a.save()
 
         self.user_b = User.objects.create(
             email='admin@example.com', 
             first_name='test_user_b_Admin'
         )
+        self.user_b.set_password('secretb')
+        self.user_b.save()
+
+        self.user_bad = User.objects.create(
+            email='nobody@example.com', 
+            first_name='test_user_bad'
+        )
+        self.user_bad.set_password('secretbad')
+        self.user_bad.save()
+
 
         # 2. Setup Hierarchical Data
         with impersonate(self.user_a):
@@ -76,6 +86,21 @@ class BudgetBaseTestCase(TestCase):
             # Preference is required because your Account.__str__ looks it up
             self.pref = Preference.objects.create(
                 user=self.user_b,
+                slider_start=date(2026, 2, 1),
+                slider_stop=date(2026, 11, 30),
+                currency_prefered=self.cad
+            )
+
+        with impersonate(self.user_bad):
+            self.cad = Currency.objects.create(
+                name="Canadian Dollar", 
+                symbol="$", 
+                priority=1
+            )
+            
+            # Preference is required because your Account.__str__ looks it up
+            self.pref = Preference.objects.create(
+                user=self.user_bad,
                 slider_start=date(2026, 2, 1),
                 slider_stop=date(2026, 11, 30),
                 currency_prefered=self.cad

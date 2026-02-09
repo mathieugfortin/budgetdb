@@ -98,6 +98,74 @@
                         }
                     }, 10); // Slight delay for rendering
                 });
+                
+                $(document).on('change', '.cat1-select', function() {
+                    var txId = $(this).data('txid');
+                    var cat1Id = $(this).val();
+                    var $cat2Select = $('#cat2-' + txId);
+
+                    // 1. Save Cat1 choice via AJAX
+                    $.post('{% url "budgetdb:update_transaction_category" %}', {
+                        'transaction_id': txId,
+                        'cat_level': 1,
+                        'category_id': cat1Id,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    })
+                    .done(function(response) {
+                        // Find the specific checkmark for this transaction
+                        var $badge = $('#save-check-cat1' + txId);
+                        
+                        // Show it
+                        $badge.addClass('show');
+                        
+                        // Hide it again after 1.5 seconds
+                        setTimeout(function() {
+                            $badge.removeClass('show');
+                        }, 1500);
+                    })
+                    .fail(function() {
+                        alert("Error saving category!");
+                    });
+
+                    // 2. Fetch new Cat2 options
+                    var cat2Url = '{% url "budgetdb:get_cat2_options" %}'; // Define it clearly
+                    // debugger;
+                    $.getJSON(cat2Url, { 'cat1_id': cat1Id })
+                        .done(function(data) {
+                            $cat2Select.empty().append('<option value="">---------</option>');
+                            $.each(data.options, function(index, item) {
+                                $cat2Select.append('<option value="' + item.id + '">' + item.name + '</option>');
+                            });
+                        })
+                });
+
+                $(document).on('change', '.cat2-select', function() {
+                    var txId = $(this).data('txid');
+                    var cat2Id = $(this).val();
+
+                    // Save Cat2 choice via AJAX
+                    $.post('{% url "budgetdb:update_transaction_category" %}', {
+                        'transaction_id': txId,
+                        'cat_level': 2,
+                        'category_id': cat2Id,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    })
+                    .done(function(response) {
+                        // Find the specific checkmark for this transaction
+                        var $badge = $('#save-check-cat2' + txId);
+                        
+                        // Show it
+                        $badge.addClass('show');
+                        
+                        // Hide it again after 1.5 seconds
+                        setTimeout(function() {
+                            $badge.removeClass('show');
+                        }, 1500);
+                    })
+                    .fail(function() {
+                        alert("Error saving category!");
+                    });
+                });
             });
         })(jQuery); 
     </script>

@@ -8,7 +8,7 @@ class SystemHealthTest(BudgetBaseTestCase):
         
         # 1. Login with the user created in BudgetBaseTestCase.setUp
         # We use the email because your custom User model uses email as the identifier.
-        logged_in = self.client.login(email='owner@example.com', password='secret')
+        logged_in = self.client.login(email='owner@example.com', password='secreta')
         self.assertTrue(logged_in, "Client login failed - check user credentials in base.py")
 
         # 2. Hit the homepage
