@@ -20,7 +20,19 @@ class AccessTests(BudgetBaseTestCase):
     def test_soft_delete_flow(self):
         """Verify soft delete hides from view_objects but keeps in DB."""
         with impersonate(self.user_a):
+            account_count = Account.view_objects.count()
+            deleted_account_count = Account.view_deleted_objects.count()
             self.acc_a.soft_delete()
             self.assertTrue(self.acc_a.is_deleted)
-            self.assertEqual(Account.view_objects.count(), 0)
-            self.assertEqual(Account.view_deleted_objects.count(), 1)
+            self.assertEqual(Account.view_objects.count(), account_count-1)
+            self.assertEqual(Account.view_deleted_objects.count(), deleted_account_count+1)
+
+    def test_soft_delete_intruder(self):
+        """Verify user without permissions can't delete"""
+        with impersonate(self.user_b):
+            account_count = Account.view_objects.count()
+            deleted_account_count = Account.view_deleted_objects.count()
+            self.acc_a.soft_delete()
+            self.assertFalse(self.acc_a.is_deleted)
+            self.assertEqual(Account.view_objects.count(), account_count)
+            self.assertEqual(Account.view_deleted_objects.count(), deleted_account_count)

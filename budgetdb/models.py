@@ -235,18 +235,20 @@ class BaseSoftDelete(models.Model):
     def soft_delete(self):
         if self.is_deleted:
             return
-        self.is_deleted = True
-        self.deleted_by = get_current_user()
-        self.deleted_at = timezone.now()
-        self.save()
+        if self.can_edit():
+            self.is_deleted = True
+            self.deleted_by = get_current_user()
+            self.deleted_at = timezone.now()
+            self.save()
 
     def soft_undelete(self):
         if not self.is_deleted:
             return
-        self.is_deleted = False
-        self.deleted_by = get_current_user()
-        self.deleted_at = None
-        self.save()
+        if self.can_edit():
+            self.is_deleted = False
+            self.deleted_by = get_current_user()
+            self.deleted_at = None
+            self.save()
 
 
 class Preference(models.Model):

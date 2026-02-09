@@ -10,7 +10,6 @@ User = get_user_model()
 
 class BudgetBaseTestCase(TestCase):
     def setUp(self):
-        # 1. Create User using your custom UserManager logic
         # Note: We use .create() because your model has username=None
         self.user_a = User.objects.create(
             email='owner@example.com', 
@@ -34,7 +33,6 @@ class BudgetBaseTestCase(TestCase):
                 priority=1
             )
             
-            # Preference is required because your Account.__str__ looks it up
             self.pref = Preference.objects.create(
                 user=self.user_a,
                 slider_start=date(2026, 1, 1),
@@ -66,4 +64,19 @@ class BudgetBaseTestCase(TestCase):
                 ofx_acct_id = '2345',
                 ofx_org = 'orga',
                 date_open=date(2026, 1, 1)
+            )
+
+        with impersonate(self.user_b):
+            self.cad = Currency.objects.create(
+                name="Canadian Dollar", 
+                symbol="$", 
+                priority=1
+            )
+            
+            # Preference is required because your Account.__str__ looks it up
+            self.pref = Preference.objects.create(
+                user=self.user_b,
+                slider_start=date(2026, 2, 1),
+                slider_stop=date(2026, 11, 30),
+                currency_prefered=self.cad
             )
