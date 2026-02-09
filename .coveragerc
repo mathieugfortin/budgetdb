@@ -1,0 +1,6 @@
+[run]
+omit =
+    */migrations/*
+    manage.py
+    web_budget/wsgi.py
+    web_budget/asgi.py

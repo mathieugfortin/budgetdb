@@ -3,7 +3,8 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.testing.pytestArgs": [
-    "."
+    ".",
+    "--reuse-db",
   ],
   "python.envFile": "${workspaceFolder}/.env",
   "python.linting.pycodestyleArgs": ["--max-line-length=160"],
