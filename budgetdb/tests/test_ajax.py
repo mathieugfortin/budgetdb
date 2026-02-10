@@ -189,9 +189,9 @@ class TransactionCategoryAJAXTests(BudgetBaseTestCase):
         
         # Should find Bus and Train, but NOT Groceries
         options = [opt['name'] for opt in data['options']]
-        self.assertIn(cat2_a1.name, options)
-        self.assertIn(cat2_a2.name, options)
-        self.assertNotIn(cat2_b1.name, options)
+        self.assertIn(self.cat2_a1.name, options)
+        self.assertIn(self.cat2_a2.name, options)
+        self.assertNotIn(self.cat2_b1.name, options)
 
     def test_save_cat2_directly(self):
         """Selecting a Cat2 should save without affecting Cat1."""
