@@ -138,12 +138,12 @@ class TransactionToggleTests(BudgetBaseTestCase):
                 'transaction_id': tx.id
             }, HTTP_X_REQUESTED_WITH='XMLHttpRequest') # Tells Django it's an AJAX call
 
-            # 4. Assertions
-            self.assertEqual(response.status_code, 401)
-            
-            # Refresh the object from the DB to see the change
-            tx.refresh_from_db()
-            self.assertFalse(tx.verified, "The verified status was updated by an impostor!")
+        # 4. Assertions
+        self.assertEqual(response.status_code, 401)
+        
+        # Refresh the object from the DB to see the change
+        tx.refresh_from_db()
+        self.assertFalse(tx.verified, "The verified status was updated by an impostor!")
 
 
 
@@ -151,68 +151,59 @@ class TransactionCategoryAJAXTests(BudgetBaseTestCase):
     def setUp(self):
         super().setUp()
         # Create some categories for testing
-        self.c1 = Cat1.objects.create(name="Transport", owner=self.user_a)
-        self.c2_a = Cat2.objects.create(name="Bus", parent=self.c1, owner=self.user_a)
-        self.c2_b = Cat2.objects.create(name="Train", parent=self.c1, owner=self.user_a)
-        
-        # A second Cat1 to test isolation
-        self.c1_other = Cat1.objects.create(name="Food", owner=self.user_a)
-        self.c2_food = Cat2.objects.create(name="Groceries", parent=self.c1_other, owner=self.user_a)
-
-        self.tx = Transaction.objects.create(
-            account_id=self.acc_a,
-            value_amt=50.00,
-            date_posted=self.acc_a.date_open,
-            description="Test Category AJAX",
-            owner=self.user_a
-        )
-        self.client.login(email='owner@example.com', password='secret')
+        with impersonate(self.user_a):
+            self.tx = Transaction.objects.create(
+                account_source=self.acc_a,
+                amount_actual=Decimal('50.00'),
+                date_actual=self.acc_a.date_open,
+                description="Test Category AJAX",
+                currency=self.cad,
+                cat1=self.cat1_a,
+                cat2=self.cat2_a1,
+            )
+            #self.client.login(email='owner@example.com', password='secret')
 
     def test_update_cat1_resets_cat2(self):
         """Selecting a new Cat1 should save it and nullify Cat2."""
-        # Pre-set a Cat2
-        self.tx.cat1 = self.c1_other
-        self.tx.cat2 = self.c2_food
-        self.tx.save()
-
-        url = reverse('budgetdb:update_transaction_category')
-        response = self.client.post(url, {
-            'transaction_id': self.tx.id,
-            'cat_level': 1,
-            'category_id': self.c1.id
-        })
-
+        with impersonate(self.user_a):
+            url = reverse('budgetdb:update_transaction_category')
+            response = self.client.post(url, {
+                'transaction_id': self.tx.id,
+                'cat_level': 1,
+                'category_id': self.cat1_b.id
+            #}, HTTP_X_REQUESTED_WITH='XMLHttpRequest') # Tells Django it's an AJAX call
+            })
         self.assertEqual(response.status_code, 200)
         self.tx.refresh_from_db()
-        self.assertEqual(self.tx.cat1, self.c1)
+        self.assertEqual(self.tx.cat1, self.cat1_b)
         self.assertIsNone(self.tx.cat2, "Cat2 should be reset when Cat1 changes")
 
     def test_get_cat2_options_filtering(self):
         """API should only return Cat2 objects belonging to the selected Cat1."""
-        url = reverse('budgetdb:get_cat2_options')
-        response = self.client.get(url, {'cat1_id': self.c1.id})
+        with impersonate(self.user_a):
+            url = reverse('budgetdb:get_cat2_options')
+            response = self.client.get(url, {'cat1_id': self.cat1_a.id})
         
         self.assertEqual(response.status_code, 200)
         data = response.json()
         
         # Should find Bus and Train, but NOT Groceries
         options = [opt['name'] for opt in data['options']]
-        self.assertIn("Bus", options)
-        self.assertIn("Train", options)
-        self.assertNotIn("Groceries", options)
+        self.assertIn(cat2_a1.name, options)
+        self.assertIn(cat2_a2.name, options)
+        self.assertNotIn(cat2_b1.name, options)
 
     def test_save_cat2_directly(self):
         """Selecting a Cat2 should save without affecting Cat1."""
-        self.tx.cat1 = self.c1
-        self.tx.save()
+        with impersonate(self.user_a):
+            url = reverse('budgetdb:update_transaction_category')
+            response = self.client.post(url, {
+                'transaction_id': self.tx.id,
+                'cat_level': 2,
+                'category_id': self.cat2_a3.id
+            })
 
-        url = reverse('budgetdb:update_transaction_category')
-        response = self.client.post(url, {
-            'transaction_id': self.tx.id,
-            'cat_level': 2,
-            'category_id': self.c2_a.id
-        })
-
+        self.assertEqual(response.status_code, 200)
         self.tx.refresh_from_db()
-        self.assertEqual(self.tx.cat2, self.c2_a)
-        self.assertEqual(self.tx.cat1, self.c1)
+        self.assertEqual(self.tx.cat1, self.cat1_a)
+        self.assertEqual(self.tx.cat2, self.cat2_a3)

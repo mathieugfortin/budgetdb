@@ -1526,7 +1526,7 @@ class StatementDetailView(MyDetailView):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
         # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
-        self.date_min = statement.statement_date - timedelta(days=32)
+        self.date_min = statement.statement_date - timedelta(days=34)
         self.title = f'Statement {statement.statement_date} for {statement.account}'
         statement.included_transactions = statement.transaction_set.filter(is_deleted=False).order_by('date_actual')
         if statement.included_transactions.count() > 0:
@@ -1550,8 +1550,9 @@ class StatementDetailView(MyDetailView):
         statement.possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
                                                                           date_actual__lte=self.date_max,
                                                                           date_actual__gt=self.date_min,
-                                                                          audit=False
-                                                                          ).exclude(statement=statement).order_by('date_actual')
+                                                                          audit=False,
+                                                                          statement__isnull=True
+                                                                          ) #.exclude(statement=statement).order_by('date_actual')
                         
         transactions_sumP = statement.possible_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum')
         statement.transactions_sumP = transactions_sumP

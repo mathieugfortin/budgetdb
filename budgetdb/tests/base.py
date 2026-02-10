@@ -2,7 +2,7 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from crum import impersonate
-from budgetdb.models import Account, AccountHost, Currency, Preference
+from budgetdb.models import Account, AccountHost, Currency, Preference, Cat1, Cat2, CatType
 from datetime import date
 
 
@@ -74,6 +74,61 @@ class BudgetBaseTestCase(TestCase):
                 ofx_acct_id = '2345',
                 ofx_org = 'orga',
                 date_open=date(2026, 1, 1)
+            )
+            self.cat_type_a = CatType.objects.create(
+                name="catType A",
+                owner=self.user_a,
+            )
+            self.cat1_a = Cat1.objects.create(
+                name="cat1 A", 
+                owner=self.user_a,
+                cattype=self.cat_type_a,
+            )
+            self.cat1_b = Cat1.objects.create(
+                name="cat1 B", 
+                owner=self.user_a,
+                cattype=self.cat_type_a,
+            )
+            self.cat1_c = Cat1.objects.create(
+                name="cat1 C", 
+                owner=self.user_a,
+                cattype=self.cat_type_a,
+            )
+            self.cat2_a1 = Cat2.objects.create(
+                name="cat2 A1", 
+                cat1=self.cat1_a, 
+                cattype=self.cat_type_a,
+                owner=self.user_a,
+            )
+            self.cat2_a2 = Cat2.objects.create(
+                name="cat2 A2", 
+                cat1=self.cat1_a, 
+                cattype=self.cat_type_a,
+                owner=self.user_a,
+            )            
+            self.cat2_a3 = Cat2.objects.create(
+                name="cat2 A3", 
+                cattype=self.cat_type_a,
+                cat1=self.cat1_a, 
+                owner=self.user_a,
+            )            
+            self.cat2_b1 = Cat2.objects.create(
+                cattype=self.cat_type_a,
+                name="cat2 B1", 
+                cat1=self.cat1_b, 
+                owner=self.user_a,
+            )
+            self.cat2_b2 = Cat2.objects.create(
+                cattype=self.cat_type_a,
+                name="cat2 B2", 
+                cat1=self.cat1_b, 
+                owner=self.user_a,
+            ) 
+            self.cat2_c1 = Cat2.objects.create(
+                cattype=self.cat_type_a,
+                name="cat2 C1", 
+                cat1=self.cat1_c, 
+                owner=self.user_a,
             )
 
         with impersonate(self.user_b):
