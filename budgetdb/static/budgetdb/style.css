@@ -22,3 +22,58 @@ body {
 
     overflow-y: scroll;
 }
+.transparent-select {
+    /* Removes the default browser arrow */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    background-color: transparent; 
+    border: 1px solid transparent; /* Hide border until hover */
+    padding: 2px 8px;              /* Extra padding since there's no arrow */
+    color: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Show a faint border and light background on hover so users know they can click */
+.transparent-select:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Make it look "active" when focused */
+/* Force transparency even when the element is active/focused */
+.transparent-select:focus,
+.transparent-select:active {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+    outline: none;
+    box-shadow: none; /* Removes the blue Bootstrap glow if present */
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure the actual dropdown list (the options) is readable */
+.transparent-select option {
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+.save-badge {
+    color: #28a745; /* Success green */
+    font-weight: bold;
+    opacity: 0;
+    font-size: 0.8em;
+    margin-left: 5px;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(5px);
+    display: inline-block;
+}
+
+.save-badge.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+td {
+    white-space: nowrap;
+}

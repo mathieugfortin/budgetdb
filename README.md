@@ -11,7 +11,14 @@ If I can file most of my repetitive expenses, use lump sums for areas where deta
 From there, if I change a few parameters, tweak my savings a bit, cut an expense, increase mortgage payment by 10%, I can see real results for the short and medium terms.
 
 Container needs a config file or environment variables with these variable names:
-DEBUG(defaults to False), SECRET_KEY, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME, DB_USER, APP_HOST1, APP_HOST2
+DEBUG(defaults to False), 
+SECRET_KEY, 
+DB_PASSWORD, 
+DB_HOST, 
+DB_PORT, 
+DB_NAME, 
+DB_USER, 
+ALLOWED_HOSTS (comma separated list)
 
 For email config, these are the env. variables:
 EMAIL_BACKEND, default='django.core.mail.backends.smtp.EmailBackend'
