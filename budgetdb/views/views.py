@@ -24,7 +24,7 @@ from django.views.generic import (CreateView, DetailView,  # , FormView
                                   ListView, TemplateView, UpdateView)
 from django.views.generic.base import RedirectView
 # from bootstrap_modal_forms.generic import BSModalCreateView
-
+from django.views.decorators.http import require_POST
 from django_tables2 import SingleTableView  # , SingleTableMixin
 from rest_framework import serializers
 
@@ -58,6 +58,7 @@ def next_color(color_list=COLORS):
         step += 197
 
 
+@require_POST
 def PreferenceSetIntervalJSON(request):
     slider_start = request.POST.get("begin_interval", None)
     slider_stop = request.POST.get("end_interval", None)
@@ -98,6 +99,30 @@ def TransactionReceiptToggleJSON(request):
     transaction.receipt = not transaction.receipt
     transaction.save()
     return HttpResponse(status=200)
+
+@require_POST
+def update_transaction_categoryJSON(request):
+    tx_id = request.POST.get('transaction_id')
+    cat_level = request.POST.get('cat_level')
+    cat_id = request.POST.get('category_id') or None
+    
+    tx = Transaction.objects.get(id=tx_id)
+    
+    if cat_level == '1':
+        tx.cat1_id = cat_id
+        tx.cat2_id = None # Reset child if parent changes
+    else:
+        tx.cat2_id = cat_id
+        
+    tx.save()
+    return JsonResponse({'status': 'success'})
+
+
+def get_cat2_optionsJSON(request):
+    cat1_id = request.GET.get('cat1_id')
+    # Filter Cat2 models that have cat1 as a parent
+    options = Cat2.admin_objects.filter(cat1=cat1_id).values('id', 'name')
+    return JsonResponse({'options': list(options)})    
 
 
 def PreferenceGetJSON(request):
@@ -1501,7 +1526,7 @@ class StatementDetailView(MyDetailView):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
         # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
-        self.date_min = statement.statement_date - timedelta(days=32)
+        self.date_min = statement.statement_date - timedelta(days=34)
         self.title = f'Statement {statement.statement_date} for {statement.account}'
         statement.included_transactions = statement.transaction_set.filter(is_deleted=False).order_by('date_actual')
         if statement.included_transactions.count() > 0:
@@ -1525,8 +1550,9 @@ class StatementDetailView(MyDetailView):
         statement.possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
                                                                           date_actual__lte=self.date_max,
                                                                           date_actual__gt=self.date_min,
-                                                                          audit=False
-                                                                          ).exclude(statement=statement).order_by('date_actual')
+                                                                          audit=False,
+                                                                          statement__isnull=True
+                                                                          ) #.exclude(statement=statement).order_by('date_actual')
                         
         transactions_sumP = statement.possible_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum')
         statement.transactions_sumP = transactions_sumP

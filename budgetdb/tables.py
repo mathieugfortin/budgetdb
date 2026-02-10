@@ -127,8 +127,8 @@ class AccountActivityListTable(tables.Table):
     verified = tables.Column(verbose_name='verif', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}}, orderable=False)
     statement = tables.Column(verbose_name='Statement', attrs={"th": {"class": "d-none d-xl-table-cell"},"td": {"class": "d-none d-xl-table-cell"}}, orderable=False)
     receipt = tables.Column(verbose_name='Receipt', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}}, orderable=False)
-    cat1 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False)
-    cat2 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False)
+    cat1 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False, empty_values=())
+    cat2 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False, empty_values=())
     addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=(), attrs={"th": {"class": "d-none d-md-table-cell"},"td": {"class": "min d-none d-md-table-cell"}})
     view_account_id = None
     account = None
@@ -187,6 +187,37 @@ class AccountActivityListTable(tables.Table):
             field = (f'<span class="material-symbols-outlined VERIFIED" onclick="toggleverifyT({record.id})" id="V{record.id}"></span>' )
         else:
             field = (f'<span class="material-symbols-outlined UNVERIFIED" onclick="toggleverifyT({record.id})" id="V{record.id}"></span>' )
+        return mark_safe(field)
+
+    def render_cat1(self, record):
+        if record.audit:
+            return mark_safe("")
+        field = (f'<select class="cat1-select transparent-select" data-txid="{record.id}">'
+                    '<option value="">---------</option>')
+        cat1s = Cat1.admin_objects.all()
+        for cat1 in cat1s:
+            if record.cat1_id == cat1.id:
+                field = field + (f'<option value="{cat1.id}" selected>{cat1.name}') 
+            else:    
+                field = field + (f'<option value="{cat1.id}">{cat1.name}') 
+        field = field + (f'</option> </select>')
+        field = field + (f'<span id="save-check-cat1{record.id}" class="save-badge">✓</span>')
+        return mark_safe(field)
+
+    def render_cat2(self, record):
+        if record.audit:
+            return mark_safe("")
+        field = (f'<select class="cat2-select transparent-select" id="cat2-{record.id}" data-txid="{record.id}">'
+                    '<option value="">---------</option>')
+
+        cat2s = Cat2.admin_objects.filter(cat1=record.cat1,is_deleted=False)
+        for cat2 in cat2s:
+            if record.cat2_id == cat2.id:
+                field = field + (f'<option value="{cat2.id}" selected>{cat2.name}') 
+            else:    
+                field = field + (f'<option value="{cat2.id}">{cat2.name}') 
+        field = field + (f'</option> </select>')
+        field = field + (f'<span id="save-check-cat2{record.id}" class="save-badge">✓</span>')
         return mark_safe(field)
 
     def render_recurencelinks(self, value, record):
