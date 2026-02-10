@@ -2,7 +2,7 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from crum import impersonate
-from budgetdb.models import Account, AccountHost, Currency, Preference
+from budgetdb.models import Account, AccountHost, Currency, Preference, Cat1, Cat2, CatType
 from datetime import date
 
 
@@ -17,13 +17,34 @@ class BudgetBaseTestCase(TestCase):
             is_active=True,
             email_verified=True
         )
-        self.user_a.set_password('secret')
+        self.user_a.set_password('secreta')
         self.user_a.save()
+
+        self.user_friend = User.objects.create(
+            email='friend@example.com', 
+            first_name='test_user_friend',
+            is_active=True,
+            email_verified=True
+        )
+        self.user_friend.set_password('secretfriend')
+        self.user_friend.friends.add(self.user_a)
+        self.user_a.friends.add(self.user_friend)
+        self.user_friend.save()
 
         self.user_b = User.objects.create(
             email='admin@example.com', 
             first_name='test_user_b_Admin'
         )
+        self.user_b.set_password('secretb')
+        self.user_b.save()
+
+        self.user_bad = User.objects.create(
+            email='nobody@example.com', 
+            first_name='test_user_bad'
+        )
+        self.user_bad.set_password('secretbad')
+        self.user_bad.save()
+
 
         # 2. Setup Hierarchical Data
         with impersonate(self.user_a):
@@ -54,6 +75,8 @@ class BudgetBaseTestCase(TestCase):
                 ofx_org = 'orga',
                 date_open=date(2026, 1, 1)
             )
+            self.acc_a.users_admin.add(self.user_friend)
+            self.acc_a.save()
 
             self.acc_b = Account.objects.create(
                 name="Main Credit Card",
@@ -64,6 +87,103 @@ class BudgetBaseTestCase(TestCase):
                 ofx_acct_id = '2345',
                 ofx_org = 'orga',
                 date_open=date(2026, 1, 1)
+            )
+            self.acc_b.users_view.add(self.user_friend)
+            self.acc_b.save()
+
+            self.acc_c = Account.objects.create(
+                name="savings",
+                account_host=self.host,
+                currency=self.cad,
+                owner=self.user_a,
+                ofx_flip_sign=True,
+                ofx_acct_id = '3456',
+                ofx_org = 'orgb',
+                date_open=date(2026, 1, 1)
+            )
+
+            self.acc_da = Account.objects.create(
+                name="deleted account a",
+                account_host=self.host,
+                currency=self.cad,
+                owner=self.user_a,
+                ofx_flip_sign=True,
+                ofx_acct_id = '3456',
+                ofx_org = 'orgb',
+                date_open=date(2026, 1, 1)
+            )
+            self.acc_da.users_admin.add(self.user_friend)
+            self.acc_da.save()
+            self.acc_da.soft_delete()
+
+            self.acc_db = Account.objects.create(
+                name="deleted account b",
+                account_host=self.host,
+                currency=self.cad,
+                owner=self.user_a,
+                ofx_flip_sign=True,
+                ofx_acct_id = '3456',
+                ofx_org = 'orgb',
+                date_open=date(2026, 1, 1)
+            )
+            self.acc_db.users_view.add(self.user_friend)
+            self.acc_db.save()
+            self.acc_db.soft_delete()
+
+            self.cat_type_a = CatType.objects.create(
+                name="catType A",
+                owner=self.user_a,
+            )
+            self.cat1_a = Cat1.objects.create(
+                name="cat1 A", 
+                owner=self.user_a,
+                cattype=self.cat_type_a,
+            )
+            self.cat1_b = Cat1.objects.create(
+                name="cat1 B", 
+                owner=self.user_a,
+                cattype=self.cat_type_a,
+            )
+            self.cat1_c = Cat1.objects.create(
+                name="cat1 C", 
+                owner=self.user_a,
+                cattype=self.cat_type_a,
+            )
+            self.cat2_a1 = Cat2.objects.create(
+                name="cat2 A1", 
+                cat1=self.cat1_a, 
+                cattype=self.cat_type_a,
+                owner=self.user_a,
+            )
+            self.cat2_a2 = Cat2.objects.create(
+                name="cat2 A2", 
+                cat1=self.cat1_a, 
+                cattype=self.cat_type_a,
+                owner=self.user_a,
+            )            
+            self.cat2_a3 = Cat2.objects.create(
+                name="cat2 A3", 
+                cattype=self.cat_type_a,
+                cat1=self.cat1_a, 
+                owner=self.user_a,
+            )            
+            self.cat2_b1 = Cat2.objects.create(
+                cattype=self.cat_type_a,
+                name="cat2 B1", 
+                cat1=self.cat1_b, 
+                owner=self.user_a,
+            )
+            self.cat2_b2 = Cat2.objects.create(
+                cattype=self.cat_type_a,
+                name="cat2 B2", 
+                cat1=self.cat1_b, 
+                owner=self.user_a,
+            ) 
+            self.cat2_c1 = Cat2.objects.create(
+                cattype=self.cat_type_a,
+                name="cat2 C1", 
+                cat1=self.cat1_c, 
+                owner=self.user_a,
             )
 
         with impersonate(self.user_b):
@@ -76,6 +196,21 @@ class BudgetBaseTestCase(TestCase):
             # Preference is required because your Account.__str__ looks it up
             self.pref = Preference.objects.create(
                 user=self.user_b,
+                slider_start=date(2026, 2, 1),
+                slider_stop=date(2026, 11, 30),
+                currency_prefered=self.cad
+            )
+
+        with impersonate(self.user_bad):
+            self.cad = Currency.objects.create(
+                name="Canadian Dollar", 
+                symbol="$", 
+                priority=1
+            )
+            
+            # Preference is required because your Account.__str__ looks it up
+            self.pref = Preference.objects.create(
+                user=self.user_bad,
                 slider_start=date(2026, 2, 1),
                 slider_stop=date(2026, 11, 30),
                 currency_prefered=self.cad
