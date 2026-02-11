@@ -22,7 +22,7 @@
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                         <div class="me-3 display-6 text-info">
-                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span class="material-symbols-outlined">checkbook</span>
                         </div>
                         <div>
                             <h5 class="mb-1 text-dark">Verify Signage for {{ account.name }}</h5>
@@ -35,7 +35,7 @@
                     <form method="post" class="ms-3">
                         {% csrf_token %}
                         <button type="submit" name="flip_now" class="btn btn-info text-white fw-bold">
-                            <i class="fas fa-retweet"></i> Flip All Signs
+                            <span class="material-symbols-outlined">sync</span> Flip All Signs
                         </button>
                     </form>
                 </div>
@@ -69,7 +69,7 @@
                             {% if tx.status != 'duplicate' %}
                                 <input type="checkbox" name="import_idx" value="{{ forloop.counter0 }}" checked>
                             {% else %}
-                                <i class="fa fa-ban text-danger"></i>
+                                <span class="material-symbols-outlined">block</span>
                             {% endif %}
                         </td>
                     </tr>

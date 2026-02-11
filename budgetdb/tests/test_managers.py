@@ -81,3 +81,15 @@ class deletedManagerValidation(BudgetBaseTestCase):
             self.assertFalse(visible.filter(id=self.acc_c.id).exists())
             self.assertTrue(visible.filter(id=self.acc_da.id).exists())
             self.assertTrue(visible.filter(id=self.acc_db.id).exists())
+
+class TransactionViewerManagerValidation(BudgetBaseTestCase):
+    pass
+
+class TransactionDeletedViewerManagerValidation(BudgetBaseTestCase):
+    pass
+
+class TransactionViewerAllManagerValidation(BudgetBaseTestCase):
+    pass
+
+class TransactionAdminManagerValidation(BudgetBaseTestCase):
+    pass

@@ -114,22 +114,41 @@ def get_balance_token(balance):
     balance_str = balance_str + str(abs(balance)).replace('.','',1)
     return balance_str
 
+# 1. Hidden on vertical phones, shows on landscape phones and up
+HIDE_ON_VERTICAL_PHONE = {
+    "th": {"class": "d-none d-sm-table-cell"},
+    "td": {"class": " d-none d-sm-table-cell"}
+}
+
+# 2. Hidden on all phones, shows on Tablets and up
+HIDE_ON_PHONE = {
+    "th": {"class": "d-none d-md-table-cell"},
+    "td": {"class": " d-none d-md-table-cell"}
+}
+
+# 3. Hidden on everything except large Desktop screens
+SHOW_DESKTOP_ONLY = {
+    "th": {"class": "d-none d-lg-table-cell"},
+    "td": {"class": " d-none d-lg-table-cell"}
+}
+
+
 class AccountActivityListTable(tables.Table):
     addtransaction = tables.Column(verbose_name='', orderable=False, empty_values=())
     date_actual = tables.Column(verbose_name='Date',
                                 attrs={"td": {"class": "min"}},
                                 order_by=("date_actual", 'audit','-verified', '-id')
                                 )
-    recurencelinks = tables.Column(verbose_name='Repeat', orderable=False, empty_values=(), attrs={"th": {"class": "d-none d-md-table-cell"},"td": {"class": "min d-none d-md-table-cell"}})
+    recurencelinks = tables.Column(verbose_name='Repeat', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
     amount_actual = tables.Column(verbose_name='$', orderable=False)
-    description = tables.Column(orderable=False)
-    mybalance = tables.Column(verbose_name='Balance', orderable=False, empty_values=())
-    verified = tables.Column(verbose_name='verif', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}}, orderable=False)
-    statement = tables.Column(verbose_name='Statement', attrs={"th": {"class": "d-none d-xl-table-cell"},"td": {"class": "d-none d-xl-table-cell"}}, orderable=False)
-    receipt = tables.Column(verbose_name='Receipt', attrs={"th": {"class": "d-none d-sm-table-cell"},"td": {"class": "min d-none d-sm-table-cell"}}, orderable=False)
-    cat1 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False, empty_values=())
-    cat2 = tables.Column(attrs={"th": {"class": "d-none d-lg-table-cell"},"td": {"class": "d-none d-lg-table-cell"}}, orderable=False, empty_values=())
-    addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=(), attrs={"th": {"class": "d-none d-md-table-cell"},"td": {"class": "min d-none d-md-table-cell"}})
+    description = tables.Column(orderable=False, attrs={"td": {"class": "description-column"}})
+    mybalance = tables.Column(verbose_name='Balance', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
+    verified = tables.Column(verbose_name='Verif', attrs=HIDE_ON_VERTICAL_PHONE, orderable=False)
+    statement = tables.Column(verbose_name='Statement', attrs=SHOW_DESKTOP_ONLY, orderable=False)
+    receipt = tables.Column(verbose_name='Receipt', attrs=HIDE_ON_VERTICAL_PHONE, orderable=False)
+    cat1 = tables.Column(verbose_name='Category',attrs=SHOW_DESKTOP_ONLY, orderable=False, empty_values=())
+    cat2 = tables.Column(verbose_name='Sub-Cat',attrs=SHOW_DESKTOP_ONLY, orderable=False, empty_values=())
+    addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
     view_account_id = None
     account = None
     account_currency_symbol = ''
