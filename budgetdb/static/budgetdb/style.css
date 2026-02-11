@@ -1,5 +1,5 @@
 body {
-    padding-top: 5rem;
+    padding-top: 190px;
 }
 
 #logout-form {
@@ -16,6 +16,19 @@ body {
  .navbar-nav .dropdown-menu {
     max-height: 85vh;
     overflow-y: auto;
+}
+
+
+.container-90 {
+    width: 100%;       /* Full width on mobile */
+    padding: 0 15px;
+    margin: 0 auto;
+}
+
+@media (min-width: 992px) { 
+    .container-90 {
+        width: 90%;    /* Only shrink to 90% on Desktops */
+    }
 }
 
 .modal {

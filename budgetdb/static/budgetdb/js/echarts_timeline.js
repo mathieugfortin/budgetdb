@@ -2,7 +2,7 @@
 const data = document.currentScript.attributes;
 const jsonurl = data.getNamedItem('jsonurl').value;
 const target = data.getNamedItem('target').value;
-// debugger
+debugger
 
 // Create our number formatter.
 const formatter = new Intl.NumberFormat('en-US', {
@@ -13,7 +13,7 @@ const formatter = new Intl.NumberFormat('en-US', {
 var chartDom = document.getElementById(target);
 var myChart = echarts.init(chartDom);
 let tooltip_callback = (args) => {
-    //debugger;
+    debugger;
     let mytooltip = args[0].axisValue + '<br />';
     let total = 0;
     for(let argN = 0; argN < args.length; ++ argN)

@@ -1749,7 +1749,7 @@ class UserVerifyLinkView(RedirectView):
 class UserSignupView(CreateView):
     model = User
     form_class = UserSignUpForm
-    template_name = 'budgetdb/user_form.html'
+    template_name = 'budgetdb/user_register.html'
 
     def form_valid(self, form):
         user = form.save()
@@ -1773,13 +1773,13 @@ class UserSignupView(CreateView):
         if email is not None:
             form.initial['email'] = email
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Sign Up!', css_class='btn-primary'))
+        form.helper.add_input(Submit('submit', 'Sign Up!', css_class='btn-primary w-100 mt-3'))
         return form
 
 
 class UserLoginView(auth_views.LoginView):
     model = User
-    template_name = 'budgetdb/login.html'
+    template_name = 'budgetdb/user_login.html'
 
     def form_valid(self, form):
         login(self.request, form.get_user())
@@ -1792,8 +1792,9 @@ class UserLoginView(auth_views.LoginView):
         # julie.save()
         form.helper = FormHelper()
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
+        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary w-100 mt-3'))
         return form
+
 
 class UserPasswordResetView(auth_views.PasswordResetView):
     model = User
@@ -1807,7 +1808,7 @@ class UserPasswordResetView(auth_views.PasswordResetView):
         # julie.save()
         form.helper = FormHelper()
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
+        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary  w-100 mt-3'))
         return form
 
 
@@ -1815,7 +1816,7 @@ class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
     model = User
     form_class = PasswordChangeForm
     success_url = reverse_lazy('budgetdb:home')
-    template_name = 'budgetdb/generic_form.html'
+    template_name = 'budgetdb/user_change_password.html'
 
     def get_form_kwargs(self):
         kwargs = super(auth_views.PasswordChangeView, self).get_form_kwargs()

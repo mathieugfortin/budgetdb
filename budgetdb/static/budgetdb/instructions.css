@@ -1,0 +1,72 @@
+
+
+/* Sidebar Styling */
+#instructionsModal .list-group-item {
+    transition: all 0.2s ease;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+#instructionsModal .list-group-item.active {
+    background-color: transparent;
+    color: #0d6efd; /* Bootstrap Primary */
+    border-left: 4px solid #0d6efd !important; /* Thick indicator on the left */
+    font-weight: 600;
+}
+
+#instructionsModal .list-group-item:hover:not(.active) {
+    background-color: #f8f9fa;
+    padding-left: 1.75rem; /* Subtle nudge effect */
+}
+
+/* Modal Content Styling */
+#instructionsModal .tab-pane h3 {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+/* Hide scrollbar for the sidebar but allow scrolling */
+#instructionsModal .bg-light.border-end {
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+}
+#instructionsModal .bg-light.border-end::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+
+#inst-tabs .list-group-item {
+    border-radius: 8px; /* Rounded buttons */
+    margin: 0 15px 5px 15px; /* Spacing from edges */
+    font-size: 0.95rem;
+}
+
+#inst-tabs .list-group-item.active {
+    background-color: #e7f1ff; /* Light blue background */
+    color: #0d6efd; /* Blue text */
+    box-shadow: none;
+}
+
+#inst-tabs .list-group-item.active span {
+    color: #0d6efd;
+}
+
+#inst-tabs .list-group-item span {
+    font-size: 1.2rem;
+    color: #adb5bd;
+}
+/* Smoothly scroll to the ID within the modal body */
+#instructionsModal .modal-body {
+    scroll-behavior: smooth;
+}
+
+/* Style for the mini TOC links */
+#tab-recurring a:hover {
+    text-decoration: underline !important;
+}
+
+/* Style for section headers with badges */
+.tab-pane h5 .badge {
+    font-size: 0.75rem;
+    padding: 0.4em 0.6em;
+}

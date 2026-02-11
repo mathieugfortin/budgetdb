@@ -82,7 +82,7 @@ urlpatterns = [
          name='password_reset_done'),
     path('user/password/update', views.UserPasswordUpdateView.as_view(),
          name='password_update'),
-    path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/logout.html"),
+    path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/user_logout.html"),
          name='logout'),
 
     #invitation

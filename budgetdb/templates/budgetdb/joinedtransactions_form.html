@@ -11,7 +11,7 @@
     </div>
     <div class="col-md-10">
         {% if transactionPlannedDate != transactionActualDate %}
-            <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactionPlannedDate }} <i class="fa fa-arrow-right"></i>
+            <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactionPlannedDate }} <span class="material-symbols-outlined">arrow_circle_right</span>
                 {{ transactionActualDate }}</button>
         {% else %}
             <button type="button" class="btn btn-outline-info btn-block">{{joinedtransactions.name}}  -  {{ transactionPlannedDate }}</button>

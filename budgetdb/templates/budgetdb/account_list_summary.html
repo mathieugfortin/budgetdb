@@ -18,7 +18,7 @@
     <tr {% if account.account_children.first is not None %} class="table-primary" {% elif account.account_parent is None  %} class="table-primary" {% else %} class="table-info" {% endif %} >
         <td>
             {% if account.account_parent is not None %}
-                <i class="fa fa-arrow-circle-right"></i>
+                <span class="material-symbols-outlined">arrow_circle_right</span>
             {% endif %}
             <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.nice_name }}</a>
         </td>
