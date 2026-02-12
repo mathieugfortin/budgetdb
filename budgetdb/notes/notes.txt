@@ -88,3 +88,4 @@ https://enzircle.com/responsive-table-with-django-and-htmx
 create docker template for unraid:
 https://forums.unraid.net/topic/57181-docker-faq/#comment-566084
 
+script integrity hash generation: https://srihash.org/

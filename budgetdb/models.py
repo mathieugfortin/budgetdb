@@ -81,10 +81,8 @@ class User(AbstractUser):
         if not self.email_verified:
             user = self.first_name
             email = self.email
-            # current_site = Site.objects.get_current()
             subject = "Verify Email"
             message = render_to_string('budgetdb/email_validation_message.html', {
-                # 'request': request,
                 'user': user,
                 'domain': 'https://budget.patatemagique.biz/',
                 'uid':urlsafe_base64_encode(force_bytes(self.pk)),
