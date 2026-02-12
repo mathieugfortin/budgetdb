@@ -1840,15 +1840,19 @@ class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
         return super(auth_views.PasswordChangeView, self).form_valid(form) 
 
 
-class PreferencesUpdateView(MyUpdateView):
+class PreferencesUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     model = Preference
     form_class = PreferenceForm
+    template_name = 'budgetdb/generic_form.html'
+    task = 'Update'
+    contains_currency = False
+    contains_cat = False
+    contains_account = False
 
     def get_object(self):
-        user = get_current_user()
         try:
-            preference = Preference.objects.get(user=user)
+            preference = Preference.objects.get(user=self.user)
         except Preference.DoesNotExist:
             transactions = Transaction.view_objects.all().order_by("date_actual")
             start = transactions.first().date_actual
@@ -1871,4 +1875,33 @@ class PreferencesUpdateView(MyUpdateView):
         # form.helper = FormHelper()
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
+        return form
+
+    def test_func(self):
+        self.user = get_current_user()
+        try:
+            self.view_object = self.model.objects.get(user=self.user)
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        return True
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = self.model._meta.verbose_name
+        context["task"] = self.task
+        context["contains_currency"] = self.contains_currency
+        context["contains_cat"] = self.contains_cat
+        context["contains_account"] = self.contains_account
+        return context
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
+        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
+                              onclick="javascript:history.back();"))
+        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
         return form
