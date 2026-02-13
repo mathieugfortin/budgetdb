@@ -1252,31 +1252,33 @@ class TransactionModalForm(BSModalModelForm):
                     Column('Unit_price', css_class='col-6'),
                 ),
                 Row(
-                    Column('account_source', css_class='col-5 mb-3'),
+                    Column('account_source', css_class='col-5'),
                     Column(
                         HTML('<label class="form-label">&nbsp;</label>'),
                         StrictButton(
                             '<span class="material-symbols-outlined">swap_horiz</span>',
                             name='flip',
                             type="button",
-                            css_class="btn btn-danger mb-5",
+                            css_class="btn btn-danger mb-3",
                             onclick="changeaccounts()"
                         ),
-                        css_class='col-2 mb-3 d-grid' # 'd-grid' makes the button fill the column width
+                        css_class='col-2 d-grid' # 'd-grid' makes the button fill the column width
                     ),
-                    Column('account_destination', css_class='col-5 mb-3'),
+                    Column('account_destination', css_class='col-5'),
                 ),
                 Row(
-                    Column('statement', css_class='col-10'),
+                    Column('statement', css_class='col-10 mb-2'),
                 ),
-                Row(
-                    Column(css_class='col-2 mb-1'),
+                Row(                    
                     Column(
-                        Row('verified', css_class='mb-1'),
-                        Row('receipt', css_class='mb-1'),
-                        Row('is_deleted', css_class='mb-1'),
-                        Row('ismanual', css_class='mb-1'),    
-                        css_class='col-8 mb-1 '
+                        Row('verified'),
+                        Row('receipt'),
+                        css_class='col-6'
+                    ),
+                    Column(
+                        Row('is_deleted'),
+                        Row('ismanual'),    
+                        css_class='col-6'
                     ),
                 ),
                 Row(
@@ -1304,6 +1306,12 @@ class TransactionModalForm(BSModalModelForm):
             Row(
                 Column(
                     HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary">{task}</button>'),
+                ),
+                Column(
+                    HTML(f'<button type="button" class="btn btn-outline-danger me-auto delete-transaction-btn"'
+                         f'data-form-url="{reverse("budgetdb:delete_transaction", kwargs={"pk":self.instance.id} )}">'
+                         f'<span class="material-symbols-outlined align-middle">delete</span>'
+                         f'<span class="align-middle">Delete</span></button>'),
                 ),
                 Column(
                     HTML('<button type="button" name="cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>'),

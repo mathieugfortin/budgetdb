@@ -23,9 +23,10 @@ from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
 from ofxparse import OfxParser
 from decimal import *
-from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView
+from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, BSModalDeleteView
 from crum import get_current_user
 import json
+
 
 ###################################################################################################################
 # Transactions
@@ -103,19 +104,19 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
         return form
 
 
-def TransactionDelete(request, pk):
-    model = Transaction
-    try:
-        delete_object = model.view_objects.get(pk=self.kwargs.get('pk'))
-    except ObjectDoesNotExist:
-        raise PermissionDenied
-    if delete_object.can_edit():
-        if request.method == 'POST':
-            delete_object.soft_delete()
-    else:
-        raise PermissionDenied
-    return redirect('/')
 
+class TransactionDeleteView(BSModalDeleteView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_delete_modal.html'
+    success_message = 'Success: Transaction was deleted.'
+
+    def post(self, request, *args, **kwargs):
+        # To ensures that it triggers th oft-delete method.
+        return self.delete(request, *args, **kwargs)
+
+    def get_success_url(self):
+        # Fallback to a default if the referer isn't found
+        return self.request.META.get('HTTP_REFERER') or reverse_lazy('budgetdb:index')
 
 class TransactionCreateView(LoginRequiredMixin, CreateView):
     model = Transaction

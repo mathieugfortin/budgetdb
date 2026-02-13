@@ -88,7 +88,8 @@ def TransactionVerifyToggleJSON(request):
 
 def TransactionReceiptToggleJSON(request):
     if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
+        # return JsonResponse({}, status=401)
+        return JsonResponse({'error': 'Not Logged In'}, status=401)
     transaction_ID = request.POST.get("transaction_id", None)
     if transaction_ID:
         transaction = get_object_or_404(Transaction, pk=transaction_ID)

@@ -17,8 +17,6 @@ class BudgetBaseTestCase(TestCase):
             is_active=True,
             email_verified=True
         )
-        self.user_a.set_password('secreta')
-        self.user_a.save()
 
         self.user_friend = User.objects.create(
             email='friend@example.com', 
@@ -26,8 +24,10 @@ class BudgetBaseTestCase(TestCase):
             is_active=True,
             email_verified=True
         )
+
         self.user_friend.set_password('secretfriend')
         self.user_friend.friends.add(self.user_a)
+        self.user_a.set_password('secreta')
         self.user_a.friends.add(self.user_friend)
         self.user_friend.save()
 
@@ -67,7 +67,7 @@ class BudgetBaseTestCase(TestCase):
             )
 
             self.acc_a = Account.objects.create(
-                name="Main Checking",
+                name="account a",
                 account_host=self.host,
                 currency=self.cad,
                 owner=self.user_a,
@@ -79,7 +79,7 @@ class BudgetBaseTestCase(TestCase):
             self.acc_a.save()
 
             self.acc_b = Account.objects.create(
-                name="Main Credit Card",
+                name="account b",
                 account_host=self.host,
                 currency=self.cad,
                 owner=self.user_a,
@@ -92,7 +92,7 @@ class BudgetBaseTestCase(TestCase):
             self.acc_b.save()
 
             self.acc_c = Account.objects.create(
-                name="savings",
+                name="account c",
                 account_host=self.host,
                 currency=self.cad,
                 owner=self.user_a,

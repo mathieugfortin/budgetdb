@@ -1,0 +1,27 @@
+{% extends 'budgetdb/base_modal.html' %}
+{% block head_comment %}<!--Transaction_delete_modal template-->{% endblock %}
+{% load static %}
+{% block content %}
+
+    <form method="post" action="">
+        {% csrf_token %}
+        <div class="modal-header">
+            <h5 class="modal-title">Delete Transaction</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <H3 class="delete-text text-center">Delete confirmation for:</H3>
+            <p class="delete-text text-center pt-4">"{{ transaction.description }}"</p>
+            <p class="delete-text text-center">{{ transaction.amount_actual }}{{transaction.currency.symbol}}</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-success flex-grow-1" data-bs-dismiss="modal">
+                Do Not Delete
+            </button>
+            
+            <button type="submit" class="btn btn-outline-danger">
+                Delete
+            </button>
+        </div>
+    </form>
+{% endblock %}

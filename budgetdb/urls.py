@@ -44,7 +44,7 @@ app_name = 'budgetdb'
 urlpatterns = [
     
     
-    path('', views.IndexView.as_view(), name='emptyhome'),
+    path('', views.IndexView.as_view(), name='index'),
 
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
@@ -306,7 +306,7 @@ urlpatterns = [
          name='details_transaction'),
     path('transaction/add/', views.TransactionCreateView.as_view(),
          name='create_transaction'),
-    path('transaction/delete/<int:pk>/', views.TransactionDelete,
+    path('transaction/delete/<int:pk>/', views.TransactionDeleteView.as_view(),
          name='delete_transaction'),
     path('transaction/add/<slug:date>/<int:account_pk>', views.TransactionCreateViewFromDateAccount.as_view(),
          name='create_transaction_from_date_account'),

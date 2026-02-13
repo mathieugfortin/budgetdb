@@ -13,8 +13,6 @@ class UserTests(BudgetBaseTestCase):
             )
         invite.send_invite_email()
 
-
-
         # Check Django's outbox
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('friend@test.com', mail.outbox[0].to)        
