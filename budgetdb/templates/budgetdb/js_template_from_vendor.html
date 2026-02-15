@@ -1,7 +1,6 @@
-<script type="text/javascript">
+<script>
 (function($) {
     $(function() {
-        // Use delegation so it works in modals and reloaded content
         $(document).on('change', '#id_vendor', function () {
             var url = "{% url 'budgetdb:ajax_get_template' %}";
             var vendor_id = $(this).val();
@@ -12,52 +11,69 @@
                 url: url,
                 data: { 'vendor_id': vendor_id },
                 success: function (data) {
-                    // 1. Set text/numeric values
-                    $("#id_description").val(data.description);
-                    $("#id_comment").val("created from template");
-                    $("#id_amount_planned").val(data.amount_actual);
-                    $("#id_amount_planned_foreign_currency").val(data.amount_planned_foreign_currency);
-                    $("#id_ismanual").val(data.ismanual);
+                    
+                    // Helper for standard "if empty" fields
+                    function fillIfEmpty(selector, value) {
+                        var $el = $(selector);
+                        if ($el.length && !$el.val()) {
+                            $el.val(value);
+                        }
+                    }
 
-                    // 2. Helper function to set value and trigger all necessary events
-                    function setAndTrigger(selector, value) {
+                    // 1. Fill standard fields only if empty
+                    fillIfEmpty("#id_description", data.description);
+                    fillIfEmpty("#id_comment", "created from template");
+                    fillIfEmpty("#id_amount_planned", data.amount_actual);
+                    fillIfEmpty("#id_amount_planned_foreign_currency", data.amount_planned_foreign_currency);
+                    fillIfEmpty("#id_ismanual", data.ismanual);
+
+                    // 2. Helper for Select fields (handles Select2)
+                    function setSelectValue(selector, value, forceOverwrite = false) {
                         var $el = $(selector);
                         if ($el.length) {
-                            $el.val(value).trigger('change');
-                            // Specifically notify Select2 if it's initialized on this element
-                            if ($el.data('select2')) {
-                                $el.trigger('change.select2');
+                            // Overwrite if forced OR if current value is empty
+                            if (forceOverwrite || !$el.val()) {
+                                $el.val(value).trigger('change');
+                                if ($el.data('select2')) { $el.trigger('change.select2'); }
                             }
                         }
                     }
 
-                    // 3. Update Category 1, Accounts, and Currency
-                    // These triggers will fire the other scripts you just fixed!
-                    setAndTrigger("#id_cat1", data.cat1);
-                    setAndTrigger("#id_account_source", data.account_source);
-                    setAndTrigger("#id_account_destination", data.account_destination);
-                    setAndTrigger("#id_currency", data.currency);
-                    // In your success function where you set the statement
-                    $("#id_statement").val(data.statement_id).trigger('change.select2');
-                    // 4. Chain the Cat2 load manually
-                    var cat2Url = "{% url 'budgetdb:ajax_load_cat2' %}";
-                    $.ajax({
-                        url: cat2Url,
-                        data: { 'cat1': data.cat1 },
-                        success: function (cat2Html) {
-                            var $cat2 = $("#id_cat2");
-                            $cat2.html(cat2Html); 
-                            
-                            // Set the specific subcategory from the template
-                            $cat2.val(data.cat2); 
-                            
-                            // Trigger change so the Unit Price script sees the new value
-                            $cat2.trigger("change");
-                            if ($cat2.data('select2')) {
-                                $cat2.trigger('change.select2');
+                    // Standard Selects (Don't overwrite)
+                    setSelectValue("#id_account_source", data.account_source);
+                    setSelectValue("#id_account_destination", data.account_destination);
+                    setSelectValue("#id_statement", data.statement_id);
+                    setSelectValue("#id_cat1", data.cat1);
+
+                    // CURRENCY: Always overwrite
+                    setSelectValue("#id_currency", data.currency, true);
+                    
+                    // 3. Category 2 Logic: Always refresh options based on current Cat1
+                    var currentCat1 = $("#id_cat1").val();
+                    if (currentCat1) {
+                        var cat2Url = "{% url 'budgetdb:ajax_load_cat2' %}";
+                        $.ajax({
+                            url: cat2Url,
+                            data: { 'cat1': currentCat1 },
+                            success: function (cat2Html) {
+                                var $cat2 = $("#id_cat2");
+                                var currentCat2Val = $cat2.val();
+
+                                // Update the dropdown options list
+                                $cat2.html(cat2Html); 
+                                
+                                // Set value from template ONLY if Cat2 selection was empty
+                                if (!currentCat2Val) {
+                                    $cat2.val(data.cat2);
+                                } else {
+                                    $cat2.val(currentCat2Val); // Restore previous selection
+                                }
+
+                                $cat2.trigger("change");
+                                if ($cat2.data('select2')) { $cat2.trigger('change.select2'); }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
             });
         });

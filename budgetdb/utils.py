@@ -137,7 +137,7 @@ def serialize_ofx(ofx, account=None):
         amount = float(tx.amount)
         # Flip sign if the account settings require it
         if account and account.ofx_flip_sign:
-            amount *= -1        
+            tx.amount *= -1        
         serialized_data.append({
             'fit_id': tx.id,
             'date': tx.date.strftime('%Y-%m-%d'),
@@ -152,6 +152,7 @@ def analyze_ofx_serialized_data(serialized_list, account):
     Takes the flattened session data and adds Vendor/Duplicate/Match context.
     """
     final_data = []
+    matched_ids = []
     vendor_mappings = Vendor.view_objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
 
     for item in serialized_list:
@@ -164,16 +165,17 @@ def analyze_ofx_serialized_data(serialized_list, account):
             status = "duplicate"
         else:
             # 2. Manual Match Check
-            match = Transaction.objects.filter(
+            match = Transaction.admin_objects.filter(
                 account_source=account,
-                date_actual=item['date'], # Using your specific field name
-                amount_actual=item['amount'],
+                date_actual=item['date'], 
+                amount_actual=item['amount'], 
                 fit_id__isnull=True
-            ).first()
+            ).exclude(pk__in=matched_ids).first()  #exclude already matched transactions
             
             if match:
                 status = "match"
                 existing_id = match.id
+                matched_ids.append(match.id) # list of already matched transactions
             else:
                 # 3. Vendor Match
                 for vendor in vendor_mappings:

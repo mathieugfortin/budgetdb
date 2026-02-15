@@ -291,24 +291,28 @@ def import_ofx_view(request):
             return redirect('budgetdb:upload_transactions_OFX')
 
         account = Account.objects.get(id=account_id)
-        if account.ofx_flip_sign:
-            sign_changer = account.ofx_flip_sign
-        else: sign_changer = 1
 
         transactions_to_create = []
         for idx in to_import_indices:
             data = import_data[idx]
             # budgetdb/views/transaction_views.py
             # Create the instance in memory
-            new_tx = Transaction(
-                account_source=account,
-                amount_actual=Decimal(str(data['amount'])) * sign_changer,
-                date_actual=data['date'],
-                description=data['description'][:200], # Ensure it fits char limit
-                currency=account.currency,
-                fit_id=data['fit_id'],
-            )
-            transactions_to_create.append(new_tx)
+            if data["status"] == "match":
+                matched = Transaction.admin_objects.get(pk=data["existing_id"])
+                matched.fit_id = data['fit_id']
+                matched.comment = f'imported description: {data['description'][:180]}'
+                matched.save()
+            else:
+                new_tx = Transaction(
+                    account_source=account,
+                    amount_actual=Decimal(str(data['amount'])),
+                    date_actual=data['date'],
+                    description=data['description'][:200], # Ensure it fits char limit
+                    currency=account.currency,
+                    fit_id=data['fit_id'],
+                    vendor_id=data['vendor_id']
+                )
+                transactions_to_create.append(new_tx)
 
         if transactions_to_create:
             # bulk_create is fast but skips .save() and .full_clean()

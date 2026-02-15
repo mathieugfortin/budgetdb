@@ -1252,33 +1252,30 @@ class TransactionModalForm(BSModalModelForm):
                     Column('Unit_price', css_class='col-6'),
                 ),
                 Row(
-                    Column('account_source', css_class='col-5'),
+                    Column('account_source', css_class='col-5 '),
                     Column(
-                        HTML('<label class="form-label">&nbsp;</label>'),
+                        
                         StrictButton(
                             '<span class="material-symbols-outlined">swap_horiz</span>',
                             name='flip',
                             type="button",
-                            css_class="btn btn-danger mb-3",
+                            css_class="btn btn-danger",
                             onclick="changeaccounts()"
                         ),
-                        css_class='col-2 d-grid' # 'd-grid' makes the button fill the column width
+                        css_class='col-2 d-grid align-self-center' # 'd-grid' makes the button fill the column width
                     ),
-                    Column('account_destination', css_class='col-5'),
+                    Column('account_destination', css_class='col-5 '),
                 ),
                 Row(
                     Column('statement', css_class='col-10 mb-2'),
                 ),
-                Row(                    
+                Row(
                     Column(
-                        Row('verified'),
-                        Row('receipt'),
-                        css_class='col-6'
-                    ),
-                    Column(
-                        Row('is_deleted'),
-                        Row('ismanual'),    
-                        css_class='col-6'
+                        'verified', 
+                        'receipt', 
+                        'is_deleted', 
+                        'ismanual',
+                        css_class='offset-2 col-8' 
                     ),
                 ),
                 Row(

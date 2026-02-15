@@ -1,10 +1,56 @@
   
-  /* Table column formatting */
+  /* account_transactions_list.css */
+
   
+    .table {
+        width: 100% !important;
+        table-layout: auto;
+    }
+
+
+    /* Default for Mobile (usually taller if the brand/toggle stack) */
+    .table thead {
+        position: sticky;
+        top: 50px; 
+        z-index: 100;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: top 0.2s
+    }
+
+    /* For Tablets/Laptops where the navbar might be thinner */
+    @media (min-width: 992px) {
+        .table thead {
+            top: 90px; 
+        }
+    }
+
+    /* Let the description (or your primary column) soak up extra space */
+    td.description-column {
+        width: auto;
+    }
+    /* Limit the column width */
+    td .cat1-select,
+    td .cat2-select {
+        max-width: 140px;       /* Set this to your 'sweet spot' */
+        min-width: 110px;   /* Won't shrink below this on tablets */
+        overflow: hidden;
+    }
+
+    /* Force the dropdown to stay within that limit */
+    td .cat1-select, 
+    td .cat2-select {
+        width: 100%;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* Keep your min columns from stretching */
     td.min {
         width: 1%;
         white-space: nowrap;
     }
+
+
   /* List formatting, color by transaction caracteristics */
   
   tr.AUDIT {

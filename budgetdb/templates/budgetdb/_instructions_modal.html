@@ -1,0 +1,191 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'budgetdb/instructions.css' %}">
+
+<div class="modal fade" id="instructionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            
+            <div class="modal-header bg-light py-3 border-bottom-0">
+                <h5 class="modal-title d-flex align-items-center fw-bold" id="instructionsModalLabel">
+                    <span class="material-symbols-outlined me-2 text-primary">auto_stories</span>
+                    System Documentation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-0">
+                <div class="d-flex align-items-stretch" style="min-height: 650px;">
+                                        
+                    <div class="bg-light border-end py-4 d-flex flex-column" style="width: 280px; flex-shrink: 0;">
+                        
+                        <div class="px-4 mb-4">
+                            <div class="input-group input-group-sm border rounded-pill bg-white px-2 py-1">
+                                <span class="input-group-text border-0 bg-transparent p-0">
+                                    <span class="material-symbols-outlined text-muted" style="font-size: 1.1rem;">search</span>
+                                </span>
+                                <input type="text" id="instructionSearch" class="form-control border-0 shadow-none bg-transparent" placeholder="Search guide...">
+                            </div>
+                        </div>
+
+                        <div class="list-group list-group-flush flex-grow-1" id="inst-tabs" role="tablist">
+                            <div class="nav-section-label px-4 mb-2 text-uppercase fw-bold x-small text-muted" style="font-size: 0.7rem;">Personalization</div>
+                            <a class="list-group-item list-group-item-action active border-0 py-3 px-4" data-bs-toggle="pill" href="#tab-pref" role="tab">
+                                <span class="material-symbols-outlined me-2 align-middle">settings</span>Preferences
+                            </a>
+                            
+                            <div class="nav-section-label px-4 mt-4 mb-2 text-uppercase fw-bold x-small text-muted" style="font-size: 0.7rem;">Structure & Setup</div>
+                            <a class="list-group-item list-group-item-action border-0 py-3 px-4" data-bs-toggle="pill" href="#tab-accounts" role="tab">
+                                <span class="material-symbols-outlined me-2 align-middle">account_balance</span>Accounts & Hosts
+                            </a>
+                            <a class="list-group-item list-group-item-action border-0 py-3 px-4" data-bs-toggle="pill" href="#tab-cats" role="tab">
+                                <span class="material-symbols-outlined me-2 align-middle">sell</span>Classification
+                            </a>
+                            <a class="list-group-item list-group-item-action border-0 py-3 px-4" data-bs-toggle="pill" href="#tab-vendors" role="tab">
+                                <span class="material-symbols-outlined me-2 align-middle">storefront</span>Vendors & Templates
+                            </a>
+                            <a class="list-group-item list-group-item-action border-0 py-3 px-4" data-bs-toggle="pill" href="#tab-recurring" role="tab">
+                                <span class="material-symbols-outlined me-2 align-middle">event_repeat</span>Automation
+                            </a>
+                            
+                            <div id="noResults" class="px-4 mt-4 text-muted small d-none text-center">
+                                No matching topics found.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content p-5 flex-grow-1 bg-white" id="inst-tabsContent">
+                        
+                        <div class="tab-pane fade show active" id="tab-pref" role="tabpanel">
+                            <h3 class="mb-4 fw-bold">General Preferences</h3>
+                            <p class="text-muted mb-4">Accessed via your profile menu in the top-right corner.</p>
+                            
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 bg-light-subtle shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold text-primary">Timeline Control</h6>
+                                            <p class="small text-secondary">Set your global limits and active period. You can also use the quick-access sliders in the main menu to adjust views on the fly.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 bg-light-subtle shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="fw-bold text-primary">Multi-Currency</h6>
+                                            <p class="small text-secondary">Toggle the currencies you work with. "Preferred Currency" sets the default value for new entries.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-accounts" role="tabpanel">
+                            <h3 class="mb-4 fw-bold">Accounts & Financial Hosts</h3>
+                            <div class="card border-0 bg-light mb-4">
+                                <div class="card-body">
+                                    <h6 class="fw-bold"><span class="badge bg-primary me-2">Step 1</span> Define Hosts</h6>
+                                    <p class="small mb-0">Hosts are the entities holding the money. 
+                                        <strong>Ex:</strong> 'Self' for cash, 'Chase' for banking, 'ADP' for payroll/benefits.</p>
+                                </div>
+                            </div>
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold"><span class="badge bg-primary me-2">Step 2</span> Link Accounts</h6>
+                                    <p class="small mb-0">Create specific accounts (Checking, Credit Card, Petty Cash) and assign them to a Host.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-cats" role="tabpanel">
+                            <h3 class="mb-4 fw-bold">Categories & Types</h3>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="p-3 border rounded-3 mb-2">
+                                        <h6 class="fw-bold mb-1">Category Types</h6>
+                                        <p class="small text-muted mb-0">High-level qualifiers: <em>Revenue, Expenses, Savings.</em></p>
+                                    </div>
+                                    <div class="p-3 border rounded-3 mb-2">
+                                        <h6 class="fw-bold mb-1">Account Categories</h6>
+                                        <p class="small text-muted mb-0">Used for Timeline grouping. <em>Ex: Retirement, Investments, Daily Usage.</em></p>
+                                    </div>
+                                    <div class="p-3 border rounded-3">
+                                        <h6 class="fw-bold mb-1">Subcategories</h6>
+                                        <p class="small text-muted mb-0">The specific details used to qualify individual transactions.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-vendors" role="tabpanel">
+                            <h3 class="mb-4 fw-bold">Vendors & Smart Templates</h3>
+                            <p>Speed up entry by associating specific behaviors with vendors.</p>
+                            <div class="bg-primary bg-opacity-10 p-4 rounded-4 border-start border-primary border-4">
+                                <h6 class="fw-bold">How Templates Work:</h6>
+                                <p class="mb-0">Create a template for your local <strong>Bagel Shop</strong>. 
+                                Set Category: <em>Food</em>, Subcategory: <em>Groceries</em>, Source: <em>Credit Card</em>. 
+                                Next time you select that vendor, the rest is filled automatically.</p>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-recurring" role="tabpanel">
+                            <h3 class="mb-3 fw-bold">Recurring Events Automation</h3>
+                            
+                            <div class="p-3 bg-light rounded-3 mb-4 border d-inline-block w-100">
+                                <div class="row">
+                                    <div class="col-md-4 small fw-bold text-muted border-end">QUICK LINKS:</div>
+                                    <div class="col-md-8 small">
+                                        <a href="#rec-logic" class="text-decoration-none me-3 text-primary">Repetition Logic</a>
+                                        <a href="#rec-modify" class="text-decoration-none me-3 text-primary">Modifying Events</a>
+                                        <a href="#rec-dup" class="text-decoration-none text-primary">Avoiding Duplicates</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="rec-logic" class="mb-5">
+                                <h5 class="fw-bold d-flex align-items-center">
+                                    <span class="badge bg-secondary-subtle text-secondary me-2">01</span>
+                                    Logic & Patterns
+                                </h5>
+                                <p class="text-secondary">The checkboxes for days/months apply <strong>globally</strong>. For example: You can set a monthly tuition payment pattern, but uncheck July and August to prevent the system from creating transactions for those months.</p>
+                            </div>
+
+                            <div id="rec-modify" class="mb-5">
+                                <h5 class="fw-bold d-flex align-items-center text-warning">
+                                    <span class="badge bg-warning-subtle text-warning me-2">02</span>
+                                    Modifying Existing Events
+                                </h5>
+                                <div class="alert alert-warning border-0 small shadow-sm">
+                                    <strong>Action:</strong> Changing a pattern will delete and recreate all <u>unverified</u> transactions associated with it.
+                                </div>
+                                <p class="text-secondary">Transactions marked as "Verified" or having a "Receipt" are protected—the system will <strong>never</strong> delete these during a pattern update.</p>
+                            </div>
+
+                            <div id="rec-dup">
+                                <h5 class="fw-bold d-flex align-items-center text-success">
+                                    <span class="badge bg-success-subtle text-success me-2">03</span>
+                                    Avoiding Duplicates
+                                </h5>
+                                <p class="text-secondary small">To ensure old transactions don't get messy when you update a pattern mid-month, set the <strong>"Start Date"</strong> of the new pattern to today.</p>
+                                
+                                <div class="text-end mt-4">
+                                    <a href="#" class="text-muted x-small text-decoration-none" onclick="document.querySelector('.modal-body').scrollTop = 0; return false;">
+                                        <span class="material-symbols-outlined align-middle" style="font-size: 1rem;">arrow_upward</span> Back to Top
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer bg-light border-top d-flex justify-content-between align-items-center py-2 px-4">
+                <div class="text-muted" style="font-size: 0.75rem;">
+                    <span class="fw-bold">v2.4.0</span> &bull; 
+                    Last Updated: Feb 11, 2026
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
