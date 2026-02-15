@@ -1,6 +1,7 @@
 from datetime import datetime,date
 from decimal import *
 import json
+from django.conf import settings
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Submit
@@ -15,7 +16,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
 # from django.forms import ModelForm
-from django.db.models import Case, Value, When
+from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -1512,9 +1513,29 @@ class StatementListView(MyListView):
 
     def get_queryset(self):
         pk = self.kwargs.get('pk')
-        if pk is None:
-            return self.model.view_objects.all().order_by('-statement_date', 'account')    
-        return self.model.view_objects.filter(account=pk).order_by('-statement_date', 'account')
+        # all statements
+        queryset = self.model.objects.filter(is_deleted=False)
+        if pk is not None:
+            # filter for one account  
+            queryset = queryset.filter(account=pk)
+
+        queryset = queryset.annotate(
+            calculated_total=Sum(
+                Case(
+                    When(transactions__account_destination=F('account'), 
+                        then=-F('transactions__amount_actual')),
+                    When(transactions__account_source=F('account'), 
+                        then=F('transactions__amount_actual')),
+                    default=0,
+                    output_field=DecimalField()
+                ),
+                # THIS IS THE MISSING PIECE:
+                filter=Q(transactions__is_deleted=False)
+            )
+        )
+
+        queryset = queryset.order_by('-statement_date', 'account') 
+        return (queryset)
 
 
 class StatementDetailView(MyDetailView):
@@ -1529,7 +1550,7 @@ class StatementDetailView(MyDetailView):
         # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
         self.date_min = statement.statement_date - timedelta(days=34)
         self.title = f'Statement {statement.statement_date} for {statement.account}'
-        statement.included_transactions = statement.transaction_set.filter(is_deleted=False).order_by('date_actual')
+        statement.included_transactions = statement.transactions.filter(is_deleted=False).order_by('date_actual')
         if statement.included_transactions.count() > 0:
             first_transaction_date = statement.included_transactions.first().date_actual
             if first_transaction_date < self.date_min:
@@ -1795,6 +1816,7 @@ class UserLoginView(auth_views.LoginView):
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary'))
         return form
+
 
 class UserPasswordResetView(auth_views.PasswordResetView):
     model = User

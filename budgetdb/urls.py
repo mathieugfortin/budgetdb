@@ -294,7 +294,7 @@ urlpatterns = [
         name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
-    path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
+    path('transaction/togglereceiptJSON/', views.TransactionReceiptToggleJSON,
          name='togglereceipttransaction_json'),
     path('transaction/updatecatJSON', views.update_transaction_categoryJSON,
          name='update_transaction_category'),

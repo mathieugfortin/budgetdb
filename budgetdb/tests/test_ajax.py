@@ -1,97 +1,97 @@
+# test_ajax.py
 from django.urls import reverse
-from budgetdb.tests.base import BudgetBaseTestCase
+from django.conf import settings
+from budgetdb.tests.base import BudgetBaseTestCase, BudgetBaseTestCase2
 from decimal import Decimal
 from crum import impersonate,get_current_user
 from budgetdb.models import Transaction, Cat1, Cat2
 import json
+from django.contrib.auth import SESSION_KEY, BACKEND_SESSION_KEY, HASH_SESSION_KEY
+from django.conf import settings
 
-class TransactionToggleTests(BudgetBaseTestCase):
+class TransactionToggleTests(BudgetBaseTestCase2):
+    def setUp(self):
+        super().setUp()
+        # Define URLs here so 'reverse' is called within the test context
+        self.url_receipt = reverse('budgetdb:togglereceipttransaction_json')
+        self.url_verify = reverse('budgetdb:toggleverifytransaction_json')
 
-    def test_toggle_receipt_updates_database(self):
-        """
-        Verify that calling the togglereceipt_json view 
-        actually flips the boolean in the database.
-        """
-        # Create a transaction that is initially NOT verified/received
+    def post_toggle(self, url, pk):
+        return self.client.post(
+                    url, 
+                    {'transaction_id': pk},
+                    HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                    ) 
+
+    def test_toggle_updates_database(self):
+        
         self.client.force_login(self.user_a)
-
-        session = self.client.session
-        print(f"User ID in session: {session.get('_auth_user_id')}")
-
         with impersonate(self.user_a):
-            # self.client.login(email=self.user_a.email, password='secreta')
             tx = Transaction.objects.create(
                 description="Toggle Test",
                 receipt=False,
-                account_source=self.acc_a,
-                amount_actual=Decimal('100.00'),
-                date_actual=self.acc_a.date_open,
-                currency=self.cad,
-            )
-            if not tx.can_edit():
-               print(f'error: No Edit Permission') 
-
-            url = reverse('budgetdb:togglereceipttransaction_json')
-            response = self.client.post(
-                url, 
-                {'transaction_id': tx.id},
-                HTTP_X_REQUESTED_WITH='XMLHttpRequest',
-                SERVER_NAME='testserver'
-                ) # AJAX call
-
-        self.assertEqual(response.status_code, 200)
-        
-        # Refresh the object from the DB to see the change
-        tx.refresh_from_db()
-        self.assertTrue(tx.receipt, "The receipt status did not flip to True in the DB")
-
-        # 5. Toggle it back to False
-        self.client.post(url, {'transaction_id': tx.id}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
-        tx.refresh_from_db()
-        self.assertFalse(tx.receipt, "The receipt status did not flip back to False")
-
-    def test_toggle_verify_updates_database(self):
-        """
-        Verify that calling the toggleverify_json view 
-        actually flips the boolean in the database.
-        """
-        # 1. Setup: Create a transaction that is initially NOT verified/received
-        # Note: Using the field names we discussed (check your actual names!)
-        with impersonate(self.user_a):
-            self.client.login(email='owner@example.com', password='secreta')
-            
-            tx = Transaction.objects.create(
-                description="Toggle Test",
                 verified=False,
                 account_source=self.acc_a,
                 amount_actual=Decimal('100.00'),
                 date_actual=self.acc_a.date_open,
                 currency=self.cad,
             )
-            
-            # 3. Simulate the AJAX POST request your JS makes
-            url = reverse('budgetdb:toggleverifytransaction_json')
-            response = self.client.post(url, {
-                'transaction_id': tx.id
-            }, HTTP_X_REQUESTED_WITH='XMLHttpRequest') # Tells Django it's an AJAX call
+   
+        # receipt
+        self.assertEqual(self.post_toggle(self.url_receipt, tx.id).status_code, 200)
+        tx.refresh_from_db()
+        self.assertTrue(tx.receipt)
 
-            # 4. Assertions
-            self.assertEqual(response.status_code, 200)
-            
-            # Refresh the object from the DB to see the change
-            tx.refresh_from_db()
-            self.assertTrue(tx.verified, "The receipt status did not flip to True in the DB")
+        self.assertEqual(self.post_toggle(self.url_receipt, tx.id).status_code, 200)
+        tx.refresh_from_db()
+        self.assertFalse(tx.receipt)
 
-            # 5. Toggle it back to False
-            self.client.post(url, {'transaction_id': tx.id}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
-            tx.refresh_from_db()
-            self.assertFalse(tx.verified, "The receipt status did not flip back to False")            
+        # Verified logic
+        self.assertEqual(self.post_toggle(self.url_verify, tx.id).status_code, 200)
+        tx.refresh_from_db()
+        self.assertTrue(tx.verified)
+
+        self.assertEqual(self.post_toggle(self.url_verify, tx.id).status_code, 200)
+        tx.refresh_from_db()
+        self.assertFalse(tx.verified)
+
+    def test_toggle_unauthenticated(self):
+        """Security: Anonymous users should get 401."""
+        # Note: No self.client.login() here
+        with impersonate(self.user_a):
+            tx = Transaction.objects.create(
+                description="Anon Test",
+                receipt=False,
+                verified=False,
+                account_source=self.acc_a,
+                amount_actual=Decimal('10.00'),
+                date_actual=self.acc_a.date_open,
+                currency=self.cad,
+            )
+
+        # receipt
+        self.assertEqual(self.post_toggle(self.url_receipt, tx.id).status_code, 401)
+        tx.refresh_from_db()
+        self.assertFalse(tx.receipt)
+        # Verified logic
+        self.assertEqual(self.post_toggle(self.url_verify, tx.id).status_code, 401)
+        tx.refresh_from_db()
+        self.assertFalse(tx.verified)
+
+    def test_toggle_receipt_invalid_id(self):
+        """Edge Case: Sending an ID that doesn't exist."""
+        self.client.force_login(self.user_a)
+
+        # receipt
+        self.assertEqual(self.post_toggle(self.url_receipt, 99999).status_code, 404)
+
+        # Verified logic
+        self.assertEqual(self.post_toggle(self.url_verify,99999).status_code, 404)
+
 
 
     def test_toggle_receipt_by_impostor(self):
-        """
-        Verify that calling the togglereceipt_json checks permissions
-        """
+        # User bad should not be able to toggle User A's transaction
 
         with impersonate(self.user_a):
             tx = Transaction.objects.create(
@@ -119,38 +119,6 @@ class TransactionToggleTests(BudgetBaseTestCase):
             # Refresh the object from the DB to see the change
             tx.refresh_from_db()
             self.assertFalse(tx.receipt, "The receipt status was updated by an impostor!")
-
-
-    def test_toggle_verify_by_impostor(self):
-        """
-        Verify that calling the togglereceipt_json checks permissions
-        """
-        with impersonate(self.user_a):
-            tx = Transaction.objects.create(
-                description="Toggle Test",
-                verified=False,
-                account_source=self.acc_a,
-                amount_actual=Decimal('100.00'),
-                date_actual=self.acc_a.date_open,
-                currency=self.cad,
-            )
-
-        with impersonate(self.user_bad):
-            self.client.login(email='nobody@example.com', password='secretbad')
-            
-            # 3. Simulate the AJAX POST request your JS makes
-            url = reverse('budgetdb:toggleverifytransaction_json')
-            response = self.client.post(url, {
-                'transaction_id': tx.id
-            }, HTTP_X_REQUESTED_WITH='XMLHttpRequest') # Tells Django it's an AJAX call
-
-        # 4. Assertions
-        self.assertEqual(response.status_code, 401)
-        
-        # Refresh the object from the DB to see the change
-        tx.refresh_from_db()
-        self.assertFalse(tx.verified, "The verified status was updated by an impostor!")
-
 
 
 class TransactionCategoryAJAXTests(BudgetBaseTestCase):

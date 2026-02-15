@@ -14,7 +14,6 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager #, Group
-# from django.contrib.sites.models import Site
 from crum import get_current_user
 from django.template.loader import render_to_string
 from .tokens import account_activation_token
@@ -28,13 +27,10 @@ class MyMeta(models.Model):
     modified_date = models.DateTimeField(auto_now=True)
 
 
-class UserManager(BaseUserManager):
+class CustomUserManager(BaseUserManager):
     """Define a model manager for User model with no username field."""
-
     use_in_migrations = True
-
     def _create_user(self, email, password, **extra_fields):
-        """Create and save a User with the given email and password."""
         if not email:
             raise ValueError('The given email must be set')
         email = self.normalize_email(email)
@@ -47,17 +43,14 @@ class UserManager(BaseUserManager):
         """Create and save a regular User with the given email and password."""
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
+        extra_fields.setdefault("is_active", True)
         return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, email, password, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         """Create and save a SuperUser with the given email and password."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        extra_fields.setdefault("is_active", True)
 
         return self._create_user(email, password, **extra_fields)
 
@@ -69,7 +62,8 @@ class User(AbstractUser):
     email = models.EmailField('email address', unique=True)
     friends = models.ManyToManyField("User", related_name='friends_users')
     email_verified = models.BooleanField('Email Verified', default=False, null=False)
-
+    objects = CustomUserManager()
+    
     def __str__(self):
         return self.email
 
@@ -105,10 +99,12 @@ class BaseManager(models.Manager):
         is_owner = Q(owner=user)
         is_admin = Q(users_admin=user)
 
-        qs = self.apply_lifecycle_filter(qs)
-
         # This is where the subclasses will differ
         return self.apply_permission_filters(qs, user, is_owner, is_admin)
+        
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return self.apply_lifecycle_filter(qs)
 
     def apply_lifecycle_filter(self, qs):
         raise NotImplementedError("Subclasses must define if they show active or deleted items.")
@@ -262,7 +258,9 @@ class BaseSoftDelete(models.Model):
             return
         if self.can_edit():
             self.is_deleted = True
-            self.deleted_by = get_current_user()
+            user = get_current_user()
+            if user and not user.is_anonymous:
+                self.deleted_by = user
             self.deleted_at = timezone.now()
             self.save()
 
@@ -271,7 +269,7 @@ class BaseSoftDelete(models.Model):
             return
         if self.can_edit():
             self.is_deleted = False
-            self.deleted_by = get_current_user()
+            self.deleted_by = None
             self.deleted_at = None
             self.save()
 
@@ -1373,7 +1371,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     #Fuel_price = models.DecimalField('Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True)
     Unit_QTY = models.DecimalField('Quantity', decimal_places=4, max_digits=9, blank=True, null=True)
     Unit_price = models.DecimalField('Price per', decimal_places=4, max_digits=9, blank=True, null=True)
-    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
+    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True, related_name="transactions")
     verified = models.BooleanField('Verified in a statement', default=False)
     audit = models.BooleanField('Audit', default=False)
     receipt = models.BooleanField('Checked with receipt', default=False)
@@ -1727,6 +1725,22 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
     def get_absolute_url(self):
         return reverse('budgetdb:details_statement', kwargs={'pk': self.pk})
 
+    @property
+    def is_balanced(self):
+        # Check for annotated value first
+        annotated_sum = getattr(self, 'calculated_total', None)
+        if annotated_sum is not None:
+            return self.balance == annotated_sum
+
+        # Manual fallback calculation
+        txs = self.transaction_set.filter(is_deleted=False)
+
+        sum_in = txs.filter(account_destination=self.account).aggregate(
+            total=Sum('amount_actual'))['total'] or 0
+        sum_out = txs.filter(account_source=self.account).aggregate(
+            total=Sum('amount_actual'))['total'] or 0
+        
+        return self.balance == (sum_in - sum_out)
 
 class JoinedTransactions(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:

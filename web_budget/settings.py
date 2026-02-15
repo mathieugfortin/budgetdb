@@ -33,7 +33,7 @@ ALLOWED_HOSTS = [
     env.str('APP_HOST2', default='127.0.0.1'),
 ]
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1','172.18.0.17'])
 
 # Application definition
 
@@ -73,18 +73,16 @@ CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
                         ]
 
 MIDDLEWARE = [
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware', 
+    'django.middleware.locale.LocaleMiddleware',           
+    'django.middleware.common.CommonMiddleware',           
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware', 
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'crum.CurrentRequestUserMiddleware',
+    'crum.CurrentRequestUserMiddleware',                   
 ]
 
 ROOT_URLCONF = 'web_budget.urls'
