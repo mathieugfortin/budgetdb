@@ -576,10 +576,11 @@ class TransactionListTable(tables.Table):
 
 class StatementListTable(MySharingColumns, tables.Table):
     account_host = tables.Column(verbose_name='Host', empty_values=(), orderable=False)
+    reconciled = tables.Column(empty_values=(), verbose_name="Reconciled")
 
     class Meta:
         model = Statement
-        fields = ("account_host", "account", "statement_date",)
+        fields = ("account_host", "account", "statement_date", "reconciled")
         attrs = {"class": "table table-hover table-striped"}
         # per_page = 30
 
@@ -604,6 +605,19 @@ class StatementListTable(MySharingColumns, tables.Table):
                     label=record.statement_date,
                     )
 
+    def render_balance(self, value, record):
+        return format_html('<b">{}{}</b>',record.balance,record.account.currency.symbol)
+
+    def render_reconciled(self, record):
+        # This looks at the virtual field we created in the View
+        total = getattr(record, 'calculated_total', 0)
+        if total is None:
+            total = Decimal(0.00)
+        if record.balance == total:
+            return mark_safe('<b style="color: green;">OK</b>')
+        delta = record.balance - total
+        formatted_delta = "{:.2f}".format(delta)
+        return format_html('<b style="color: red;">Total: {} Delta: {}{}</b>',total, formatted_delta,record.account.currency.symbol)
 
 class VendorListTable(MySharingColumns, tables.Table):
     class Meta:

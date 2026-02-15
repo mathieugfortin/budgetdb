@@ -5,20 +5,15 @@ from decimal import Decimal, InvalidOperation
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.core.mail import EmailMessage
 from django.db import models
+from django.db.models import Sum, Q
+from django.db.models.functions import Cast, Coalesce, ExtractMonth, ExtractYear
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.translation import gettext_lazy as _
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.db.models.functions import Cast, Coalesce
-from django.db.models import Sum, Q
-from django.db.models.functions import (
-     ExtractMonth,
-     ExtractYear,
- )
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager #, Group
-# from django.contrib.sites.models import Site
 from crum import get_current_user
 from django.template.loader import render_to_string
 from .tokens import account_activation_token
@@ -32,13 +27,10 @@ class MyMeta(models.Model):
     modified_date = models.DateTimeField(auto_now=True)
 
 
-class UserManager(BaseUserManager):
+class CustomUserManager(BaseUserManager):
     """Define a model manager for User model with no username field."""
-
     use_in_migrations = True
-
     def _create_user(self, email, password, **extra_fields):
-        """Create and save a User with the given email and password."""
         if not email:
             raise ValueError('The given email must be set')
         email = self.normalize_email(email)
@@ -51,17 +43,14 @@ class UserManager(BaseUserManager):
         """Create and save a regular User with the given email and password."""
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
+        extra_fields.setdefault("is_active", True)
         return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, email, password, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         """Create and save a SuperUser with the given email and password."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        extra_fields.setdefault("is_active", True)
 
         return self._create_user(email, password, **extra_fields)
 
@@ -73,7 +62,8 @@ class User(AbstractUser):
     email = models.EmailField('email address', unique=True)
     friends = models.ManyToManyField("User", related_name='friends_users')
     email_verified = models.BooleanField('Email Verified', default=False, null=False)
-
+    objects = CustomUserManager()
+    
     def __str__(self):
         return self.email
 
@@ -95,85 +85,113 @@ class User(AbstractUser):
             email.send()
 
 
-class ViewerManager(models.Manager):
+class BaseManager(models.Manager):
+    def for_user(self, user=None):
+        user = user or get_current_user()
+        qs = self.get_queryset()
+
+        if not user or user.is_anonymous:
+            return qs.none()
+
+        # Build the shared filters
+        is_owner = Q(owner=user)
+        is_admin = Q(users_admin=user)
+
+        # This is where the subclasses will differ
+        return self.apply_permission_filters(qs, user, is_owner, is_admin)
+        
     def get_queryset(self):
-        user = get_current_user()
         qs = super().get_queryset()
-        qs = qs.filter(is_deleted=False)
-        owned = qs.filter(owner=user)
-        admins = qs.filter(users_admin=user)
-        viewers = qs.filter(users_view=user)
-        qs = owned | admins | viewers
-        return qs
+        return self.apply_lifecycle_filter(qs)
+
+    def apply_lifecycle_filter(self, qs):
+        raise NotImplementedError("Subclasses must define if they show active or deleted items.")
+
+    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+        # Default permission logic (shared by both)
+        return qs.filter(is_owner | is_admin).distinct()
 
 
-class ViewerDeletedManager(models.Manager):
-    def get_queryset(self):
-        user = get_current_user()
-        qs = super().get_queryset()
-        qs = qs.filter(is_deleted=True)
-        owned = qs.filter(owner=user)
-        admins = qs.filter(users_admin=user)
-        viewers = qs.filter(users_view=user)
-        qs = owned | admins | viewers
-        return qs
+class AdminManager(BaseManager):
+    # we can view items if they are not deleted, we're owner or friend admin 
+    def apply_lifecycle_filter(self, qs):
+        # Only show active items
+        return qs.filter(is_deleted=False)  
 
 
-class AdminManager(models.Manager):
-    def get_queryset(self):
-        user = get_current_user()
-        qs = super().get_queryset()
-        qs = qs.filter(is_deleted=False)
-        owned = qs.filter(owner=user)
-        admins = qs.filter(users_admin=user)
-        return owned | admins
+class ViewerManager(BaseManager):
+    # we can view items if they are not deleted, we're owner, friend admin or friend viewer
+    def apply_lifecycle_filter(self, qs):
+        # Only show active items
+        return qs.filter(is_deleted=False)    
+
+    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+        is_viewer = Q(users_view=user)
+        return qs.filter(is_owner | is_admin | is_viewer).distinct()
 
 
-class TransactionViewerManager(models.Manager):
-    def get_queryset(self):
-        user = get_current_user()
-        qs = super().get_queryset()
-        qs = qs.filter(is_deleted=False)
-        view_accounts = Account.view_objects.all()
-        ok_source = qs.filter(account_source__in=view_accounts)
-        ok_dest = qs.filter(account_destination__in=view_accounts)
-        qs = ok_source | ok_dest
-        return qs
+class ViewerDeletedManager(BaseManager):
+    # we can view items if they are deleted, we're owner, friend admin or friend viewer
+    def apply_lifecycle_filter(self, qs):
+        # Only show deleted items
+        return qs.filter(is_deleted=True)    
+
+    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+        is_viewer = Q(users_view=user)
+        return qs.filter(is_owner | is_admin | is_viewer).distinct()
 
 
-class TransactionDeletedViewerManager(models.Manager):
-    def get_queryset(self):
-        user = get_current_user()
-        qs = super().get_queryset()
-        qs = qs.filter(is_deleted=True)
-        view_accounts = Account.view_objects.all()
-        ok_source = qs.filter(account_source__in=view_accounts)
-        ok_dest = qs.filter(account_destination__in=view_accounts)
-        qs = ok_source | ok_dest
-        return qs
+class BaseTransactionManager(BaseManager):
+    # Default settings that subclasses can override
+    is_deleted_status = False
+    permission_type = 'view' # 'view' or 'admin'
+    require_all_accounts = False # False = OR, True = AND
+
+    def apply_lifecycle_filter(self, qs):
+        if self.is_deleted_status is None:
+            return qs
+        return qs.filter(is_deleted=self.is_deleted_status)
+
+    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+        from .models import Account
+
+        if self.permission_type == 'admin':
+            permitted_accounts = Account.admin_objects.for_user(user)
+        else:
+            permitted_accounts = Account.view_objects.for_user(user)
+
+        # 3. Combine using AND (&) or OR (|)
+        if self.require_all_accounts:
+            source_invalid = Q(account_source__isnull=False) & ~Q(account_source__in=permitted_accounts)
+            dest_invalid = Q(account_destination__isnull=False) & ~Q(account_destination__in=permitted_accounts)
+            return qs.exclude(source_invalid).exclude(dest_invalid)        
+        else:
+            # Lax: You must own at least one side.
+            return qs.filter(Q(account_source__in=permitted_accounts) | Q(account_destination__in=permitted_accounts))
 
 
-class TransactionViewerAllManager(models.Manager):
-    def get_queryset(self):
-        user = get_current_user()
-        qs = super().get_queryset()
-        view_accounts = Account.view_objects.all()
-        ok_source = qs.filter(account_source__in=view_accounts)
-        ok_dest = qs.filter(account_destination__in=view_accounts)
-        qs = ok_source | ok_dest
-        return qs
+class TransactionViewerManager(BaseTransactionManager):
+    is_deleted_status = False
+    permission_type = 'view'
+    require_all_accounts = False
 
 
-class TransactionAdminManager(models.Manager):
-    def get_queryset(self):
-        user = get_current_user()
-        qs = super().get_queryset()
-        qs = qs.filter(is_deleted=False)
-        admin_accounts = Account.admin_objects.all()
-        ok_source = qs.filter(account_source__in=admin_accounts)
-        ok_dest = qs.filter(account_destination__in=admin_accounts)
-        qs = ok_source | ok_dest
-        return qs
+class TransactionDeletedViewerManager(BaseTransactionManager):
+    is_deleted_status = True
+    permission_type = 'view'
+    require_all_accounts = False
+
+
+class TransactionViewerAllManager(BaseTransactionManager):
+    is_deleted_status = None # Show both
+    permission_type = 'view'
+    require_all_accounts = False
+
+
+class TransactionAdminManager(BaseTransactionManager):
+    is_deleted_status = False
+    permission_type = 'admin'
+    require_all_accounts = True # Strict check: Admin of both sides
 
 
 class ClassOwner(models.Model):
@@ -193,7 +211,6 @@ class ClassOwner(models.Model):
 
 
 class UserPermissions(ClassOwner):
-
     # groups_admin = models.ManyToManyField(Group, related_name='g_can_mod_%(app_label)s_%(class)s', blank=True)
     # groups_view = models.ManyToManyField(Group, related_name='g_can_view_%(app_label)s_%(class)s', blank=True)
     users_admin = models.ManyToManyField("User", related_name='users_full_access_%(app_label)s_%(class)s', blank=True)
@@ -207,6 +224,8 @@ class UserPermissions(ClassOwner):
         user = get_current_user()
         if self.owner == user:
             return True
+        if user is None:
+            return False
         if self.users_admin.filter(pk=user.pk).exists():
             return True
         return False
@@ -215,6 +234,8 @@ class UserPermissions(ClassOwner):
         user = get_current_user()
         if self.owner == user:
             return True
+        if user is None:
+            return False
         if self.users_admin.filter(pk=user.pk).exists():
             return True
         if self.users_view.filter(pk=user.pk).exists():
@@ -235,7 +256,9 @@ class BaseSoftDelete(models.Model):
             return
         if self.can_edit():
             self.is_deleted = True
-            self.deleted_by = get_current_user()
+            user = get_current_user()
+            if user and not user.is_anonymous:
+                self.deleted_by = user
             self.deleted_at = timezone.now()
             self.save()
 
@@ -244,9 +267,12 @@ class BaseSoftDelete(models.Model):
             return
         if self.can_edit():
             self.is_deleted = False
-            self.deleted_by = get_current_user()
+            self.deleted_by = None
             self.deleted_at = None
             self.save()
+
+    def delete(self, *args, **kwargs):
+        self.soft_delete()
 
 
 class Preference(models.Model):
@@ -1275,22 +1301,32 @@ class BaseEvent(models.Model):
                              verbose_name='Sub-Category', related_name='%(class)s_subcategory')
 
     def can_edit(self):
-        if self.account_destination:
-            if self.account_destination.can_edit() is False:
-                return False
-        if self.account_source:
-            if self.account_source.can_edit() is False:
-                return False
+        user = get_current_user()
+        if not user or user.is_anonymous:
+            return False
+        
+        # Check both accounts. If an account exists, user MUST be able to edit it.
+        # Logic: If account exists, user must have edit rights.
+        if self.account_source and not self.account_source.can_edit():
+            return False
+        if self.account_destination and not self.account_destination.can_edit():
+            return False        
+        
         return True
 
     def can_view(self):
-        if self.account_destination:
-            if self.account_destination.can_view() is False:
-                return False
-        if self.account_source:
-            if self.account_source.can_view() is False:
-                return False
-        return True
+        user = get_current_user()
+        if not user or user.is_anonymous:
+            return False
+
+        # A user can view a transaction if they can view EITHER account.
+        # This matches your Manager's "source_ok | dest_ok" logic.
+        if self.account_source and self.account_source.can_view():
+            return True
+        if self.account_destination and self.account_destination.can_view():
+            return True
+        
+        return False
 
 
 class Template(MyMeta, BaseSoftDelete, BaseEvent, UserPermissions):
@@ -1333,7 +1369,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     #Fuel_price = models.DecimalField('Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True)
     Unit_QTY = models.DecimalField('Quantity', decimal_places=4, max_digits=9, blank=True, null=True)
     Unit_price = models.DecimalField('Price per', decimal_places=4, max_digits=9, blank=True, null=True)
-    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True)
+    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True, related_name="transactions")
     verified = models.BooleanField('Verified in a statement', default=False)
     audit = models.BooleanField('Audit', default=False)
     receipt = models.BooleanField('Checked with receipt', default=False)
@@ -1687,6 +1723,22 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
     def get_absolute_url(self):
         return reverse('budgetdb:details_statement', kwargs={'pk': self.pk})
 
+    @property
+    def is_balanced(self):
+        # Check for annotated value first
+        annotated_sum = getattr(self, 'calculated_total', None)
+        if annotated_sum is not None:
+            return self.balance == annotated_sum
+
+        # Manual fallback calculation
+        txs = self.transaction_set.filter(is_deleted=False)
+
+        sum_in = txs.filter(account_destination=self.account).aggregate(
+            total=Sum('amount_actual'))['total'] or 0
+        sum_out = txs.filter(account_source=self.account).aggregate(
+            total=Sum('amount_actual'))['total'] or 0
+        
+        return self.balance == (sum_in - sum_out)
 
 class JoinedTransactions(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:

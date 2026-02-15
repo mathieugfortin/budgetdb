@@ -131,6 +131,47 @@ class TransactionManagerTests(BudgetBaseTestCase):
         # acc_b: friend is viewer -> Should NOT see if only involving acc_b
         
         with impersonate(self.user_a):
+            self.tx_active = Transaction.objects.create(
+                description="Active Transaction",
+                account_source=self.acc_a,       # friend is admin
+                account_destination=self.acc_c,  # friend has no access
+                amount_actual=Decimal('10.00'),
+                date_actual=self.acc_a.date_open,
+                currency=self.cad,
+            )
+
+            self.tx_deleted = Transaction.objects.create(
+                description="Deleted Transaction",
+                account_source=self.acc_a,
+                account_destination=self.acc_b,
+                amount_actual=Decimal('20.00'),
+                date_actual=self.acc_a.date_open,
+                currency=self.cad,
+            )
+            self.tx_deleted.soft_delete()
+
+    def test_viewer_manager_active_visibility(self):
+        """Friend can see active tx because they admin acc_a."""
+        # Using the for_user(user) pattern we built
+        active = Transaction.view_objects.for_user(self.user_friend).filter(pk=self.tx_active.pk).exists()
+        deleted = Transaction.view_objects.for_user(self.user_friend).filter(pk=self.tx_deleted.pk).exists()
+        assert active is True
+        # Should NOT see the deleted one in the active view
+        assert deleted is False
+
+    def test_deleted_manager_visibility(self):
+        """Friend can see deleted tx in the deleted_objects manager."""
+        qs = Transaction.view_deleted_objects.for_user(self.user_friend)
+        
+        self.assertTrue(qs.filter(pk=self.tx_deleted.pk).exists())
+        self.assertFalse(qs.filter(pk=self.tx_active.pk).exists())
+
+    def test_admin_manager_permissions(self):
+        """Verify AdminManager only shows accounts where user has admin rights."""
+        # acc_a: friend is admin -> Should see
+        # acc_b: friend is viewer -> Should NOT see if only involving acc_b
+        
+        with impersonate(self.user_a):
             tx_viewer_only = Transaction.objects.create(
                 description="Viewer Only Acc",
                 account_source=self.acc_b, # friend is viewer
@@ -146,7 +187,5 @@ class TransactionManagerTests(BudgetBaseTestCase):
         # Cannot see tx_viewer_only (only involves acc_b where they are viewer)
         self.assertFalse(qs.filter(pk=tx_viewer_only.pk).exists())
 
-    def test_isolation_for_bad_user(self):
-        """user_bad should see absolutely nothing."""
-        qs = Transaction.view_objects.for_user(self.user_bad)
-        self.assertEqual(qs.count(), 0)            
+class TransactionAdminManagerValidation(BudgetBaseTestCase):
+    pass

@@ -1267,7 +1267,7 @@ class TransactionModalForm(BSModalModelForm):
                     Column('account_destination', css_class='col-5 '),
                 ),
                 Row(
-                    Column('statement', css_class='col-10'),
+                    Column('statement', css_class='col-10 mb-2'),
                 ),
                 Row(
                     Column(
@@ -1303,6 +1303,12 @@ class TransactionModalForm(BSModalModelForm):
             Row(
                 Column(
                     HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary">{task}</button>'),
+                ),
+                Column(
+                    HTML(f'<button type="button" class="btn btn-outline-danger me-auto delete-transaction-btn"'
+                         f'data-form-url="{reverse("budgetdb:delete_transaction", kwargs={"pk":self.instance.id} )}">'
+                         f'<span class="material-symbols-outlined align-middle">delete</span>'
+                         f'<span class="align-middle">Delete</span></button>'),
                 ),
                 Column(
                     HTML('<button type="button" name="cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>'),

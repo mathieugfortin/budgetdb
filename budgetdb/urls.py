@@ -44,7 +44,7 @@ app_name = 'budgetdb'
 urlpatterns = [
     
     
-    path('', views.IndexView.as_view(), name='emptyhome'),
+    path('', views.IndexView.as_view(), name='index'),
 
     path('preference/getJSON', views.PreferenceGetJSON,
          name='preferences_json'),
@@ -294,7 +294,7 @@ urlpatterns = [
         name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
          name='toggleverifytransaction_json'),
-    path('transaction/togglereceiptJSON', views.TransactionReceiptToggleJSON,
+    path('transaction/togglereceiptJSON/', views.TransactionReceiptToggleJSON,
          name='togglereceipttransaction_json'),
     path('transaction/updatecatJSON', views.update_transaction_categoryJSON,
          name='update_transaction_category'),
@@ -306,7 +306,7 @@ urlpatterns = [
          name='details_transaction'),
     path('transaction/add/', views.TransactionCreateView.as_view(),
          name='create_transaction'),
-    path('transaction/delete/<int:pk>/', views.TransactionDelete,
+    path('transaction/delete/<int:pk>/', views.TransactionDeleteView.as_view(),
          name='delete_transaction'),
     path('transaction/add/<slug:date>/<int:account_pk>', views.TransactionCreateViewFromDateAccount.as_view(),
          name='create_transaction_from_date_account'),

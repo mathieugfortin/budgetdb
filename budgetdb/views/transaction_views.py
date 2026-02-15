@@ -23,9 +23,10 @@ from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
 from ofxparse import OfxParser
 from decimal import *
-from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView
+from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, BSModalDeleteView
 from crum import get_current_user
 import json
+
 
 ###################################################################################################################
 # Transactions
@@ -73,19 +74,49 @@ class TransactionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         return form
 
 
-def TransactionDelete(request, pk):
+class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Transaction
-    try:
-        delete_object = model.view_objects.get(pk=self.kwargs.get('pk'))
-    except ObjectDoesNotExist:
-        raise PermissionDenied
-    if delete_object.can_edit():
-        if request.method == 'POST':
-            delete_object.soft_delete()
-    else:
-        raise PermissionDenied
-    return redirect('/')
+    template_name = 'budgetdb/transaction_modal_form.html'
+    form_class = TransactionFormFull
+    task = 'Update'
+    user = None
 
+    def test_func(self):
+        try:
+            view_object = self.model.view_objects.get(pk=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+        return view_object.can_edit()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.user = get_current_user()
+        kwargs['task'] = self.task
+        kwargs['user'] = self.user
+        return kwargs
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.helper.form_method = 'POST'
+        return form
+
+
+
+class TransactionDeleteView(BSModalDeleteView):
+    model = Transaction
+    template_name = 'budgetdb/transaction_delete_modal.html'
+    success_message = 'Success: Transaction was deleted.'
+
+    def post(self, request, *args, **kwargs):
+        # To ensures that it triggers th oft-delete method.
+        return self.delete(request, *args, **kwargs)
+
+    def get_success_url(self):
+        # Fallback to a default if the referer isn't found
+        return self.request.META.get('HTTP_REFERER') or reverse_lazy('budgetdb:index')
 
 class TransactionCreateView(LoginRequiredMixin, CreateView):
     model = Transaction

@@ -75,6 +75,15 @@
                 // 2. Combined Modal Logic (fires when the modal is visible)
                 $(document).on("shown.bs.modal", "#modal", function() {
                     var $modal = $(this);
+                    
+                    // Initialize the Delete button inside the Update modal
+                    $modal.find(".delete-transaction-btn").each(function () {
+                        $(this).modalForm({
+                            formURL: $(this).data("form-url"),
+                            isAsync: true,
+                            modalID: "#modal" // Re-uses the same modal container
+                        });
+                    });
 
                     // Initialize all Select2 fields inside the modal
                     $modal.find(".django-select2").each(function() {
@@ -92,6 +101,8 @@
                         $('#id_amount_actual').focus();
                     }, 300);
                 });
+
+
 
                 // 3. Fix for Select2 search field focus
                 // This targets the search box that appears when you click a dropdown
