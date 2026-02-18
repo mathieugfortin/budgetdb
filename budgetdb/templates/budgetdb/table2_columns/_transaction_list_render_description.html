@@ -1,0 +1,112 @@
+
+{# Vendor#}
+{% if record.vendor %}
+    <span class="badge rounded-pill border text-primary bg-light fw-normal px-2 py-1">
+        <span class="material-symbols-outlined style="font-size: 14px; vertical-align: middle;">store</span>
+        {{ record.vendor }}
+    </span>
+{% endif %}
+
+{# Description #}
+<button type="button" class="update-transaction btn btn-secondary btn-sm" 
+        data-bs-toggle="modal" 
+        data-bs-target="#modal" 
+        data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' record.id %}">
+        {{record.description}}
+</button>
+
+{% if record.currency.id != account_currency_id %}
+    <button type="button" class="btn btn-info btn-sm">{{record.amount_actual_foreign_currency}} {{record.currency.name_short}}</button>
+{% endif %}
+
+
+{# Unit/Price Box #}
+    {% if record.Unit_QTY or record.Unit_price %}
+        <div class="d-inline-flex border rounded bg-white overflow-hidden" style="font-size: 0.85rem;">
+            {% if record.Unit_QTY %}
+                <span class="px-2 py-0 bg-light border-end text-muted">{{ record.Unit_QTY|floatformat:2 }} qty</span>
+            {% endif %}
+            {% if record.Unit_price %}
+                <span class="px-2 py-0">{{ record.Unit_price }}{{ record.currency.symbol }}</span>
+            {% endif %}
+        </div>
+    {% endif %}
+
+{% with jid=record.joined_transaction_id %}
+    {% if jid %}
+        <a href="{% url 'budgetdb:update_joinedtransactions' pk=jid datep=record.date_planned|date:'Y-m-d' datea=record.date_actual|date:'Y-m-d' %}" 
+           title="Edit the joined transactions"
+           class="btn btn-sm p-0">
+            <span class="material-symbols-outlined">dynamic_feed</span>
+        </a>
+    {% endif %}
+{% endwith %}
+
+{% if record.account_destination %}
+    {% if record.account_destination.id != account_id %}
+        <a href="{% url 'budgetdb:list_account_activity' record.account_destination.id %}"
+            class="btn btn-info btn-sm" role="button">
+            <span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_right</span>
+            {{record.account_destination}}
+        </a>
+    {% endif %}
+{% endif %}
+
+{% if record.account_source %}
+    {% if record.account_source.id != account_id%}   
+        <a href="{% url 'budgetdb:list_account_activity' record.account_source.id %}" 
+            class="btn btn-info btn-sm" role="button">
+            <span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_left</span>
+            {{record.account_source}}
+        </a>
+    {% endif %}
+{% endif %}     
+<!--
+
+
+        joinedtransaction = None
+        if record.budgetedevent is not None:
+            joinedtransaction = record.budgetedevent.budgeted_events.first()
+        if joinedtransaction is None:
+            joinedtransaction = record.transactions.first()
+
+        if joinedtransaction is not None:
+            reverse_url = reverse("budgetdb:update_joinedtransactions",
+                                     kwargs={"pk": joinedtransaction.id,
+                                             "datep": record.date_planned.strftime("%Y-%m-%d"),
+                                             "datea": record.date_actual.strftime("%Y-%m-%d"),
+                                            }
+                                    )
+            field = field + (f'<a href='
+                f'"{reverse_url}" '
+                f'title="Edit the joined transactions">'
+                f'<span class="material-symbols-outlined"><span class="material-symbols-outlined">dynamic_feed</span></span>'
+                f'</a>')
+
+        if record.account_destination is not None and record.account_destination != self.account:
+            reverse_url = reverse("budgetdb:list_account_activity",
+                                       kwargs={"pk": record.account_destination.id,}
+                                       )
+            field = field + (
+                f'<a href='
+                f'"{reverse_url}" '
+                f'class="btn btn-info btn-sm" role="button"> '
+                f'<span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_right</span>'
+                f'{record.account_destination}'
+                f'</a>')
+        if record.account_source is not None and record.account_source != self.account:
+            reverse_url = reverse("budgetdb:list_account_activity",
+                                       kwargs={"pk": record.account_source.id,}
+                                       )
+            field = field + (
+                f'<a href='
+                f'"{reverse_url}" '
+                f'class="btn btn-info btn-sm" role="button"> '
+                f'<span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_left</span>'
+                f'{record.account_source}'
+                f'</a>')
+  
+        return mark_safe(field)
+
+
+-->

@@ -1,8 +1,11 @@
 from .base import BudgetBaseTestCase
-from django.core import mail
 from budgetdb.models import Invitation
 from crum import impersonate
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from django.core import mail
 
+User = get_user_model()
 class UserTests(BudgetBaseTestCase):
     def test_invitation_email(self):
         """Test that creating an invitation triggers an email."""
@@ -15,14 +18,28 @@ class UserTests(BudgetBaseTestCase):
 
         # Check Django's outbox
         self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(str(self.user_a),self.user_a.email)
         self.assertIn('friend@test.com', mail.outbox[0].to)        
         self.assertIn("Budget Invitation", mail.outbox[0].subject)
 
+    def test_verification_email(self):
+        """Test that creating an invitation triggers an email."""
+        self.user_b.send_verify_email()
+        print (self.user_b)
+        # Check Django's outbox
+        self.assertFalse(self.user_b.email_verified)        
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.user_b.email, mail.outbox[0].to)        
+        self.assertIn("Verify Email", mail.outbox[0].subject)
 
-from django.test import TestCase
-from django.contrib.auth import get_user_model
+    def test_verification_email_already_sent(self):
+        self.user_a.send_verify_email()
 
-User = get_user_model()
+        # Check Django's outbox
+        self.assertTrue(self.user_a.email_verified)        
+        self.assertEqual(len(mail.outbox), 0)
+
+
 
 class CustomUserManagerTests(TestCase):
 

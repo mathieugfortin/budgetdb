@@ -1,0 +1,4 @@
+{% if record.budgetedevent %}
+<a href="{% url 'budgetdb:update_be' record.budgetedevent.id %}" title="Edit the recurring event"><span class="material-symbols-outlined">manufacturing</span></a>
+<a href="{% url 'budgetdb:details_be' record.budgetedevent.id %}" title="view the recurring events"><span class="material-symbols-outlined">list</span></a>
+{% endif %}

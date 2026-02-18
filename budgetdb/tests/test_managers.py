@@ -9,9 +9,10 @@ class viewManagerValidation(BudgetBaseTestCase):
     def test_view_manager_visibility_friend(self):
         view_count = Account.objects.filter(users_view=self.user_friend,is_deleted=False).count()
         admin_count = Account.objects.filter(users_admin=self.user_friend,is_deleted=False).count()
-        # with impersonate(self.user_friend):
+        owner_count = Account.objects.filter(owner=self.user_friend,is_deleted=False).count()
+
         visible = Account.view_objects.for_user(self.user_friend).all()
-        self.assertEqual(visible.count(), view_count + admin_count)
+        self.assertEqual(visible.count(), view_count + admin_count + owner_count)
         self.assertTrue(visible.filter(id=self.acc_a.id).exists())
         self.assertTrue(visible.filter(id=self.acc_b.id).exists())
         self.assertFalse(visible.filter(id=self.acc_c.id).exists())
@@ -22,7 +23,7 @@ class viewManagerValidation(BudgetBaseTestCase):
         view_count = Account.objects.filter(users_view=self.user_a,is_deleted=False).count()
         admin_count = Account.objects.filter(users_admin=self.user_a,is_deleted=False).count()
         owner_count = Account.objects.filter(owner=self.user_a,is_deleted=False).count()
-        #with impersonate(self.user_a):
+
         visible = Account.view_objects.for_user(self.user_a).all()
         self.assertEqual(visible.count(), view_count + admin_count + owner_count)
         self.assertTrue(visible.filter(id=self.acc_a.id).exists())

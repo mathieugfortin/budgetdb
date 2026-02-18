@@ -21,20 +21,31 @@
 
 <script>
 
-$("#id_account").change(function () {
-      var url = "{% url 'budgetdb:ajax_load_payment_transaction' %}";
-      var accountpk = $(this).val();  
+$(document).ready(function() {
+    // Listen for changes on the account dropdown
+    $('#id_account').change(function() {
+        const url = "{% url 'budgetdb:ajax_load_payment_transaction' %}";
+        const accountId = $(this).val();
 
-      $.ajax({                       // initialize an AJAX request
-        url: url,                   
-        data: {
-          'account': accountpk      
-        },
-        success: function (data) {   // `data` is the return of the `load_payment_transaction` view function
-          $("#id_payment_transaction").html(data);  // replace the contents of transaction input with the data that came from the server
-        }
-      });
-
+        $.ajax({
+            url: url,
+            data: { 'account_id': accountId },
+            success: function(data) {
+                let $paymentSelect = $('#id_payment_transaction');
+                
+                // Clear existing options
+                $paymentSelect.empty();
+                $paymentSelect.append('<option value="">Select a transaction</option>');
+                
+                // Add new options from AJAX response
+                $.each(data, function(index, item) {
+                    $paymentSelect.append(
+                        $('<option>', { value: item.id, text: item.text })
+                    );
+                });
+            }
+        });
     });
+});
 </script>
 {% endblock %}

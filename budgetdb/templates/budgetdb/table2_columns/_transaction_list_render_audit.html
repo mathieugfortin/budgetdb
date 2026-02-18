@@ -1,0 +1,40 @@
+
+{% if record.audit is False %}
+    <button  
+        type="button" 
+        title="Confirm account balance for this day"
+        class="update-transaction btn btn-link btn-sm" 
+        data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' account_id record.date_actual|date:'Y-m-d' record.balance  %}">
+        <span class="material-symbols-outlined">add_circle</span>
+    </button>
+{% else %}                      
+    <bold class="">
+        {{record.amount_actual}}{{account_currency_symbol}}                       
+    </bold>
+{% endif %}
+
+
+
+
+<!-- 
+    def render_addaudit(self, value, record):
+        if record.audit:
+            return format_html('{amount}{symbol}',
+                                amount=record.amount_actual,
+                                symbol=self.account_currency_symbol)        
+        balance_str = get_balance_token(self.linebalance)
+        reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",
+                              kwargs={"accountpk": self.account.pk,
+                                      "date": record.date_actual.strftime("%Y-%m-%d"),
+                                      "amount": balance_str,
+                                      }
+                             )
+        return format_html('<button  type="button" '
+                           'title="Confirm account balance for this day"'
+						   'class="update-transaction btn btn-link btn-sm" data-form-url="{url}">'
+                           '<span class="material-symbols-outlined">add_circle</span>'
+                           '</button>',
+                           url=reverse_url
+                           )
+
+-->

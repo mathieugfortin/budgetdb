@@ -148,7 +148,9 @@ urlpatterns = [
          name='list_account_activity'),
     path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity_period'),
-    path('transaction/update_modal/<int:accountpk>/<int:pk>/', views.TransactionModalUpdate.as_view(),
+    #path('transaction/update_modal/<int:accountpk>/<int:pk>/', views.TransactionModalUpdate.as_view(),
+     #    name='account_listview_update_transaction_modal'),   # WHY THE ACCOUNT PK???
+    path('transaction/update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
     path('transaction/add_audit_modal/<int:accountpk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
          name='list_account_activity_create_audit_from_account'),
@@ -211,9 +213,12 @@ urlpatterns = [
 
     ##########################################################################################################
     # Cat1
-    path('cat1/PieChartJSON', views.GetCat1TotalPieChartData, name='cat1_piechart_json'),
-    path('cat1/BarChartJSON', views.GetCat1TotalBarChartData, name='cat1_barchart_json'),
-    path('cat1/ListJSON', views.GetCat1ListJSON, name='cat1_list_json'),
+    path('cat1/PieChartJSON', views.GetCat1TotalPieChartData,
+        name='cat1_piechart_json'),
+    path('cat1/BarChartJSON', views.GetCat1TotalBarChartData,
+        name='cat1_barchart_json'),
+    path('cat1/ListJSON', views.GetCat1ListJSON,
+        name='cat1_list_json'),
     path('cat1/', views.Cat1ListView.as_view(),
          name='list_cat1'),
     path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
@@ -225,8 +230,12 @@ urlpatterns = [
 
     ##########################################################################################################
     # Cat2
-    path('cat2/PieChartJSON', views.GetCat2TotalPieChartData, name='cat2_piechart_json'),
-    path('cat2/BarChartJSON', views.GetCat2TotalBarChartData, name='cat2_barchart_json'),
+    path('cat2/PieChartJSON', views.GetCat2TotalPieChartData,
+        name='cat2_piechart_json'),
+    path('cat2/BarChartJSON', views.GetCat2TotalBarChartData,
+        name='cat2_barchart_json'),
+    path('cat2/ListJSON', views.GetCat2ListJSON,
+        name='cat2_list_json'),
     path('cat2/', views.Cat2ListView.as_view(),
          name='list_cat2'),
     path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
@@ -330,7 +339,7 @@ urlpatterns = [
          name='list_manual_transaction'),
     path('transaction/deleted_list/', views.TransactionDeletedListView.as_view(),
          name='list_deleted_transaction'),
-    path('ajax/load-payment-transaction/', views.load_payment_transaction,
+    path('ajax/load-payment-transaction/', views.ajax_load_transaction_payments,
          name='ajax_load_payment_transaction'),
 
     ##########################################################################################################

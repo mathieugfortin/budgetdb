@@ -1,0 +1,10 @@
+{% if record.audit is False %}
+    <div class="cat2-wrapper" data-txid="{{ record.id }}" data-cat2-id="{{ record.cat2.id|default:'' }}">
+        <span class="cat-display">
+            {{ record.cat2.name|default:"---------" }}
+        </span>
+        <div class="cat2-select-container d-none">
+            </div>
+        <span id="save-check-cat2{{ record.id }}" class="save-badge">✓</span>
+    </div>
+{% endif %}

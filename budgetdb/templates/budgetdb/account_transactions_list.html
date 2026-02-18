@@ -61,131 +61,201 @@
 
 {% block script %}
     {% include "budgetdb/js_flip_accounts.html" %}
-    <script type="text/javascript">
-        (function($) {
-            $(function() {
-                // 1. Initialize the Modal Forms
-                $(".update-transaction").each(function () {
-                    $(this).modalForm({
-                        formURL: $(this).data("form-url"),
-                        modalID: "#modal" 
-                    });
-                });
+      <script type="text/javascript">
+    (function($) {
+        $(function() {
+            // 1. DATA INITIALIZATION
+            const allCat1s = {{ cat1_json|safe }};
+            // HELPER FUNCTION TO HIDE SELECT2 AND SHOW SPAN
+            function hideSelect2($select) {
+                const $wrapper = $select.closest('.cat1-wrapper, .cat2-wrapper');
+                const $container = $wrapper.find('.cat1-select-container, .cat2-select-container');
+                const $span = $wrapper.find('.cat-display');
 
-                // 2. Combined Modal Logic (fires when the modal is visible)
-                $(document).on("shown.bs.modal", "#modal", function() {
-                    var $modal = $(this);
-                    
-                    // Initialize the Delete button inside the Update modal
-                    $modal.find(".delete-transaction-btn").each(function () {
-                        $(this).modalForm({
-                            formURL: $(this).data("form-url"),
-                            isAsync: true,
-                            modalID: "#modal" // Re-uses the same modal container
-                        });
-                    });
-
-                    // Initialize all Select2 fields inside the modal
-                    $modal.find(".django-select2").each(function() {
-                        var $el = $(this);
-                        $el.select2({
-                            dropdownParent: $modal,
-                            width: '100%', 
-                            placeholder: $el.attr('data-placeholder') || "Select an option",
-                            allowClear: true
-                        });
-                    });
-
-                    // Set focus on the amount field after modal transition
-                    setTimeout(function (){
-                        $('#id_amount_actual').focus();
-                    }, 300);
-                });
-
-
-
-                // 3. Fix for Select2 search field focus
-                // This targets the search box that appears when you click a dropdown
-                $(document).on('select2:open', function(e) {
-                    setTimeout(function() {
-                        // Focus the search field inside the dropdown
-                        var searchField = document.querySelector('.select2-search__field');
-                        if (searchField) {
-                            searchField.focus();
-                        }
-                    }, 10); // Slight delay for rendering
-                });
+                $container.addClass('d-none');
+                $span.removeClass('d-none');
                 
-                $(document).on('change', '.cat1-select', function() {
-                    var txId = $(this).data('txid');
-                    var cat1Id = $(this).val();
-                    var $cat2Select = $('#cat2-' + txId);
+                // Destroy select2 to keep the DOM clean
+                if ($select.data('select2')) {
+                    $select.select2('destroy');
+                }
+            }
+            // 2. CAT1 SWAPPER (Click to Edit)
+            $(document).on('click', '.cat1-wrapper .cat-display', function() {
+                const $span = $(this);
+                const $wrapper = $span.closest('.cat1-wrapper');
+                const $container = $wrapper.find('.cat1-select-container');
+                const txId = $wrapper.data('txid');
+                const currentId = $wrapper.data('cat1-id');
 
-                    // 1. Save Cat1 choice via AJAX
-                    $.post('{% url "budgetdb:update_transaction_category" %}', {
-                        'transaction_id': txId,
-                        'cat_level': 1,
-                        'category_id': cat1Id,
-                        'csrfmiddlewaretoken': '{{ csrf_token }}'
-                    })
-                    .done(function(response) {
-                        // Find the specific checkmark for this transaction
-                        var $badge = $('#save-check-cat1' + txId);
-                        
-                        // Show it
-                        $badge.addClass('show');
-                        
-                        // Hide it again after 1.5 seconds
-                        setTimeout(function() {
-                            $badge.removeClass('show');
-                        }, 1500);
-                    })
-                    .fail(function() {
-                        alert("Error saving category!");
-                    });
-
-                    // 2. Fetch new Cat2 options
-                    var cat2Url = '{% url "budgetdb:get_cat2_options" %}'; // Define it clearly
-                    // debugger;
-                    $.getJSON(cat2Url, { 'cat1_id': cat1Id })
-                        .done(function(data) {
-                            $cat2Select.empty().append('<option value="">---------</option>');
-                            $.each(data.options, function(index, item) {
-                                $cat2Select.append('<option value="' + item.id + '">' + item.name + '</option>');
-                            });
-                        })
+                let selectHtml = `<select class="cat-select cat1-select form-select form-select-sm" data-txid="${txId}">`;
+                selectHtml += `<option value="">---------</option>`;
+                allCat1s.forEach(cat => {
+                    const selected = (cat.id == currentId) ? 'selected' : '';
+                    selectHtml += `<option value="${cat.id}" ${selected}>${cat.name}</option>`;
                 });
+                selectHtml += `</select>`;
 
-                $(document).on('change', '.cat2-select', function() {
-                    var txId = $(this).data('txid');
-                    var cat2Id = $(this).val();
+                $container.html(selectHtml).removeClass('d-none');
+                $span.addClass('d-none');
 
-                    // Save Cat2 choice via AJAX
-                    $.post('{% url "budgetdb:update_transaction_category" %}', {
-                        'transaction_id': txId,
-                        'cat_level': 2,
-                        'category_id': cat2Id,
-                        'csrfmiddlewaretoken': '{{ csrf_token }}'
-                    })
-                    .done(function(response) {
-                        // Find the specific checkmark for this transaction
-                        var $badge = $('#save-check-cat2' + txId);
-                        
-                        // Show it
-                        $badge.addClass('show');
-                        
-                        // Hide it again after 1.5 seconds
-                        setTimeout(function() {
-                            $badge.removeClass('show');
-                        }, 1500);
-                    })
-                    .fail(function() {
-                        alert("Error saving category!");
-                    });
+                const $newSelect = $container.find('select');
+                $newSelect.select2({ width: '100%', minimumResultsForSearch: 10 });
+                $newSelect.select2('open');
+
+                // Hide when closed (clicked away or selected)
+                $newSelect.on('select2:close', function() {
+                    hideSelect2($(this));
                 });
+                // Initialize Select2 on the newly created element
+                //const $newSelect = $container.find('select');
+                //$newSelect.select2({
+                //    width: '100%',
+                //    minimumResultsForSearch: Infinity // Hides the search box for a cleaner look
+                //});
+
+                // The Magic Line: This forces the dropdown to open immediately
+                //$newSelect.select2('open');
             });
-        })(jQuery); 
-    </script>
+
+            // 3. AJAX SAVING (Cat1)
+            $(document).on('change', '.cat1-select', function() {
+                const $select = $(this);
+                const txId = $select.data('txid');
+                const cat1Id = $select.val();
+                const $wrapper = $select.closest('.cat1-wrapper');
+
+                const selectedText = $select.find("option:selected").text();
+                $wrapper.find('.cat-display').text(selectedText);
+                $wrapper.data('cat1-id', cat1Id);
+                $wrapper.attr('data-cat1-id', cat1Id); // Critical for Cat2 to "see" the update
+
+                
+
+                $.post('{% url "budgetdb:update_transaction_category" %}', {
+                    'transaction_id': txId,
+                    'cat_level': 1,
+                    'category_id': cat1Id,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                })
+                .done(function() {
+                    const $badge = $('#save-check-cat1' + txId);
+                    $badge.addClass('show');
+                    setTimeout(() => $badge.removeClass('show'), 1500);
+                    // reset it cat2
+                    const $cat2Wrapper = $select.closest('tr').find('.cat2-wrapper');
+                    $cat2Wrapper.find('.cat-display').text('---------'); // Reset the text
+                    $cat2Wrapper.data('cat2-id', '');                // Clear the ID data
+                    $cat2Wrapper.attr('data-cat2-id', '');           // Clear the ID attribute
+                    // 2. Trigger the  CSS Pulse
+                    $cat2Display.addClass('pulse-warning');
+                    setTimeout(() => {
+                        $cat2Display.removeClass('pulse-warning');
+                    }, 1500);
+                })
+                .fail(() => alert("Error saving Cat1!"));
+            });
+
+            // 4. CAT2 SWAPPER (Select2 Auto-Open)
+            $(document).on('click', '.cat2-wrapper .cat-display', function() {
+                const $span = $(this);
+                const $wrapper = $span.closest('.cat2-wrapper');
+                const $container = $wrapper.find('.cat2-select-container');
+                const txId = $wrapper.data('txid');
+                const currentCat2Id = $wrapper.data('cat2-id');
+                
+                // Find the Cat1 wrapper in the same row
+                const $cat1Wrapper = $span.closest('tr').find(`.cat1-wrapper[data-txid="${txId}"]`);
+                const cat1Id = $cat1Wrapper.attr('data-cat1-id') || $cat1Wrapper.data('cat1-id');
+
+                if (!cat1Id || cat1Id === "") {
+                    alert("Please select a Category (Cat1) first.");
+                    return;
+                }
+
+                $.getJSON('{% url "budgetdb:get_cat2_options" %}', { 'cat1_id': cat1Id })
+                    .done(function(data) {
+                        let selectHtml = `<select class="cat-select cat2-select form-select form-select-sm" data-txid="${txId}">`;
+                        selectHtml += `<option value="">---------</option>`;
+                        $.each(data.options, function(i, item) {
+                            const selected = (item.id == currentCat2Id) ? 'selected' : '';
+                            selectHtml += `<option value="${item.id}" ${selected}>${item.name}</option>`;
+                        });
+                        selectHtml += `</select>`;
+
+                        $container.html(selectHtml).removeClass('d-none');
+                        $span.addClass('d-none');
+                        const $newSelect = $container.find('select');
+                        $newSelect.select2({ width: '100%', minimumResultsForSearch: 10 });
+                        $newSelect.select2('open');
+
+                        $newSelect.on('select2:close', function() {
+                            hideSelect2($(this));
+                        });
+                    });
+            });
+
+            // 5. AJAX SAVING (Cat2)
+            $(document).on('change', '.cat2-select', function() {
+                const $select = $(this);
+                const txId = $select.data('txid');
+                const cat2Id = $select.val();
+                const $wrapper = $select.closest('.cat2-wrapper');
+
+                const selectedText = $select.find("option:selected").text();
+                $wrapper.find('.cat-display').text(selectedText);
+                $wrapper.data('cat2-id', cat2Id);
+
+                $.post('{% url "budgetdb:update_transaction_category" %}', {
+                    'transaction_id': txId,
+                    'cat_level': 2,
+                    'category_id': cat2Id,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                })
+                .done(function() {
+                    const $badge = $('#save-check-cat2' + txId);
+                    $badge.addClass('show');
+                    setTimeout(() => $badge.removeClass('show'), 1500);
+                })
+                .fail(() => alert("Error saving Cat2!"));
+            });
+
+            // 6. BLUR LOGIC (Switch back to text when clicking away)
+            $(document).on('blur', '.cat-select', function() {
+                const $select = $(this);
+                const $container = $select.closest('.cat1-select-container, .cat2-select-container');
+                const $wrapper = $select.closest('.cat1-wrapper, .cat2-wrapper');
+                
+                $container.addClass('d-none');
+                $wrapper.find('.cat-display').removeClass('d-none');
+            });
+
+            // 7. MODAL & SELECT2 LOGIC (Your existing code)
+            $(".update-transaction").each(function () {
+                $(this).modalForm({ formURL: $(this).data("form-url"), modalID: "#modal" });
+            });
+
+            $(document).on("shown.bs.modal", "#modal", function() {
+                const $modal = $(this);
+                $modal.find(".delete-transaction-btn").each(function () {
+                    $(this).modalForm({ formURL: $(this).data("form-url"), isAsync: true, modalID: "#modal" });
+                });
+                $modal.find(".django-select2").each(function() {
+                    const $el = $(this);
+                    $el.select2({ dropdownParent: $modal, width: '100%', allowClear: true });
+                });
+                setTimeout(() => $('#id_amount_actual').focus(), 300);
+            });
+
+            $(document).on('select2:open', function() {
+                setTimeout(() => {
+                    const searchField = document.querySelector('.select2-search__field');
+                    if (searchField) searchField.focus();
+                }, 10);
+            });
+        });
+    })(jQuery); 
+</script>
     {% include "budgetdb/js_toggle_receipt_verify.html" %}
 
 {% endblock %}

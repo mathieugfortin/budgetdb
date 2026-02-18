@@ -481,6 +481,18 @@ def load_cat2(request):
     return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
 
 
+def GetCat2ListJSON(request):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+    cat1_id = request.GET.get('cat1')
+    queryset = Cat2.view_objects.filter(cat1_id=cat1_id).order_by("name")
+
+    array = []
+    for entry in queryset:
+        array.append([{"pk": entry.pk}, {"name": entry.name}])
+
+    return JsonResponse(array, safe=False)
+
 class TemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
@@ -1597,30 +1609,12 @@ class StatementDetailView(MyDetailView):
 class StatementUpdateView(MyUpdateView):
     model = Statement
     form_class = StatementForm
-    task = 'Update'
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="javascript:history.back();"))
-        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
-        return form
 
 
 class StatementCreateView(MyCreateView):
     model = Statement
     form_class = StatementForm
-    task = 'Create'
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="javascript:history.back();"))
-        return form
 
 ###################################################################################################################
 # Template
@@ -1683,11 +1677,16 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-       
+        cat1_data = list(Cat1.admin_objects.values('id', 'name'))
+
         context['pk'] = self.account.pk
         context['year'] = self.year
         context['account_name'] = self.account
-        context['statements_exist'] = Statement.view_objects.filter(account = self.account.pk).count
+        context['account_id'] = self.account.id
+        context['account_currency_id'] = self.account.currency.id
+        context['account_currency_symbol'] = self.account.currency.symbol
+        context['cat1_json']= cat1_data
+
         return context
 
     def get_table_kwargs(self):

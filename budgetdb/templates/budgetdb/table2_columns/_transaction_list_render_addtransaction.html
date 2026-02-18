@@ -1,0 +1,7 @@
+<button  
+    type="button" 
+    title="Add a transaction for this day"
+    class="update-transaction btn btn-link btn-sm" 
+    data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' account_id record.date_actual|date:'Y-m-d' %}">
+    <span class="material-symbols-outlined">add_circle</span>
+</button>

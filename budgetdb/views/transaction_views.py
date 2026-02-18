@@ -31,6 +31,20 @@ import json
 ###################################################################################################################
 # Transactions
 
+def ajax_load_transaction_payments(request):
+    account_id = request.GET.get('account_id')
+    # Use the same logic as your form __init__
+    transactions = Transaction.admin_objects.filter(
+        account_destination_id=account_id
+    ).order_by('date_actual')
+    
+    # Return a list of dicts: [{'id': 1, 'text': 'Date - Desc - Amount'}, ...]
+    data = [
+        {'id': tx.id, 'text': f"{tx.date_actual} - {tx.description} ({tx.amount_actual})"} 
+        for tx in transactions
+    ]
+    return JsonResponse(data, safe=False)
+
 
 class TransactionDetailView(MyDetailView):
     model = Transaction
@@ -104,7 +118,6 @@ class TransactionUpdatePopupView(LoginRequiredMixin, UserPassesTestMixin, Update
         return form
 
 
-
 class TransactionDeleteView(BSModalDeleteView):
     model = Transaction
     template_name = 'budgetdb/transaction_delete_modal.html'
@@ -117,6 +130,7 @@ class TransactionDeleteView(BSModalDeleteView):
     def get_success_url(self):
         # Fallback to a default if the referer isn't found
         return self.request.META.get('HTTP_REFERER') or reverse_lazy('budgetdb:index')
+
 
 class TransactionCreateView(LoginRequiredMixin, CreateView):
     model = Transaction

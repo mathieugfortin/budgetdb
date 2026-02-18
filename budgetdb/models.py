@@ -86,73 +86,67 @@ class User(AbstractUser):
 
 
 class BaseManager(models.Manager):
+    deleted_filter = "active_only"  # active_only - deleted_only - all
+     
     def for_user(self, user=None):
         user = user or get_current_user()
-        qs = self.get_queryset()
+        qs = super().get_queryset()
+        qs = self.apply_lifecycle_filter(qs)
 
         if not user or user.is_anonymous:
             return qs.none()
-
-        # Build the shared filters
-        is_owner = Q(owner=user)
-        is_admin = Q(users_admin=user)
-
-        # This is where the subclasses will differ
-        return self.apply_permission_filters(qs, user, is_owner, is_admin)
+        qs = self.apply_permission_filters(qs, user)
+        return qs
         
     def get_queryset(self):
-        qs = super().get_queryset()
-        return self.apply_lifecycle_filter(qs)
+        return self.for_user(get_current_user())
 
     def apply_lifecycle_filter(self, qs):
-        raise NotImplementedError("Subclasses must define if they show active or deleted items.")
-
-    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+        if self.deleted_filter == "active_only":
+            return qs.filter(is_deleted=False)  
+        elif self.deleted_filter == "deleted_only":
+            return qs.filter(is_deleted=True)
+        else: # self.deleted_filter == "all"
+            return qs
+        
+    def apply_permission_filters(self, qs, user):
+        is_owner = Q(owner=user)
+        is_admin = Q(users_admin=user)
         # Default permission logic (shared by both)
         return qs.filter(is_owner | is_admin).distinct()
 
 
 class AdminManager(BaseManager):
-    # we can view items if they are not deleted, we're owner or friend admin 
-    def apply_lifecycle_filter(self, qs):
-        # Only show active items
-        return qs.filter(is_deleted=False)  
+    deleted_filter = "active_only"  # active_only - deleted_only - all
 
 
 class ViewerManager(BaseManager):
-    # we can view items if they are not deleted, we're owner, friend admin or friend viewer
-    def apply_lifecycle_filter(self, qs):
-        # Only show active items
-        return qs.filter(is_deleted=False)    
+    deleted_filter = "active_only"  # active_only - deleted_only - all
 
-    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+    def apply_permission_filters(self, qs, user):
+        is_owner = Q(owner=user)
+        is_admin = Q(users_admin=user)
         is_viewer = Q(users_view=user)
         return qs.filter(is_owner | is_admin | is_viewer).distinct()
 
 
 class ViewerDeletedManager(BaseManager):
-    # we can view items if they are deleted, we're owner, friend admin or friend viewer
-    def apply_lifecycle_filter(self, qs):
-        # Only show deleted items
-        return qs.filter(is_deleted=True)    
+    deleted_filter = "deleted_only"  # active_only - deleted_only - all
 
-    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+    def apply_permission_filters(self, qs, user):
+        is_owner = Q(owner=user)
+        is_admin = Q(users_admin=user)
         is_viewer = Q(users_view=user)
         return qs.filter(is_owner | is_admin | is_viewer).distinct()
 
 
 class BaseTransactionManager(BaseManager):
     # Default settings that subclasses can override
-    is_deleted_status = False
+    deleted_filter = "active_only"  # active_only - deleted_only - all
     permission_type = 'view' # 'view' or 'admin'
     require_all_accounts = False # False = OR, True = AND
 
-    def apply_lifecycle_filter(self, qs):
-        if self.is_deleted_status is None:
-            return qs
-        return qs.filter(is_deleted=self.is_deleted_status)
-
-    def apply_permission_filters(self, qs, user, is_owner, is_admin):
+    def apply_permission_filters(self, qs, user):
         from .models import Account
 
         if self.permission_type == 'admin':
@@ -171,25 +165,25 @@ class BaseTransactionManager(BaseManager):
 
 
 class TransactionViewerManager(BaseTransactionManager):
-    is_deleted_status = False
+    deleted_filter = "active_only"  # active_only - deleted_only - all
     permission_type = 'view'
     require_all_accounts = False
 
 
 class TransactionDeletedViewerManager(BaseTransactionManager):
-    is_deleted_status = True
+    deleted_filter = "deleted_only"  # active_only - deleted_only - all
     permission_type = 'view'
     require_all_accounts = False
 
 
 class TransactionViewerAllManager(BaseTransactionManager):
-    is_deleted_status = None # Show both
+    deleted_filter = "all"  # active_only - deleted_only - all
     permission_type = 'view'
     require_all_accounts = False
 
 
 class TransactionAdminManager(BaseTransactionManager):
-    is_deleted_status = False
+    deleted_filter = "active_only"  # active_only - deleted_only - all
     permission_type = 'admin'
     require_all_accounts = True # Strict check: Admin of both sides
 
@@ -342,7 +336,7 @@ class Invitation(MyMeta, BaseSoftDelete, ClassOwner):
             # 'request': request,
             'inviter': self.owner,
             'email': self.email,
-            'domain': 'https://budget.patatemagique.biz/',
+            'domain': 'https://budget.patatemagique.biz',
         })
         email = EmailMessage(
             subject, message, to=[email]
@@ -1390,7 +1384,21 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
         instance._loaded_values = dict(zip(field_names, values))
         
         return instance
+
+    @property
+    def joined_transaction_id(self):
+        """Returns the ID of the related joined transaction if one exists."""
+        if self.budgetedevent:
+            first_event = self.budgetedevent.budgeted_events.first()
+            if first_event:
+                return first_event.id
         
+        first_tx = self.transactions.first()
+        if first_tx:
+            return first_tx.id
+            
+        return None
+
     def clean(self):
         super().clean()
         
@@ -1443,11 +1451,13 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
             else:
                 #same date, old and new for the same date
                 account_filter = [old_destination,
-                                  old_source,
-                                  self.account_source,
-                                  self.account_destination
-                                  ]
-                dirties = AccountBalanceDB.objects.filter(account__in=account_filter, db_date=self.date_actual)
+                                  old_source]
+                if self.account_source:
+                    account_filter.append(self.account_source.id)
+                if self.account_destination:
+                    account_filter.append(self.account_destination.id)
+
+                dirties = AccountBalanceDB.objects.filter(account_id__in=account_filter, db_date=self.date_actual)
 
             for dirty in dirties:
                 dirty.set_delta_and_dirty()
@@ -1711,7 +1721,7 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
     balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.00'))
     minimum_payment = models.DecimalField('Minimum Payment', decimal_places=2, max_digits=10, default=Decimal('0.00'))
     statement_date = models.DateField('date of the statement')
-    statement_due_date = models.DateField('date where payment is due', blank=True, null=True)
+    statement_due_date = models.DateField('Payment due date', blank=True, null=True)
     comment = models.CharField(max_length=200, blank=True, null=True)
     payment_transaction = models.ForeignKey('Transaction', on_delete=models.CASCADE, related_name='payment_transaction',
                                             blank=True, null=True)
@@ -1739,6 +1749,7 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
             total=Sum('amount_actual'))['total'] or 0
         
         return self.balance == (sum_in - sum_out)
+
 
 class JoinedTransactions(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:

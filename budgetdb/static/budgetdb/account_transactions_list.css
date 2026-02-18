@@ -91,3 +91,59 @@
   
 
    
+  /* The checkmark/badge */
+.save-badge {
+    display: inline-block;
+    color: #28a745; /* Bootstrap success green */
+    font-weight: bold;
+    margin-left: 5px;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: all 0.3s ease;
+    pointer-events: none; /* Don't interfere with clicks */
+}
+
+/* Triggered by your JS .addClass('show') */
+.save-badge.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Optional: Make the cat-display look interactive */
+.cat-display {
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    border-bottom: 1px dashed #ccc; /* Hint that it's editable */
+}
+
+.cat-display:hover {
+    background-color: #f0f0f0;
+    color: #0056b3;
+}
+
+.transparent-select {
+    border: 1px solid transparent;
+    background-color: transparent;
+    cursor: pointer;
+    appearance: none; /* Removes the default arrow in some browsers */
+}
+
+.transparent-select:hover, .transparent-select:focus {
+    border-color: #ced4da;
+    background-color: #fff;
+    appearance: auto;
+}
+
+@keyframes highlight-pulse {
+    0% { background-color: transparent; }
+    30% { background-color: #fff3cd; } /* A soft warning yellow */
+    100% { background-color: transparent; }
+}
+
+.pulse-warning {
+    animation: highlight-pulse 1.5s ease-out;
+    border-radius: 4px;
+}
+

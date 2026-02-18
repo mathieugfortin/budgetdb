@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from crum import get_current_user
 from django import forms
 from django.core.exceptions import PermissionDenied
@@ -235,7 +235,17 @@ class VendorForm(forms.ModelForm):
         )
 
 
+class TransactionChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        # This is where you customize the display
+        return f"{obj.currency.symbol}{obj.amount_actual} - {obj.date_actual} - {obj.description}"
+
+
 class StatementForm(forms.ModelForm):
+    payment_transaction = TransactionChoiceField(
+        queryset=Transaction.view_objects.none(), # Populated in __init__
+        empty_label="Select a transaction"
+    )
     class Meta:
         model = Statement
         fields = (
@@ -257,20 +267,41 @@ class StatementForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_id = 'AccountHostForm'
 
-        if 'account' in self.data:
+        account_id = self.data.get('account') or self.initial.get('account')
+        s_date_raw = self.data.get('statement_date') or self.initial.get('statement_date')
+        d_date_raw = self.data.get('statement_due_date') or self.initial.get('statement_due_date')
+
+        # If it's a string (from POST data), parse it
+        if isinstance(s_date_raw, str):
+            s_date = parse_date(s_date_raw)
+        else:
+            s_date = s_date_raw
+
+        if isinstance(d_date_raw, str):
+            d_date = parse_date(d_date_raw)
+        else:
+            d_date = d_date_raw           
+        
+        # Dynamic Queryset Filtering
+        qs = Transaction.admin_objects.all()
+
+        if account_id:
             try:
-                account_id = int(self.data.get('account'))
-                self.fields['payment_transaction'].queryset = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
-            except (ValueError, TypeError):
-                self.fields['payment_transaction'].queryset = Transaction.objects.none()
-        elif 'cat1' in self.initial:
-            try:
-                account_id = int(self.initial.get('account'))
-                self.fields['payment_transaction'].queryset = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
+                qs = qs.filter(account_destination_id=int(account_id)).order_by('date_actual')
+                
+                if s_date:
+                    filter_date = s_date - timedelta(days=15)
+                    qs = qs.filter(date_actual__gt=filter_date)
+                if d_date:
+                    filter_date = d_date + timedelta(days=75)
+                    qs = qs.filter(date_actual__lt=filter_date)
+                
+                self.fields['payment_transaction'].queryset = qs
             except (ValueError, TypeError):
                 self.fields['payment_transaction'].queryset = Transaction.objects.none()
         else:
-            self.fields['payment_transaction'].queryset = Transaction.objects.none()
+            # Fallback if no account is selected yet
+            self.fields['payment_transaction'].queryset = Transaction.view_objects.none()   
 
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
@@ -301,8 +332,8 @@ class StatementForm(forms.ModelForm):
                 css_class='row'
             ),
             Div(
-                Div('users_admin', css_class='form-group col-md-4  '),
-                Div('users_view', css_class='form-group col-md-4  '),
+                Div('users_admin', css_class='form-group col-md-4 border p-2', style="max-height: 200px; overflow-y: scroll;"),
+                Div('users_view', css_class='form-group col-md-4 border p-2', style="max-height: 200px; overflow-y: scroll;"),
                 css_class='row'
             ),
         )
@@ -1158,6 +1189,7 @@ class TransactionModalForm(BSModalModelForm):
         if len(self.data) != 0:
             # statement queryser somehow gets whiped out by the ajax requests anmd the form won't save.
             self.fields['statement'].queryset = Statement.admin_objects.order_by('-statement_date')
+            self.fields['vendor'].queryset = Vendor.admin_objects.all()
             # self.fields['cat2'].queryset = Cat2.admin_objects.filter(cat1=cat1)
             return
 
@@ -1273,7 +1305,6 @@ class TransactionModalForm(BSModalModelForm):
                     Column(
                         'verified', 
                         'receipt', 
-                        'is_deleted', 
                         'ismanual',
                         css_class='offset-2 col-8' 
                     ),
@@ -1282,13 +1313,14 @@ class TransactionModalForm(BSModalModelForm):
                     Column('budgetedevent', css_class='col-12'),
                 ),
                 Field('audit', type='hidden'),
+                Field('is_deleted', type='hidden'),
             ])
         else:
             self.helper.layout.extend([
                 Row(
                     Field('account_source', type='hidden'),
                     Field('audit', type='hidden'),
-                    Div('is_deleted', css_class='col-md-4'),
+                    Field('is_deleted', type='hidden'),
                 ),
                 Row(
                     Column('Unit_QTY', css_class='col-4'),
@@ -1296,25 +1328,41 @@ class TransactionModalForm(BSModalModelForm):
                 ),
             ])
 
-        self.helper.layout.extend([
-            Row(
-                    Column('comment', css_class='col-12'),
+        if task == 'Create':
+            # no delete button on creation form
+            self.helper.layout.extend([
+                Row(
+                        Column('comment', css_class='col-12'),
+                    ),
+                Row(
+                    Column(
+                        HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary">{task}</button>'),
+                    ),
+                    Column(
+                        HTML('<button type="button" name="cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>'),
+                    ),                
                 ),
-            Row(
-                Column(
-                    HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary">{task}</button>'),
+            ])
+        else:
+            self.helper.layout.extend([
+                Row(
+                        Column('comment', css_class='col-12'),
+                    ),
+                Row(
+                    Column(
+                        HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary">{task}</button>'),
+                    ),
+                    Column(
+                        HTML(f'<button type="button" class="btn btn-outline-danger me-auto delete-transaction-btn"'
+                            f'data-form-url="{reverse("budgetdb:delete_transaction", kwargs={"pk":self.instance.id} )}">'
+                            f'<span class="material-symbols-outlined align-middle">delete</span>'
+                            f'<span class="align-middle">Delete</span></button>'),
+                    ),
+                    Column(
+                        HTML('<button type="button" name="cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>'),
+                    ),                
                 ),
-                Column(
-                    HTML(f'<button type="button" class="btn btn-outline-danger me-auto delete-transaction-btn"'
-                         f'data-form-url="{reverse("budgetdb:delete_transaction", kwargs={"pk":self.instance.id} )}">'
-                         f'<span class="material-symbols-outlined align-middle">delete</span>'
-                         f'<span class="align-middle">Delete</span></button>'),
-                ),
-                Column(
-                    HTML('<button type="button" name="cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>'),
-                ),                
-            ),
-        ])
+            ])
 
 
 class TransactionFormFull(forms.ModelForm):

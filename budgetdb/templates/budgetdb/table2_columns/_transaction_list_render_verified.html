@@ -1,0 +1,4 @@
+{% if record.audit is False %}
+
+    <span class="material-symbols-outlined {% if record.verified %}VERIFIED{% else %}UNVERIFIED{% endif %}" onclick="toggleverifyT({{record.id}})" id="V{{record.id}}"></span>
+{% endif %}
