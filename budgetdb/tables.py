@@ -84,7 +84,7 @@ class AccountListTable(MySharingColumns, tables.Table):
                 categories += f' / '
             categories += f'<a href={reverse("budgetdb:account_max_redirect", kwargs={"pk": category.id})}>{category.name}</a>'
 
-        return format_html(categories)
+        return mark_safe(categories)
 
 
 def set_class_transaction(record):
@@ -339,7 +339,6 @@ class BudgetedEventListTable(MySharingColumns, tables.Table):
 
     def render_lastTransactionDate(self, value, record):
         if value == "No Transaction":
-            # return format_html('<div class="alert alert-danger" role="alert">{}</div>', value)
             return format_html('<button type="button" class="btn btn-danger">{}</button>', value)
         else:
             return format_html('{}', value)

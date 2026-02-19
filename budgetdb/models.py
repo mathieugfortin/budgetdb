@@ -72,7 +72,7 @@ class User(AbstractUser):
             user = self.first_name
             email = self.email
             subject = "Verify Email"
-            message = render_to_string('budgetdb/email_validation_message.html', {
+            message = render_to_string('budgetdb/user/email_validation_message.html', {
                 'user': user,
                 'domain': 'https://budget.patatemagique.biz/',
                 'uid':urlsafe_base64_encode(force_bytes(self.pk)),
@@ -321,12 +321,12 @@ class Invitation(MyMeta, BaseSoftDelete, ClassOwner):
         return reverse('budgetdb:list_invitation')
 
     def send_invite_email(self):
-        template = 'budgetdb/email_share_message.html'
+        template = 'budgetdb/user/email_share_message.html'
         subject = "Budget Sharing"
         try:
             invited_user = User.objects.get(email=self.email)
         except ObjectDoesNotExist:
-            template = 'budgetdb/email_invitation_message.html'
+            template = 'budgetdb/user/email_invitation_message.html'
             subject = "Budget Invitation"
 
         email = self.email

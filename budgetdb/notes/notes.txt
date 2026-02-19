@@ -89,3 +89,17 @@ create docker template for unraid:
 https://forums.unraid.net/topic/57181-docker-faq/#comment-566084
 
 script integrity hash generation: https://srihash.org/
+
+
+
+
+Run the Orphan Hunter: Delete any files that are definitely not used anymore to reduce the noise.
+python scripts/find_orphans.py
+
+Run the Dynamic URL Test: This gives you a "green light" that your current mapping works.
+
+Perform the Move: Rename your folders (e.g., move budgetdb/user/ to budgetdb/accounts/).
+
+Bulk Search & Replace: Update your views.py and {% extends %} tags.
+
+Run the Dynamic URL Test again: If any view fails with a 500, you missed a reference in that specific view.

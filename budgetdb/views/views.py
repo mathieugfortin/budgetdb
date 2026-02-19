@@ -1075,7 +1075,7 @@ class AccountDetailView(MyDetailView):
 
 class AccountSummaryView(MyListView):
     model = Account
-    template_name = 'budgetdb/account_list_summary.html'
+    template_name = 'budgetdb/account/account_list_summary.html'
 
     def get_queryset(self):
         accounts = Account.view_objects.all().order_by('account_host__name', 'name')
@@ -1098,7 +1098,7 @@ class AccountSummaryView(MyListView):
 
 class AccountYearReportDetailView(MyDetailView):
     model = Account
-    template_name = 'budgetdb/account_yearreportview.html'
+    template_name = 'budgetdb/account/account_yearreportview.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1116,7 +1116,7 @@ class AccountYearReportDetailView(MyDetailView):
 
 class AccountCatYearReportDetailView(MyDetailView):
     model = AccountCategory
-    template_name = 'budgetdb/account_yearreportview.html'
+    template_name = 'budgetdb/account/account_yearreportview.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1193,7 +1193,7 @@ class AccountHostListView(MyListView):
 class AccountHostDetailView(MyDetailView):
     model = AccountHost
     context_object_name = 'accounthost'
-    template_name = 'budgetdb/accounthost_detail.html'
+    template_name = 'budgetdb/account/accounthost_detail.html'
 
 
 class AccountHostUpdateView(MyUpdateView):
@@ -1660,7 +1660,7 @@ class IndexView(LoginRequiredMixin, TemplateView):
 class AccountTransactionListView(UserPassesTestMixin, MyListView):
     model = Account
     table_class = AccountActivityListTable
-    template_name = 'budgetdb/account_transactions_list.html'
+    template_name = 'budgetdb/account/account_transactions_list.html'
     begin = None
     end = None
     year = None
@@ -1770,7 +1770,7 @@ class UserVerifyLinkView(RedirectView):
 class UserSignupView(CreateView):
     model = User
     form_class = UserSignUpForm
-    template_name = 'budgetdb/user_register.html'
+    template_name = 'budgetdb/user/user_register.html'
 
     def form_valid(self, form):
         user = form.save()
@@ -1800,7 +1800,7 @@ class UserSignupView(CreateView):
 
 class UserLoginView(auth_views.LoginView):
     model = User
-    template_name = 'budgetdb/user_login.html'
+    template_name = 'budgetdb/user/user_login.html'
 
     def form_valid(self, form):
         login(self.request, form.get_user())
@@ -1819,8 +1819,12 @@ class UserLoginView(auth_views.LoginView):
 
 class UserPasswordResetView(auth_views.PasswordResetView):
     model = User
-    template_name = 'budgetdb/user_forgot_password.html'
-    email_template_name = "budgetdb/email_password_reset.html"
+    template_name = 'budgetdb/user/user_password_request_reset.html'
+    email_template_name = "budgetdb/user/email_password_reset_link.txt"
+    html_email_template_name = "budgetdb/user/email_password_reset_link.html"
+    success_url = reverse_lazy("budgetdb:password_reset_done")
+
+    extra_email_context = {'use_budgetdb_namespace': True}
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -1829,15 +1833,25 @@ class UserPasswordResetView(auth_views.PasswordResetView):
         # julie.save()
         form.helper = FormHelper()
         form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary  w-100 mt-3'))
+        form.helper.add_input(Submit('submit', 'Send instructions', css_class='btn-primary  w-100 mt-3'))
         return form
+
+
+class UserPasswordResetDoneView(auth_views.PasswordResetDoneView):
+    model = User
+    template_name = 'budgetdb/user/user_password_email_sent.html'
+
+
+class UserPasswordResetconfirmView(auth_views.PasswordResetConfirmView):
+    model = User
+    template_name = 'budgetdb/user/user_password_reset_confirm.html'
 
 
 class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
     model = User
     form_class = PasswordChangeForm
     success_url = reverse_lazy('budgetdb:home')
-    template_name = 'budgetdb/user_change_password.html'
+    template_name = 'budgetdb/user/user_password_update.html'
 
     def get_form_kwargs(self):
         kwargs = super(auth_views.PasswordChangeView, self).get_form_kwargs()
@@ -1852,8 +1866,6 @@ class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Change Password', css_class='btn-primary'))
         return form
-
-    
 
     def form_valid(self, form):
         form.save()

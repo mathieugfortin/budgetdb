@@ -410,7 +410,7 @@ def import_ofx_view(request):
                 request.session['pending_ofx_org'] = org
                 request.session['pending_ofx_fid'] = fid
                 request.session['ofx_serialized_list'] = serialized_list
-                return render(request, 'budgetdb/account_ofx_mapping.html', {
+                return render(request, 'budgetdb/account/account_ofx_mapping.html', {
                     'acct_id': ofx_id, 'org': org, 'accounts': Account.admin_objects.all()
                 })
         except Exception as e:

@@ -1,4 +1,4 @@
-from django.urls import path, register_converter, include
+from django.urls import path, re_path, register_converter, include
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.views.generic.base import RedirectView
 from django.contrib.auth import views as auth_views
@@ -43,7 +43,6 @@ app_name = 'budgetdb'
 
 urlpatterns = [
     
-    
     path('', views.IndexView.as_view(), name='index'),
 
     path('preference/getJSON', views.PreferenceGetJSON,
@@ -76,13 +75,9 @@ urlpatterns = [
          name='email_verification_link'),
     path('user/login/', views.UserLoginView.as_view(),
          name='login'),
-    path('user/password/reset/', views.UserPasswordResetView.as_view(),
-         name='password_reset'),
-    path('user/password/resetdone/', views.UserPasswordResetView.as_view(),
-         name='password_reset_done'),
     path('user/password/update', views.UserPasswordUpdateView.as_view(),
          name='password_update'),
-    path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/user_logout.html"),
+    path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/user/user_logout.html"),
          name='logout'),
 
     #invitation

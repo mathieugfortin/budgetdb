@@ -1,0 +1,14 @@
+To start a new session:
+Project Context: I'm working on a Django project called budgetdb.
+
+Tech Stack: Django 6.0, Bootstrap 5, Crispy Forms, and django-tables2. I'm using i18n_patterns with an en-ca prefix.
+
+Key Architecture:
+
+Namespace: My app uses app_name = 'budgetdb'.
+
+Auth: I'm using the built-in django.contrib.auth.urls but overriding templates in templates/registration/.
+
+Recent Progress: We just fixed the password reset flow and set up AJAX-dependent dropdowns for the StatementForm (filtering payment_transaction by account).
+
+Current Task: [Describe what you want to work on next]

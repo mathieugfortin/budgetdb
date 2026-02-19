@@ -47,7 +47,7 @@ responses==0.21.0
 sentry-sdk==2.52.0
 six==1.17.0
 soupsieve==2.8.3
-sqlparse==0.5.3
+sqlparse==0.5.5
 test_results_parser==0.6.1
 tomli==2.2.1
 tomlkit==0.13.3

@@ -20,12 +20,12 @@
 
 {% block script %}
     {% if contains_cat == True %}
-        {% include "budgetdb/js_unit_price.html" %}
+        {% include "budgetdb/js/js_unit_price.html" %}
     {% endif %}    
     {% if contains_currency == True %}
-        {% include "budgetdb/js_currency.html" %}
+        {% include "budgetdb/js/js_currency.html" %}
     {% endif %}    
     {% if contains_account == True %}
-        {% include "budgetdb/js_flip_accounts.html" %}
+        {% include "budgetdb/js/js_flip_accounts.html" %}
     {% endif %}    
 {% endblock %}
