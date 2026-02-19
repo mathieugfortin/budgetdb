@@ -1,8 +1,14 @@
 # Use an official Python runtime as a parent image
 FROM python:alpine
 ARG BUILD_DATE
-ARG VERSION="0.8"
+ARG VERSION="0.8.5"
 ARG GIT_COMMIT="unknown"
+
+# pass to eng variable
+ENV APP_BUILD_DATE=$BUILD_DATE
+ENV APP_VERSION=$VERSION
+ENV APP_GIT_SHA=$GIT_COMMIT
+
 LABEL build_version="version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="mathieugfortin"
 LABEL git_commit=$GIT_COMMIT

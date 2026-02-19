@@ -3,6 +3,7 @@ name: Docker Build, Scan, and Publish
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
 
 jobs:
   build-and-scan:
@@ -20,7 +21,8 @@ jobs:
         run: |
           docker build -t ghcr.io/${{ github.repository }}:test \
             --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-            --build-arg GIT_COMMIT=${{ github.sha }} .
+            --build-arg GIT_COMMIT=${{ github.sha }} \
+            --build-arg VERSION=${{ github.ref_name }} .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

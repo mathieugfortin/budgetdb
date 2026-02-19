@@ -3,14 +3,15 @@ from pathlib import Path
 import environ
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
-# import mimetypes
+import os
+
+
 
 # mimetypes.add_type("text/css", ".css", True)
 root = environ.Path(__file__) - 3  # get root of the project
 public_root = root.path('public/')
 env = environ.Env()
 environ.Env.read_env()  # reading .env file
-
 
 DEBUG = env.bool('DEBUG', default=False)
 TEMPLATE_DEBUG = DEBUG
@@ -99,6 +100,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'budgetdb.context_processors.theme_processor',
+                'budgetdb.context_processors.version_info',
             ],
         },
     },
@@ -172,3 +174,8 @@ EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_HOST_USER = env.str('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')
 
+# Versioning
+BUILD_DATE = os.getenv('APP_BUILD_DATE', 'Local Dev')
+GIT_SHA = os.getenv('APP_GIT_SHA', 'Head')[:7]  # Shorten the hash
+APP_VERSION = os.getenv('APP_VERSION', 'Dev-Local')
+GITHUB_REPO_URL = "https://github.com/mathieugfortin/budgetdb"
