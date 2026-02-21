@@ -245,7 +245,8 @@ class TransactionChoiceField(forms.ModelChoiceField):
 class StatementForm(forms.ModelForm):
     payment_transaction = TransactionChoiceField(
         queryset=Transaction.view_objects.none(), # Populated in __init__
-        empty_label="Select a transaction"
+        empty_label="Select a transaction",
+        required=False,
     )
     class Meta:
         model = Statement
@@ -258,6 +259,7 @@ class StatementForm(forms.ModelForm):
                 'comment',
                 'payment_transaction',
                 'is_deleted',
+                'verified_lock',
                 'users_admin',
                 'users_view',
             )
@@ -296,13 +298,18 @@ class StatementForm(forms.ModelForm):
                 if d_date:
                     filter_date = d_date + timedelta(days=75)
                     qs = qs.filter(date_actual__lt=filter_date)
-                
-                self.fields['payment_transaction'].queryset = qs
+                if self.instance.pk and self.instance.payment_transaction:
+                    # Ensure the already saved transaction is in the queryset 
+                    # even if it falls slightly outside your 15/75 day logic
+                    qs = qs | Transaction.objects.filter(pk=self.instance.payment_transaction.pk)
+                self.fields['payment_transaction'].queryset = qs.distinct()
             except (ValueError, TypeError):
                 self.fields['payment_transaction'].queryset = Transaction.objects.none()
         else:
             # Fallback if no account is selected yet
             self.fields['payment_transaction'].queryset = Transaction.view_objects.none()   
+
+
 
         self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
         self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
@@ -313,12 +320,11 @@ class StatementForm(forms.ModelForm):
                 Div('account', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
-            Div(
-                Div('statement_date', css_class='form-group col-md-4'),
-                Div('balance', css_class='form-group col-md-2'),
-                Div('minimum_payment', css_class='form-group col-md-2 '),
-                Div('statement_due_date', css_class='form-group col-md-4 '),
-                css_class='row'
+            Row(
+                Column('statement_date', css_class='form-group col-md-4'),
+                Column('balance', css_class='form-group col-md-2'),
+                Column('minimum_payment', css_class='form-group col-md-2 '),
+                Column('statement_due_date', css_class='form-group col-md-4 '),
             ),
             Div(
                 Div('comment', css_class='form-group col-md-6  '),
@@ -328,9 +334,9 @@ class StatementForm(forms.ModelForm):
                 Div('payment_transaction', css_class='form-group col-md-6  '),
                 css_class='row'
             ),
-            Div(
-                Div('is_deleted', css_class='form-group col-md-6  '),
-                css_class='row'
+            Row(
+                Column('is_deleted', css_class='form-group col-md-6  '),
+                Column('verified_lock', css_class='form-group col-md-6  '),
             ),
             Div(
                 Div('users_admin', css_class='form-group col-md-4 border p-2', style="max-height: 200px; overflow-y: scroll;"),
@@ -1222,7 +1228,7 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['account_source'].label = 'Source'
         self.fields['account_destination'].queryset = Account.admin_objects.all()
         self.fields['account_destination'].label = 'Destination'
-        self.fields['statement'].queryset = Statement.admin_objects.order_by('-statement_date')
+        self.fields['statement'].queryset = Statement.admin_objects.order_by('-statement_date').exclude(verified_lock=True)
         self.fields['statement'].widget.attrs.update({
                                                 'class': 'django-select2',
                                                 'data-width': '100%' # Optional: helps Select2 fit inside modal widths
@@ -1233,6 +1239,13 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['currency'].queryset = preference.currencies
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
+        if self.instance and self.instance.fit_id:
+            self.fields['date_actual'].widget.attrs['disabled'] = True
+            # Optional: Add a helper text to explain why it's locked
+            self.fields['date_actual'].help_text = "Locked because the data is imported by OFX."
+            self.fields['amount_actual'].widget.attrs['disabled'] = True
+            # Optional: Add a helper text to explain why it's locked
+            self.fields['amount_actual'].help_text = "Locked because the data is imported by OFX."
         # will I need to add all labels here for translations?
         # self.fields['amount_actual'].label = "Amount"
 
@@ -1307,6 +1320,7 @@ class TransactionModalForm(BSModalModelForm):
                         'verified', 
                         'receipt', 
                         'ismanual',
+                        'is_deleted',
                         css_class='offset-2 col-8' 
                     ),
                 ),
@@ -1314,7 +1328,7 @@ class TransactionModalForm(BSModalModelForm):
                     Column('budgetedevent', css_class='col-12'),
                 ),
                 Field('audit', type='hidden'),
-                Field('is_deleted', type='hidden'),
+                # Field('is_deleted', type='hidden'),
             ])
         else:
             self.helper.layout.extend([

@@ -278,6 +278,8 @@ urlpatterns = [
          name='create_statement'),
     path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
+    path('statement/toggleverify/<int:pk>/', views.StatementVerifyToggle,
+         name='toggleverifystatement_json'),
 
     ##########################################################################################################
     # Template

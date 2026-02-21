@@ -65,6 +65,8 @@
     (function($) {
         $(function() {
             // 1. DATA INITIALIZATION
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
             const allCat1s = {{ cat1_json|safe }};
             // HELPER FUNCTION TO HIDE SELECT2 AND SHOW SPAN
             function hideSelect2($select) {
@@ -107,15 +109,6 @@
                 $newSelect.on('select2:close', function() {
                     hideSelect2($(this));
                 });
-                // Initialize Select2 on the newly created element
-                //const $newSelect = $container.find('select');
-                //$newSelect.select2({
-                //    width: '100%',
-                //    minimumResultsForSearch: Infinity // Hides the search box for a cleaner look
-                //});
-
-                // The Magic Line: This forces the dropdown to open immediately
-                //$newSelect.select2('open');
             });
 
             // 3. AJAX SAVING (Cat1)

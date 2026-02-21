@@ -136,6 +136,11 @@
     appearance: auto;
 }
 
+.select2-container--default .select2-results>.select2-results__options {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
 @keyframes highlight-pulse {
     0% { background-color: transparent; }
     30% { background-color: #fff3cd; } /* A soft warning yellow */

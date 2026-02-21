@@ -1,4 +1,4 @@
-{% extends 'budgetdb/generic_form.html' %}
+{% extends 'budgetdb/base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -7,45 +7,40 @@
 {% csrf_token %}
 
 {% block content %}
-  <h2>Statement</h2>
-  {% load crispy_forms_tags %}
-  {% if context.form_invalid %}
-    <div class="alert alert-danger" role="alert">
-        {{ context.form_invalid }}
-    </div>
-  {% endif %}
-  {% crispy form %}
+    <h2>Statement</h2>
+    {% load crispy_forms_tags %}
+    {% if context.form_invalid %}
+        <div class="alert alert-danger" role="alert">
+            {{ context.form_invalid }}
+        </div>
+    {% endif %}
+    {% crispy form %}
 {% endblock %}
 {% block script %}
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    <script>
+        $(document).ready(function() {  <!--  read me!!!   -->
+            // Listen for changes on the account dropdown
+            $("#id_account, #id_statement_date").change(function () {
+                debugger
+                const url = "{% url 'budgetdb:ajax_load_payment_transaction' %}";
+                const accountId = $("#id_account").val();
+                const sDate = $("#id_statement_date").val();
 
-<script>
-
-$(document).ready(function() {
-    // Listen for changes on the account dropdown
-    $('#id_account').change(function() {
-        const url = "{% url 'budgetdb:ajax_load_payment_transaction' %}";
-        const accountId = $(this).val();
-
-        $.ajax({
-            url: url,
-            data: { 'account_id': accountId },
-            success: function(data) {
-                let $paymentSelect = $('#id_payment_transaction');
-                
-                // Clear existing options
-                $paymentSelect.empty();
-                $paymentSelect.append('<option value="">Select a transaction</option>');
-                
-                // Add new options from AJAX response
-                $.each(data, function(index, item) {
-                    $paymentSelect.append(
-                        $('<option>', { value: item.id, text: item.text })
-                    );
+                $.ajax({
+                    url: url,
+                    data: {
+                        'account_id': accountId,
+                        'statement_date': sDate
+                    },
+                    success: function(data) {
+                            let html_data = '<option value="">Select a transaction</option>';
+                            data.forEach(function (item) {
+                                html_data += `<option value="${item.id}">${item.text}</option>`;
+                            });
+                            $("#id_payment_transaction").html(html_data);
+                    }
                 });
-            }
+            });
         });
-    });
-});
-</script>
+    </script>
 {% endblock %}

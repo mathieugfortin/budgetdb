@@ -274,13 +274,12 @@ class AccountActivityListTable(tables.Table):
         else:
             pass
 
-
-
     def render_addaudit(self, value, record):
         if record.audit:
             return format_html('{amount}{symbol}',
                                 amount=record.amount_actual,
                                 symbol=self.account_currency_symbol)        
+
         balance_str = get_balance_token(self.linebalance)
         reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",
                               kwargs={"accountpk": self.account.pk,
@@ -458,10 +457,14 @@ class TransactionListTable(tables.Table):
 class StatementListTable(MySharingColumns, tables.Table):
     account_host = tables.Column(verbose_name='Host', empty_values=(), orderable=False)
     reconciled = tables.Column(empty_values=(), verbose_name="Reconciled")
-
+    verified_lock = tables.Column(
+        orderable=True, 
+        verbose_name='Verified and locked',
+        empty_values=(),
+    )
     class Meta:
         model = Statement
-        fields = ("account_host", "account", "statement_date", "balance", "statement_due_date", "payment_transaction", "reconciled")
+        fields = ("account_host", "account", "statement_date", "balance", "statement_due_date", "payment_transaction", "reconciled", "verified_lock")
         attrs = {"class": "table table-hover table-striped"}
         # per_page = 30
 
@@ -502,10 +505,49 @@ class StatementListTable(MySharingColumns, tables.Table):
         if total is None:
             total = Decimal(0.00)
         if record.balance == total:
-            return mark_safe('<b style="color: green;">OK</b>')
+            unverified_count = Transaction.objects.filter(statement_id=record.id,verified=False,is_deleted=False).count()
+            if unverified_count>0:
+                return format_html('<b style="color: green;">OK but {} transactions are not verified', unverified_count)
+            else:
+                return mark_safe('<b style="color: green;">OK All verified</b>')
         delta = record.balance - total
         formatted_delta = "{:.2f}".format(delta)
         return format_html('<b style="color: red;">Total: {} Delta: {}{}</b>',total, formatted_delta,record.account.currency.symbol)
+
+    def render_verified_lock(self, value, record):
+        if value:
+            icon = "lock"
+            tooltip = "Click to Unlock"
+            css_class = "lock-icon-verified"
+        else:
+            icon = "lock_open"
+            tooltip = "Click to Verify"
+            css_class = "lock-icon-unverified"
+        
+        toggle_url = reverse('budgetdb:toggleverifystatement_json', kwargs={'pk': record.pk})
+        return format_html(
+            '''
+            <style>
+                .lock-wrapper {{ transition: transform 0.2s; display: inline-block; }}
+                .lock-wrapper:hover {{ transform: scale(1.2); cursor: pointer; }}
+                .lock-icon-verified {{ 
+                    display: inline-flex; align-items: center; justify-content: center; 
+                    background-color: #2e7d32; color: white; border-radius: 50%; 
+                    width: 30px; height: 30px; font-size: 18px; 
+                }}
+                .lock-icon-unverified {{ 
+                    color: #9e9e9e; font-size: 30px; vertical-align: middle; 
+                }}
+            </style>
+            <a href="{0}" title="{1}" class="lock-wrapper">
+                <span class="material-symbols-outlined {2}">{3}</span>
+            </a>
+            ''',
+            toggle_url,
+            tooltip,
+            css_class,
+            icon
+        )
 
 
 class VendorListTable(MySharingColumns, tables.Table):

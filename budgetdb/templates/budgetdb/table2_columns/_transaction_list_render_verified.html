@@ -1,4 +1,14 @@
 {% if record.audit is False %}
-
-    <span class="material-symbols-outlined {% if record.verified %}VERIFIED{% else %}UNVERIFIED{% endif %}" onclick="toggleverifyT({{record.id}})" id="V{{record.id}}"></span>
+    {% if record.statement.verified_lock is True %}
+        <span class="material-symbols-outlined" 
+            style="color: #1a7e2e; vertical-align: middle;" 
+            data-bs-toggle="tooltip" 
+            data-bs-placement="top" 
+            data-bs-title="Locked with the statement"
+            title="Statement Verified">
+            shield_lock
+        </span>
+    {% else %}
+        <span class="material-symbols-outlined {% if record.verified %}VERIFIED{% else %}UNVERIFIED{% endif %}" onclick="toggleverifyT({{record.id}})" id="V{{record.id}}"></span>
+    {% endif %}
 {% endif %}

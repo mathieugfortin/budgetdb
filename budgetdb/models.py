@@ -1462,6 +1462,12 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
             for dirty in dirties:
                 dirty.set_delta_and_dirty()
 
+    def soft_delete(self):
+        super().soft_delete()
+        if self.verified and self.statement:
+            self.statement.verified_lock = False
+            self.statement.save()
+
 
 class BaseRecurring(models.Model):
     class Meta:
@@ -1725,6 +1731,7 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
     comment = models.CharField(max_length=200, blank=True, null=True)
     payment_transaction = models.ForeignKey('Transaction', on_delete=models.CASCADE, related_name='payment_transaction',
                                             blank=True, null=True)
+    verified_lock = models.BooleanField('Total is good, all transactions verified, lock status', default=False)
 
     def __str__(self):
         # return self.account.name + " " + self.statement_date.strftime('%Y-%m-%d')

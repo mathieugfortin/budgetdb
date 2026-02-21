@@ -48,3 +48,19 @@ jobs:
           docker tag ghcr.io/${{ github.repository }}:test ghcr.io/${{ github.repository }}:latest
           docker tag ghcr.io/${{ github.repository }}:test ghcr.io/${{ github.repository }}:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }} --all-tags
+
+create-release:
+    needs: build-and-scan # Only run if the docker build actually worked
+    if: startsWith(github.ref, 'refs/tags/') # Only run if this was a tag push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          # This will automatically use your tag name (v0.8.2) as the title          

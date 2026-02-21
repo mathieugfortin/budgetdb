@@ -1,5 +1,4 @@
 from django import forms
-
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
@@ -8,6 +7,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
+from django.utils.dateparse import parse_date
 from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
 from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
@@ -16,7 +16,7 @@ from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Acco
 from budgetdb.models import JoinedTransactions, AccountBalanceDB
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
@@ -32,17 +32,31 @@ import json
 # Transactions
 
 def ajax_load_transaction_payments(request):
-    account_id = request.GET.get('account_id')
-    # Use the same logic as your form __init__
-    transactions = Transaction.admin_objects.filter(
-        account_destination_id=account_id
-    ).order_by('date_actual')
-    
-    # Return a list of dicts: [{'id': 1, 'text': 'Date - Desc - Amount'}, ...]
-    data = [
-        {'id': tx.id, 'text': f"{tx.date_actual} - {tx.description} ({tx.amount_actual})"} 
-        for tx in transactions
-    ]
+    try:
+        account_id = int(request.GET.get('account_id', 0))
+    except (ValueError, TypeError):
+        return JsonResponse([], safe=False)
+
+    s_date_raw = request.GET.get('statement_date')
+
+
+    if isinstance(s_date_raw, str):
+        s_date = parse_date(s_date_raw)
+    else:
+        s_date = s_date_raw           
+
+    transactions = Transaction.objects.none()
+    if s_date_raw == '' or s_date is None:
+        transactions = Transaction.admin_objects.filter(
+            account_destination=account_id,
+        ).order_by('date_actual')
+    elif Account.admin_objects.filter(id=account_id).first():
+        transactions = Transaction.admin_objects.filter(
+            account_destination=account_id,
+            date_actual__gt=s_date-timedelta(days=20),
+            date_actual__lt=s_date+timedelta(days=90)
+        ).order_by('date_actual')
+    data = [{'id': t.id, 'text': f'{t.date_actual} -  {t.amount_actual} - {t.description}'} for t in transactions]
     return JsonResponse(data, safe=False)
 
 
@@ -193,8 +207,14 @@ class TransactionCreateViewFromDateAccount(LoginRequiredMixin, CreateView):
 
 def load_payment_transaction(request):
     account_id = request.GET.get('account')
-    transactions = Transaction.admin_objects.filter(account_destination=account_id,).order_by('date_actual')
-    return render(request, 'budgetdb/get_payment_transaction_dropdown_list.html', {'transactions': transactions})
+    s_date = request.GET.get('statement_date')
+    transactions = Transaction.admin_objects.filter(
+        account_destination=account_id,
+        date_actual__gt=s_date-timedelta(days=20),
+        date_actual__lt=s_date+timedelta(days=90)
+    ).order_by('date_actual')
+    data = [{'id': t.id, 'text': f'{t.date_actual} - {t.description}'} for t in transactions]
+    return JsonResponse(data, safe=False)
 
 
 class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCreateView):
@@ -704,6 +724,7 @@ class TransactionUnverifiedListView(MyListView):
     def get_queryset(self):
         return self.model.view_objects.filter(is_deleted=0, verified=0, audit=0, date_actual__lt=date.today()).order_by('date_actual')
 
+
 def load_manual_transactionsJSON(request):
 
     if request.user.is_authenticated is False:
@@ -716,6 +737,7 @@ def load_manual_transactionsJSON(request):
         array.append([{"pk": entry.pk}, {"date": entry.date_actual}, {"description": entry.description}, {"amount": entry.amount_actual}])
 
     return JsonResponse(array, safe=False)
+
 
 class TransactionManualListView(MyListView):
     model = Transaction

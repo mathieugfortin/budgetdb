@@ -1587,7 +1587,15 @@ class StatementDetailView(MyDetailView):
                                                                           audit=False,
                                                                           statement__isnull=True
                                                                           ) #.exclude(statement=statement).order_by('date_actual')
-                        
+
+        statement.possible_transactions = statement.possible_transactions | Transaction.admin_objects.filter(account_source=statement.account,
+                                                                          date_actual__lte=self.date_max,
+                                                                          date_actual__gt=self.date_min,
+                                                                          audit=False,
+                                                                          verified=False
+                                                                          ).exclude(statement=statement)
+
+        statement.possible_transactions= statement.possible_transactions.order_by('date_actual')
         transactions_sumP = statement.possible_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum')
         statement.transactions_sumP = transactions_sumP
         return statement
@@ -1614,6 +1622,21 @@ class StatementUpdateView(MyUpdateView):
 class StatementCreateView(MyCreateView):
     model = Statement
     form_class = StatementForm
+    template_name = 'budgetdb/statement_form.html'
+
+# views.py
+def StatementVerifyToggle(request, pk):
+    if request.user.is_authenticated is False:
+        return JsonResponse({}, status=401)
+
+    obj = get_object_or_404(Statement, pk=pk)
+    if not obj:
+        return HttpResponse(status=404)
+    if obj.can_edit():
+        obj.verified_lock = not obj.verified_lock
+        obj.save()
+        return redirect('budgetdb:list_statement')
+    return HttpResponse(status=401)
 
 
 ###################################################################################################################
@@ -1815,36 +1838,6 @@ class UserLoginView(auth_views.LoginView):
         form.helper.form_method = 'POST'
         form.helper.add_input(Submit('submit', 'Log in', css_class='btn-primary w-100 mt-3'))
         return form
-
-
-class UserPasswordResetView(auth_views.PasswordResetView):
-    model = User
-    template_name = 'budgetdb/user/user_password_request_reset.html'
-    email_template_name = "budgetdb/user/email_password_reset_link.txt"
-    html_email_template_name = "budgetdb/user/email_password_reset_link.html"
-    success_url = reverse_lazy("budgetdb:password_reset_done")
-
-    extra_email_context = {'use_budgetdb_namespace': True}
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # julie = User.objects.get(first_name='julie')
-        # julie.set_password('etpatatietpatata')
-        # julie.save()
-        form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Send instructions', css_class='btn-primary  w-100 mt-3'))
-        return form
-
-
-class UserPasswordResetDoneView(auth_views.PasswordResetDoneView):
-    model = User
-    template_name = 'budgetdb/user/user_password_email_sent.html'
-
-
-class UserPasswordResetconfirmView(auth_views.PasswordResetConfirmView):
-    model = User
-    template_name = 'budgetdb/user/user_password_reset_confirm.html'
 
 
 class UserPasswordUpdateView(LoginRequiredMixin, auth_views.PasswordChangeView):
