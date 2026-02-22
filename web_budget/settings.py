@@ -29,11 +29,6 @@ LOGOUT_REDIRECT_URL = reverse_lazy('budgetdb:home')
 
 SECRET_KEY = env.str('SECRET_KEY')
 
-ALLOWED_HOSTS = [
-    env.str('APP_HOST1', default='localhost'),
-    env.str('APP_HOST2', default='127.0.0.1'),
-]
-
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1','172.18.0.17'])
 
 # Application definition
@@ -72,6 +67,12 @@ CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
                         'http://code-server.patatemagique.biz:880',
                         'https://budget.patatemagique.biz',
                         ]
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
