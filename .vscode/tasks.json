@@ -1,0 +1,23 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🚀 Ship Version (Commit + Tag + Push)",
+            "type": "shell",
+            "command": "git add . && git commit -m 'Release ${input:version}' && git tag -a ${input:version} -m 'Release ${input:version}' && git push origin main --follow-tags",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "version",
+            "type": "promptString",
+            "description": "Enter version (e.g., v1.0.5)",
+            "default": "v1.0.0"
+        }
+    ]
+}

@@ -1,4 +1,7 @@
 {% if record.audit is False %}
+    {% if record.fit_id  %}
+        <span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: -30%;">handshake</span>
+    {% endif %}
     {% if record.statement.verified_lock is True %}
         <span class="material-symbols-outlined" 
             style="color: #1a7e2e; vertical-align: middle;" 
@@ -9,6 +12,10 @@
             shield_lock
         </span>
     {% else %}
-        <span class="material-symbols-outlined {% if record.verified %}VERIFIED{% else %}UNVERIFIED{% endif %}" onclick="toggleverifyT({{record.id}})" id="V{{record.id}}"></span>
+        <span class="material-symbols-outlined {% if record.verified %}VERIFIED{% else %}UNVERIFIED{% endif %}"
+            style="vertical-align: -30%;" 
+            onclick="toggleverifyT({{record.id}})" 
+            id="V{{record.id}}">
+        </span>
     {% endif %}
 {% endif %}

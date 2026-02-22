@@ -1,3 +1,7 @@
 {% if record.audit is False %}
-    <span class="material-symbols-outlined {% if record.receipt %}RECEIPT{% else %}NORECEIPT{% endif %}" onclick="togglereceiptT({{record.id}})" id="R{{record.id}}"></span>
+    <span class="material-symbols-outlined {% if record.receipt %}RECEIPT{% else %}NORECEIPT{% endif %}" 
+        onclick="togglereceiptT({{record.id}})" 
+        style="vertical-align: -30%;" 
+        id="R{{record.id}}">
+    </span>
 {% endif %}

@@ -9,8 +9,11 @@ import os
 
 # mimetypes.add_type("text/css", ".css", True)
 root = environ.Path(__file__) - 3  # get root of the project
+BASE_DIR = Path(__file__).resolve().parent.parent
 public_root = root.path('public/')
-env = environ.Env()
+env = environ.Env(
+    DEBUG=(bool, False)
+)
 environ.Env.read_env()  # reading .env file
 
 DEBUG = env.bool('DEBUG', default=False)
