@@ -1,6 +1,7 @@
 # Use an official Python runtime as a parent image
 FROM python:alpine
 ARG BUILD_DATE
+ARG VERSION="0.8.5"
 ARG GIT_COMMIT="unknown"
 
 # pass to eng variable
@@ -33,9 +34,13 @@ RUN apk add --no-cache mariadb-connector-c-dev \
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# RUN DJANGO_MODE=build python manage.py collectstatic --noinput
-# if there is a secret key error...
-RUN SECRET_KEY=dummy-key-for-build python manage.py collectstatic --noinput
+RUN SECRET_KEY=dummy \
+    DB_NAME=dummy \
+    DB_USER=dummy \
+    DB_PASSWORD=dummy \
+    DB_HOST=localhost \
+    DB_PORT=3306 \
+    python manage.py collectstatic --noinput
 
 # Make port 8005 available to the world outside this container
 EXPOSE 8005
