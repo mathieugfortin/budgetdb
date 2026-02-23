@@ -279,6 +279,8 @@ class Preference(models.Model):
     slider_stop = models.DateField(blank=True)
     timeline_stop = models.DateField(blank=True, null=True)
     timeline_start = models.DateField(blank=True, null=True)
+    statement_buffer_before = models.IntegerField('days before statement date in transactionlist view', default=36)
+    statement_buffer_after = models.IntegerField('days before statement date in transactionlist view', default=0)
     currencies = models.ManyToManyField("Currency", related_name="currencies")
     currency_prefered = models.ForeignKey("Currency",
                                           on_delete=models.DO_NOTHING,

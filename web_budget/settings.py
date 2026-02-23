@@ -30,7 +30,7 @@ LOGIN_URL = reverse_lazy('budgetdb:login')
 LOGOUT_REDIRECT_URL = reverse_lazy('budgetdb:home')
 
 
-SECRET_KEY = env.str('SECRET_KEY')
+SECRET_KEY = env.str('SECRET_KEY',default='notsosecret')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1','172.18.0.17'])
 

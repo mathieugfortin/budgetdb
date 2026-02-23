@@ -223,6 +223,7 @@ class AccountActivityListTable(tables.Table):
         self.account_currency_symbol = self.account.currency.symbol
         self.balances = self.account.get_balances(self.begin, self.end)
         self.request = kwargs.pop("request", None)
+        self.statement = kwargs.pop('statement')
         self.all_cat1s = list(Cat1.admin_objects.all())
         #############################################################################################################
         # Logic: Only show balance if we are sorted by date (descending or ascending)

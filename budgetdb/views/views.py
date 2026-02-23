@@ -1558,9 +1558,10 @@ class StatementDetailView(MyDetailView):
 
     def get_object(self, queryset=None):
         statement = super().get_object(queryset=queryset)
+        preference = Preference.objects.get(user=self.request.user.id)
         statement.editable = statement.can_edit()
         # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
-        self.date_min = statement.statement_date - timedelta(days=36)
+        self.date_min = statement.statement_date - timedelta(days=preference.statement_buffer_before)
         self.title = f'Statement {statement.statement_date} for {statement.account}'
         statement.included_transactions = statement.transactions.filter(is_deleted=False).order_by('date_actual')
         if statement.included_transactions.count() > 0:
@@ -1580,7 +1581,7 @@ class StatementDetailView(MyDetailView):
             statement.errorsign = '-'
             statement.error = -statement.error
         
-        self.date_max = statement.statement_date
+        self.date_max = statement.statement_date + timedelta(days=preference.statement_buffer_after)
         statement.possible_transactions = Transaction.admin_objects.filter(account_source=statement.account,
                                                                           date_actual__lte=self.date_max,
                                                                           date_actual__gt=self.date_min,
@@ -1689,6 +1690,7 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
     year = None
     create = False
     account = None
+    statement = None
     # SingleTableView.table_pagination = False
 
     def test_func(self):
@@ -1718,26 +1720,36 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
            'begin': self.begin,
            'end': self.end,
            'request': self.request,
+           'statement': self.statement,
        }
 
     def get_queryset(self):
-        pk = self.kwargs.get('pk')
         preference = Preference.objects.get(user=self.request.user.id)
+        # extract URL data
+        pk = self.kwargs.get('pk')
         date1 = self.kwargs.get('date1')
         date2 = self.kwargs.get('date2')
+        statement_pk = self.kwargs.get('statement_pk')
+        self.account = Account.objects.get(pk=pk)
+        self.title = self.account.name
+        self.begin = preference.slider_start
+        self.end = preference.slider_stop
+
+        # overload preferences for a specific statement
+        if statement_pk is not None:
+            statement = Statement.view_objects.get(id=statement_pk)
+            if statement:
+                self.statement = statement.pk
+                self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
+                self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
+
+        # overload dates preferences with custom dates
         if date1 is not None and date2 is not None:
             self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
             self.end = datetime.strptime(date2, "%Y-%m-%d").date()
-            preference.slider_start = self.begin
-            preference.slider_stop = self.end
-            preference.save() 
-        else:
-            self.begin = preference.slider_start
-            self.end = preference.slider_stop
-        self.year = preference.slider_stop.year
-        self.account = Account.objects.get(pk=pk)
-        self.title = self.account.name
 
+        self.year = self.begin.year
+        
         childaccounts = Account.view_objects.filter(account_parent_id=pk, is_deleted=False)
         accounts = childaccounts | Account.view_objects.filter(pk=pk)
         events_source = Transaction.view_objects.filter(account_source__in=accounts,date_actual__gte=self.begin,date_actual__lte=self.end)

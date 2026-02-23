@@ -1,3 +1,7 @@
 {% if record.statement %}
-    <a href="{% url 'budgetdb:details_statement' record.statement.id %}" class="btn btn-outline-primary btn-sm"> {{ record.statement.statement_date|date:"Y-m-d" }} </a>
+    {% if view.statement == record.statement.id %}
+        <a href="{% url 'budgetdb:details_statement' record.statement.id %}" class="btn btn-primary btn-sm"> {{ record.statement.statement_date|date:"Y-m-d" }} </a>
+    {% else %}
+        <a href="{% url 'budgetdb:details_statement' record.statement.id %}" class="btn btn-outline-primary btn-sm"> {{ record.statement.statement_date|date:"Y-m-d" }} </a>
+    {% endif %}    
 {% endif %}

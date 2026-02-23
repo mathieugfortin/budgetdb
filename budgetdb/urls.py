@@ -141,6 +141,8 @@ urlpatterns = [
     #   name='list_account_activity2'),
     path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity'),
+    path('account/listactivity/<int:pk>/<int:statement_pk>/', views.AccountTransactionListView.as_view(),
+         name='list_account_activity_statement'),         
     path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.AccountTransactionListView.as_view(),
          name='list_account_activity_period'),
     #path('transaction/update_modal/<int:accountpk>/<int:pk>/', views.TransactionModalUpdate.as_view(),
