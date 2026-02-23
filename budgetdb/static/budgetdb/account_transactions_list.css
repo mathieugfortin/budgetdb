@@ -152,3 +152,10 @@
     border-radius: 4px;
 }
 
+.input-disabled {
+    background-color: #e9ecef; /* Light grey background */
+    color: #6c757d;           /* Muted text color */
+    cursor: not-allowed;      /* Shows the "no" circle on hover */
+    border-color: #dee2e6;
+    pointer-events: none;     /* Optional: disables click-to-focus */
+}

@@ -1240,11 +1240,12 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
         if self.instance and self.instance.fit_id:
-            self.fields['date_actual'].widget.attrs['disabled'] = True
-            # Optional: Add a helper text to explain why it's locked
+            #self.fields['date_actual'].widget.attrs['disabled'] = True
+            self.fields['date_actual'].widget.attrs['readonly'] = True
+            self.fields['amount_actual'].widget.attrs['readonly'] = True
+            self.fields['date_actual'].widget.attrs['class'] = 'input-disabled'
+            self.fields['amount_actual'].widget.attrs['class'] = 'input-disabled'
             self.fields['date_actual'].help_text = "Locked because the data is imported by OFX."
-            self.fields['amount_actual'].widget.attrs['disabled'] = True
-            # Optional: Add a helper text to explain why it's locked
             self.fields['amount_actual'].help_text = "Locked because the data is imported by OFX."
         # will I need to add all labels here for translations?
         # self.fields['amount_actual'].label = "Amount"

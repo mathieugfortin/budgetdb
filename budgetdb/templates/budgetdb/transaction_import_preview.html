@@ -58,9 +58,15 @@
                     <tr class="{% if tx.status == 'duplicate' %}table-light text-muted{% endif %}">
                         <td>{{ tx.date }}</td>
                         <td>
-                            {{ tx.description }}
                             {% if tx.vendor_id %}
-                                <br><span class="badge bg-info">Mapped to {{ tx.vendor_name }}</span>
+                                <span class="badge rounded-pill border text-primary bg-light fw-normal px-2 py-1">
+                                    <span class="material-symbols-outlined style="font-size: 14px; vertical-align: middle;">store</span>
+                                        {{ tx.vendor_name }}
+                                </span>
+                            {% endif %}
+                            {{ tx.description }}
+                            {% if tx.existing_desc %}
+                                <br><span class="badge bg-info">{{ tx.existing_desc }}</span>
                             {% endif %}
                         </td>
                         <td>{{ tx.amount }}</td>

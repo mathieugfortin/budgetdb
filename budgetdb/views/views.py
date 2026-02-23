@@ -1560,7 +1560,7 @@ class StatementDetailView(MyDetailView):
         statement = super().get_object(queryset=queryset)
         statement.editable = statement.can_edit()
         # statement.included_transactions = Transaction.view_objects.filter(statement=statement).order_by('date_actual')
-        self.date_min = statement.statement_date - timedelta(days=34)
+        self.date_min = statement.statement_date - timedelta(days=36)
         self.title = f'Statement {statement.statement_date} for {statement.account}'
         statement.included_transactions = statement.transactions.filter(is_deleted=False).order_by('date_actual')
         if statement.included_transactions.count() > 0:

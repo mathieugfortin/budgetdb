@@ -159,6 +159,7 @@ def analyze_ofx_serialized_data(serialized_list, account):
         status = "new"
         existing_id = None
         matched_vendor_id = None
+        existing_desc = None
         
         # 1. Duplicate Check
         if Transaction.view_objects.filter(fit_id=item['fit_id']).exists():
@@ -171,10 +172,18 @@ def analyze_ofx_serialized_data(serialized_list, account):
                 amount_actual=item['amount'], 
                 fit_id__isnull=True
             ).exclude(pk__in=matched_ids).first()  #exclude already matched transactions
-            
+            if not match:
+                pass
+                match = Transaction.admin_objects.filter(
+                    account_destination=account,
+                    date_actual=item['date'], 
+                    amount_actual=-item['amount'], 
+                    fit_id__isnull=True
+                ).exclude(pk__in=matched_ids).first()  #exclude already matched transactions
             if match:
                 status = "match"
                 existing_id = match.id
+                existing_desc = match.description
                 matched_ids.append(match.id) # list of already matched transactions
             else:
                 # 3. Vendor Match
@@ -188,6 +197,7 @@ def analyze_ofx_serialized_data(serialized_list, account):
             'status': status,
             'existing_id': existing_id,
             'vendor_id': matched_vendor_id,
+            'existing_desc': existing_desc,
             'vendor_name': Vendor.objects.get(id=matched_vendor_id).name if matched_vendor_id else ""
         })
         final_data.append(item)
