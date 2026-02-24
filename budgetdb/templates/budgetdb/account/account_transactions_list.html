@@ -111,6 +111,42 @@
                 });
             });
 
+            // 2.5 delete handling
+            $(document).on("click", ".show-delete-confirm", function () {
+                const $normal = $("#normal-actions");
+                const $delete = $("#delete-section");
+
+                $normal.slideUp(200, function () {
+                    $delete.hide().removeClass("d-none").slideDown(250);
+                });
+            });
+
+            // Cancel delete
+            $(document).on("click", ".cancel-delete", function () {
+                const $normal = $("#normal-actions");
+                const $delete = $("#delete-section");
+
+                $delete.slideUp(200, function () {
+                    $delete.addClass("d-none");
+                    $normal.slideDown(250);
+                });
+            });
+
+            $(document).on("click", ".confirm-delete", function () {
+
+                const $form = $(this).closest("form");
+
+                // Remove any existing delete input
+                $form.find("input[name='delete']").remove();
+
+                // Add hidden delete input
+                $("<input>")
+                    .attr("type", "hidden")
+                    .attr("name", "delete")
+                    .val("true")
+                    .appendTo($form);
+            });
+
             // 3. AJAX SAVING (Cat1)
             $(document).on('change', '.cat1-select', function() {
                 const $select = $(this);
@@ -222,26 +258,17 @@
             });
 
 
-            // 7. MODAL & SELECT2 LOGIC
+            // 7. SELECT2 LOGIC
             
             // A. Primary Edit/Update buttons (on the main table)
             $(".update-transaction").each(function () {
                 $(this).modalForm({ formURL: $(this).data("form-url"), modalID: "#modal" });
             });
 
-            // B. Event Delegation for the DELETE button (Inside the modal)
-            // This ensures it works on the VERY FIRST click
-            $(document).on("click", ".delete-transaction-btn", function() {
-                $(this).modalForm({
-                    formURL: $(this).data("form-url"),
-                    isAsync: true,
-                    modalID: "#modal"
-                });
-            });
-
             // C. Initialization logic when the modal finishes opening
             $(document).on("shown.bs.modal", "#modal", function() {
                 const $modal = $(this);
+
 
                 // Initialize Select2 inside the modal
                 $modal.find("select").each(function() {

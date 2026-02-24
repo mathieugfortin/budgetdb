@@ -305,7 +305,10 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         return form
 
     def form_valid(self, form):
-        pass
+        if "delete" in self.request.POST:
+            self.object.delete()
+            return redirect(self.get_success_url())
+
         return super().form_valid(form)
 
     def get_success_url(self):

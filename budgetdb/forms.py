@@ -1239,7 +1239,8 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['account_source'].label = 'Source'
         self.fields['account_destination'].queryset = Account.admin_objects.all()
         self.fields['account_destination'].label = 'Destination'
-        self.fields['statement'].queryset = Statement.admin_objects.order_by('-statement_date').exclude(verified_lock=True)
+        statement_qs = Statement.admin_objects.order_by('-statement_date').exclude(verified_lock=True) | Statement.admin_objects.filter(id=self.initial['statement'])
+        self.fields['statement'].queryset = statement_qs.order_by('statement_date')
         self.fields['statement'].widget.attrs.update({
                                                 'class': 'django-select2',
                                                 'data-width': '100%' # Optional: helps Select2 fit inside modal widths
@@ -1259,18 +1260,12 @@ class TransactionModalForm(BSModalModelForm):
             self.fields['amount_actual'].widget.attrs['class'] = 'input-disabled'
             self.fields['date_actual'].help_text = "Locked, imported by OFX."
             self.fields['amount_actual'].help_text = "Locked, imported by OFX."
-        # will I need to add all labels here for translations?
-        # self.fields['amount_actual'].label = "Amount"
 
-#        allowRecurringPatternUpdate = True
- #       if kwargs['instance'] is not None:
-  #          if kwargs['instance'].transactions is not None:
-   #             if kwargs['instance'].transactions.first() is not None:
-    #                allowRecurringPatternUpdate = False
-#            if kwargs['instance'].budgetedevent is not None:
- #               if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
-  #                  allowRecurringPatternUpdate = False
-
+        if self.instance and self.instance.statement.verified_lock:
+            #self.fields['date_actual'].widget.attrs['disabled'] = True
+            self.fields['statement'].widget = forms.HiddenInput() 
+            self.fields['verified'].widget = forms.HiddenInput() 
+            
         if audit_view is False:
             self.helper.layout = Layout(
                 Row(
@@ -1347,7 +1342,7 @@ class TransactionModalForm(BSModalModelForm):
                         #'verified', 
                         #'receipt', 
                         'ismanual',
-                        'is_deleted',
+                        #'is_deleted',
                         css_class='col-6' 
                     ),
                 ),
@@ -1355,7 +1350,7 @@ class TransactionModalForm(BSModalModelForm):
                  #   Column('budgetedevent', css_class='col-12'),
                 #),
                 Field('audit', type='hidden'),
-                # Field('is_deleted', type='hidden'),
+                Field('is_deleted', type='hidden'),
             ])
         else:
             self.helper.layout.extend([
@@ -1395,16 +1390,44 @@ class TransactionModalForm(BSModalModelForm):
                         HTML(f'<button type="submit" id="submit-id-submit" class="btn btn-primary">{task}</button>'),
                     ),
                     Column(
-                        HTML(f'<button type="button" class="btn btn-outline-danger me-auto delete-transaction-btn"'
-                            f'data-form-url="{reverse("budgetdb:delete_transaction", kwargs={"pk":self.instance.id} )}">'
-                            f'<span class="material-symbols-outlined align-middle">delete</span>'
-                            f'<span class="align-middle">Delete</span></button>'),
+                        HTML(
+                            '<button type="button" '
+                            'class="btn btn-outline-danger me-auto show-delete-confirm">'
+                            '<span class="material-symbols-outlined align-middle">delete</span>'
+                            '<span class="align-middle">Delete</span>'
+                            '</button>'
+                        ),
                     ),
                     Column(
                         HTML('<button type="button" name="cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>'),
-                    ),                
+                    ),   
+                    id='normal-actions',             
                 ),
+                 # -------------------------
+                # HIDDEN DELETE SECTION
+                # -------------------------
+                HTML(f"""
+                    <div id="delete-section"
+                        class="mt-4 d-none border-top pt-3">
+
+                        <div class="alert alert-danger">
+                            <strong>Warning:</strong>
+                            This will permanently delete this transaction.
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-danger confirm-delete">
+                            Yes, delete permanently
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-secondary cancel-delete ms-2">
+                            Cancel
+                        </button>
+                    </div>
+                """),
             ])
+            pass
 
 
 class TransactionFormFull(forms.ModelForm):
@@ -1488,18 +1511,6 @@ class TransactionFormFull(forms.ModelForm):
         self.fields['vendor'].queryset = Vendor.admin_objects.all()
         self.fields['currency'].queryset = preference.currencies
         self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
-
-        # will I need to add all labels here for translations?
-        # self.fields['amount_actual'].label = "Amount"
-
-        allowRecurringPatternUpdate = True
-        if kwargs['instance'] is not None:
-            if kwargs['instance'].transactions is not None:
-                if kwargs['instance'].transactions.first() is not None:
-                    allowRecurringPatternUpdate = False
-            if kwargs['instance'].budgetedevent is not None:
-                if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
-                    allowRecurringPatternUpdate = False
 
         self.helper.layout = Layout(
             Field('description'),
