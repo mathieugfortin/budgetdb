@@ -309,9 +309,18 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         return super().form_valid(form)
 
     def get_success_url(self):
-        return self.request.GET.get('next', self.request.META.get('HTTP_REFERER', '/')
-        )
-
+        # This keeps the full URL including existing query params (?sort=date...)
+        next_url = self.request.GET.get('next') or self.request.META.get('HTTP_REFERER', '/')
+        
+        # Check if we already have query params
+        separator = '&' if '?' in next_url else '?'
+        
+        # We strip any old updated_id just in case of double-saves
+        import re
+        clean_url = re.sub(r'[&?]updated_id=\d+', '', next_url)
+        
+        # Append the new id
+        return f"{clean_url}{separator}updated_id={self.object.pk}"
 
 def import_ofx_view(request):
     # --- STEP 4: FINAL CONFIRMATION (Save to DB) ---
@@ -337,14 +346,20 @@ def import_ofx_view(request):
                 matched.comment = f'imported description: {data['description'][:180]}'
                 matched.save()
             else:
+                if data['vendor_id']:
+                    description = 'imported'
+                else:
+                    description = data['description'][:200] # Ensure it fits char limit
+
                 new_tx = Transaction(
                     account_source=account,
                     amount_actual=Decimal(str(data['amount'])),
                     date_actual=data['date'],
-                    description=data['description'][:200], # Ensure it fits char limit
+                    description=description,
                     currency=account.currency,
                     fit_id=data['fit_id'],
-                    vendor_id=data['vendor_id']
+                    vendor_id=data['vendor_id'],
+                    comment = f'imported description: {data['description'][:180]}'
                 )
                 transactions_to_create.append(new_tx)
 

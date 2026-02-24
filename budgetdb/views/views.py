@@ -1522,6 +1522,7 @@ class VendorCreateView(MyCreateView):
 class StatementListView(MyListView):
     model = Statement
     table_class = StatementListTable
+    paginate_by = 15
 
     def get_queryset(self):
         pk = self.kwargs.get('pk')
@@ -1741,7 +1742,8 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
             if statement:
                 self.statement = statement.pk
                 self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
-                self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
+                last = Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last().date_actual
+                self.end = max(statement.statement_date + timedelta(days=preference.statement_buffer_after),last)
 
         # overload dates preferences with custom dates
         if date1 is not None and date2 is not None:

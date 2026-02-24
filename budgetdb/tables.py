@@ -516,39 +516,68 @@ class StatementListTable(MySharingColumns, tables.Table):
         return format_html('<b style="color: red;">Total: {} Delta: {}{}</b>',total, formatted_delta,record.account.currency.symbol)
 
     def render_verified_lock(self, value, record):
+        lockable=False
+        if record.balance == getattr(record, 'calculated_total', 0) and Transaction.objects.filter(statement_id=record.id,verified=False,is_deleted=False).count() == 0:
+            lockable=True
         if value:
             icon = "lock"
             tooltip = "Click to Unlock"
             css_class = "lock-icon-verified"
         else:
             icon = "lock_open"
-            tooltip = "Click to Verify"
             css_class = "lock-icon-unverified"
+            if lockable:
+                tooltip = "Click to Lock"
+            else:
+                tooltip = "Not ready to Lock"
+
         
         toggle_url = reverse('budgetdb:toggleverifystatement_json', kwargs={'pk': record.pk})
-        return format_html(
-            '''
-            <style>
-                .lock-wrapper {{ transition: transform 0.2s; display: inline-block; }}
-                .lock-wrapper:hover {{ transform: scale(1.2); cursor: pointer; }}
-                .lock-icon-verified {{ 
-                    display: inline-flex; align-items: center; justify-content: center; 
-                    background-color: #2e7d32; color: white; border-radius: 50%; 
-                    width: 30px; height: 30px; font-size: 18px; 
-                }}
-                .lock-icon-unverified {{ 
-                    color: #9e9e9e; font-size: 30px; vertical-align: middle; 
-                }}
-            </style>
-            <a href="{0}" title="{1}" class="lock-wrapper">
-                <span class="material-symbols-outlined {2}">{3}</span>
-            </a>
-            ''',
-            toggle_url,
-            tooltip,
-            css_class,
-            icon
-        )
+        if value or lockable:
+            return format_html(
+                '''
+                <style>
+                    .lock-wrapper {{ transition: transform 0.2s; display: inline-block; }}
+                    .lock-wrapper:hover {{ transform: scale(1.2); cursor: pointer; }}
+                    .lock-icon-verified {{ 
+                        display: inline-flex; align-items: center; justify-content: center; 
+                        background-color: #2e7d32; color: white; border-radius: 50%; 
+                        width: 30px; height: 30px; font-size: 18px; 
+                    }}
+                    .lock-icon-unverified {{ 
+                        color: #9e9e9e; font-size: 30px; vertical-align: middle; 
+                    }}
+                </style>
+                <a href="{0}" title="{1}" class="lock-wrapper">
+                    <span class="material-symbols-outlined {2}">{3}</span>
+                </a>
+                ''',
+                toggle_url,
+                tooltip,
+                css_class,
+                icon
+            )
+        else:
+            return format_html(
+                '''
+                <style>
+                    .lock-wrapper {{ transition: transform 0.2s; display: inline-block; }}
+                    .lock-wrapper:hover {{ transform: scale(1.2); cursor: pointer; }}
+                    .lock-icon-verified {{ 
+                        display: inline-flex; align-items: center; justify-content: center; 
+                        background-color: #2e7d32; color: white; border-radius: 50%; 
+                        width: 30px; height: 30px; font-size: 18px; 
+                    }}
+                    .lock-icon-unverified {{ 
+                        color: #9e9e9e; font-size: 30px; vertical-align: middle; 
+                    }}
+                </style>
+                <span class="material-symbols-outlined {1}" title="{0}">{2}</span>
+                ''',
+                tooltip,
+                css_class,
+                icon
+            )
 
 
 class VendorListTable(MySharingColumns, tables.Table):

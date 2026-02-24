@@ -1,21 +1,29 @@
 {% if record.audit is False %}
-    {% if record.fit_id  %}
-        <span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: -30%;">handshake</span>
-    {% endif %}
-    {% if record.statement.verified_lock is True %}
-        <span class="material-symbols-outlined" 
-            style="color: #1a7e2e; vertical-align: middle;" 
-            data-bs-toggle="tooltip" 
-            data-bs-placement="top" 
-            data-bs-title="Locked with the statement"
-            title="Statement Verified">
-            shield_lock
-        </span>
-    {% else %}
-        <span class="material-symbols-outlined {% if record.verified %}VERIFIED{% else %}UNVERIFIED{% endif %}"
-            style="vertical-align: -30%;" 
-            onclick="toggleverifyT({{record.id}})" 
-            id="V{{record.id}}">
-        </span>
-    {% endif %}
+
+    <div class="d-flex align-items-center">
+        <div style="width: 24px; text-align: center;" class="me-1">
+            {% if record.fit_id %}
+                <span class="material-symbols-outlined" style="font-size: 1.2em; vertical-align: middle;">
+                    handshake
+                </span>
+            {% endif %}
+        </div>
+
+        <div style="width: 24px; text-align: center;">
+            {% if record.statement.verified_lock is True %}
+                <span class="material-symbols-outlined" 
+                    style="color: #1a7e2e; vertical-align: middle;" 
+                    data-bs-toggle="tooltip" 
+                    title="Statement Verified">
+                    shield_lock
+                </span>
+            {% else %}
+                <span class="material-symbols-outlined {% if record.verified %}VERIFIED{% else %}UNVERIFIED{% endif %}"
+                    style="vertical-align: middle; cursor: pointer;" 
+                    onclick="toggleverifyT({{record.id}})" 
+                    id="V{{record.id}}">
+                </span>
+            {% endif %}
+        </div>
+    </div>
 {% endif %}

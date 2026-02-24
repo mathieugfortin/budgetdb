@@ -61,7 +61,7 @@
 
 {% block script %}
     {% include "budgetdb/js/js_flip_accounts.html" %}
-      <script type="text/javascript">
+    <script type="text/javascript">
     (function($) {
         $(function() {
             // 1. DATA INITIALIZATION
@@ -122,8 +122,6 @@
                 $wrapper.find('.cat-display').text(selectedText);
                 $wrapper.data('cat1-id', cat1Id);
                 $wrapper.attr('data-cat1-id', cat1Id); // Critical for Cat2 to "see" the update
-
-                
 
                 $.post('{% url "budgetdb:update_transaction_category" %}', {
                     'transaction_id': txId,
@@ -223,32 +221,91 @@
                 $wrapper.find('.cat-display').removeClass('d-none');
             });
 
-            // 7. MODAL & SELECT2 LOGIC (Your existing code)
+
+            // 7. MODAL & SELECT2 LOGIC
+            
+            // A. Primary Edit/Update buttons (on the main table)
             $(".update-transaction").each(function () {
                 $(this).modalForm({ formURL: $(this).data("form-url"), modalID: "#modal" });
             });
 
-            $(document).on("shown.bs.modal", "#modal", function() {
-                const $modal = $(this);
-                $modal.find(".delete-transaction-btn").each(function () {
-                    $(this).modalForm({ formURL: $(this).data("form-url"), isAsync: true, modalID: "#modal" });
+            // B. Event Delegation for the DELETE button (Inside the modal)
+            // This ensures it works on the VERY FIRST click
+            $(document).on("click", ".delete-transaction-btn", function() {
+                $(this).modalForm({
+                    formURL: $(this).data("form-url"),
+                    isAsync: true,
+                    modalID: "#modal"
                 });
-                $modal.find(".django-select2").each(function() {
-                    const $el = $(this);
-                    $el.select2({ dropdownParent: $modal, width: '100%', allowClear: true });
-                });
-                setTimeout(() => $('#id_amount_actual').focus(), 300);
             });
 
-            $(document).on('select2:open', function() {
+            // C. Initialization logic when the modal finishes opening
+            $(document).on("shown.bs.modal", "#modal", function() {
+                const $modal = $(this);
+
+                // Initialize Select2 inside the modal
+                $modal.find("select").each(function() {
+                    if (!$(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2({ 
+                            dropdownParent: $modal, 
+                            width: '100%', 
+                            allowClear: true 
+                        });
+                    }
+                });
+
+                // Fix Accessibility and Focus
+                $modal.removeAttr('aria-hidden');
                 setTimeout(() => {
-                    const searchField = document.querySelector('.select2-search__field');
-                    if (searchField) searchField.focus();
-                }, 10);
+                    const $amountField = $('#id_amount_actual');
+                    if ($amountField.length) $amountField.focus();
+                }, 300);
             });
+            
+            // 8. AUTO-SCROLL & NOTIFICATION (Using Query Parameters)
+            const urlParams = new URLSearchParams(window.location.search);
+            const updatedId = urlParams.get('updated_id');
+
+            if (updatedId) {
+                const $targetRow = $('#T' + updatedId);
+                
+                if ($targetRow.length) {
+                    // 1. Smooth Scroll to center
+                    $targetRow[0].scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+
+                    // 2. Add the "Updated!" Badge (The Floating Version)
+                    const $firstCell = $targetRow.find('td:first');
+                    $firstCell.css('position', 'relative'); 
+                    const savedBadge = $('<span class="badge bg-success floating-badge animate__animated animate__fadeIn">Updated!</span>');
+                    $firstCell.append(savedBadge);
+
+                    // 3. Highlight the row
+                    $targetRow.addClass('table-success');
+
+                    // 4. Cleanup and "Clean" the URL
+                    setTimeout(() => {
+                        $targetRow.removeClass('table-success');
+                        savedBadge.fadeOut(400, function() { $(this).remove(); });
+                        
+                        const params = new URLSearchParams(window.location.search);
+                        
+                        // 2. Remove ONLY the updated_id
+                        params.delete('updated_id');
+                        
+                        // 3. Reconstruct the URL: Path + remaining params (like sort)
+                        const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                        
+                        // 4. Update the address bar without losing your sort!
+                        window.history.replaceState(null, '', newRelativePathQuery);
+                    }, 3000);
+                }
+            }
         });
     })(jQuery); 
-</script>
+    </script>
     {% include "budgetdb/js/js_toggle_receipt_verify.html" %}
 
 {% endblock %}

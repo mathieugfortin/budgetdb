@@ -1,13 +1,14 @@
 from datetime import date, timedelta
-from django.utils.dateparse import parse_date
 from crum import get_current_user
 from django import forms
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.core.exceptions import PermissionDenied
+from django.db.models import Case, When, Value, IntegerField
+from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
-from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.utils.dateparse import parse_date
 from .models import User, Preference, Invitation
 from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
 from .models import BudgetedEvent, Transaction, JoinedTransactions
@@ -273,6 +274,16 @@ class StatementForm(forms.ModelForm):
         account_id = self.data.get('account') or self.initial.get('account')
         s_date_raw = self.data.get('statement_date') or self.initial.get('statement_date')
         d_date_raw = self.data.get('statement_due_date') or self.initial.get('statement_due_date')
+        user = get_current_user()
+        preference = Preference.objects.get(user=user.id)
+        fav_ids = preference.favorite_accounts.values_list('id', flat=True) if preference else []
+        self.fields['account'].queryset = Account.objects.annotate(
+                priority=Case(
+                    When(id__in=fav_ids, then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            ).order_by('priority', 'name')
 
         # If it's a string (from POST data), parse it
         if isinstance(s_date_raw, str):
@@ -1151,7 +1162,7 @@ class TransactionModalForm(BSModalModelForm):
             'Unit_QTY',
             'Unit_price',
             'date_actual',
-            'budgetedevent',
+            #'budgetedevent',
             'amount_actual_foreign_currency',
             'audit',
             'ismanual',
@@ -1237,7 +1248,8 @@ class TransactionModalForm(BSModalModelForm):
         # self.fields['statement'].label_from_instance = (lambda obj: f'{obj.date:%Y-%m-%d} – {obj.name[:25]}…' if len(obj.name) > 25   else f'{obj.date:%Y-%m-%d} – {obj.name}')
         self.fields['vendor'].queryset = Vendor.view_objects.all()
         self.fields['currency'].queryset = preference.currencies
-        self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
+        self.fields['currency'].label = 'Original Currency'
+        # self.fields['budgetedevent'].queryset = BudgetedEvent.admin_objects.all()
 
         if self.instance and self.instance.fit_id:
             #self.fields['date_actual'].widget.attrs['disabled'] = True
@@ -1245,46 +1257,49 @@ class TransactionModalForm(BSModalModelForm):
             self.fields['amount_actual'].widget.attrs['readonly'] = True
             self.fields['date_actual'].widget.attrs['class'] = 'input-disabled'
             self.fields['amount_actual'].widget.attrs['class'] = 'input-disabled'
-            self.fields['date_actual'].help_text = "Locked because the data is imported by OFX."
-            self.fields['amount_actual'].help_text = "Locked because the data is imported by OFX."
+            self.fields['date_actual'].help_text = "Locked, imported by OFX."
+            self.fields['amount_actual'].help_text = "Locked, imported by OFX."
         # will I need to add all labels here for translations?
         # self.fields['amount_actual'].label = "Amount"
 
-        allowRecurringPatternUpdate = True
-        if kwargs['instance'] is not None:
-            if kwargs['instance'].transactions is not None:
-                if kwargs['instance'].transactions.first() is not None:
-                    allowRecurringPatternUpdate = False
-            if kwargs['instance'].budgetedevent is not None:
-                if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
-                    allowRecurringPatternUpdate = False
+#        allowRecurringPatternUpdate = True
+ #       if kwargs['instance'] is not None:
+  #          if kwargs['instance'].transactions is not None:
+   #             if kwargs['instance'].transactions.first() is not None:
+    #                allowRecurringPatternUpdate = False
+#            if kwargs['instance'].budgetedevent is not None:
+ #               if kwargs['instance'].budgetedevent.budgeted_events.first() is not None:
+  #                  allowRecurringPatternUpdate = False
 
         if audit_view is False:
             self.helper.layout = Layout(
                 Row(
                     Column('vendor', css_class='col-6'),
+                    css_class='mb-0'
                     ),
                 Row(
                     Column('description', css_class='col-12'),
+                    css_class='mb-0'
                     ),
             )
         else:
             self.helper.layout = Layout(
                 Row(
                     Column('description', css_class='col-12'),
+                    css_class='mb-0'
                 ),
             )
 
         self.helper.layout.extend([
             Row(
                 Column('date_actual', css_class=' col-6'),
-            ),
-            Row(
                 Column(PrependedText('amount_actual', '$', attributes={"step": "0.01", "type": "number"}), css_class='col-6'),
-                Column('currency', css_class='col-6' ),
+                css_class='mb-0'
             ),
             Row(
-                Column(PrependedText('amount_actual_foreign_currency', '$', attributes={"step": "0.01", "type": "number"}),css_class='col-4'),
+                Column('currency', css_class='col-6' ),
+                Column(PrependedText('amount_actual_foreign_currency', '$', attributes={"step": "0.01", "type": "number"}),css_class='col-6'),
+                css_class='justify-content-end mb-0',
             ),
         ])
 
@@ -1293,10 +1308,12 @@ class TransactionModalForm(BSModalModelForm):
                 Row(
                     Column('cat1', css_class='col-md-6'),
                     Column('cat2', css_class='col-md-6'),
+                    css_class='mb-0'
                 ),
                 Row(
                     Column('Unit_QTY', css_class='col-6'),
                     Column('Unit_price', css_class='col-6'),
+                    css_class='mb-0'
                 ),
                 Row(
                     Column('account_source', css_class='col-5 '),
@@ -1312,6 +1329,7 @@ class TransactionModalForm(BSModalModelForm):
                         css_class='col-2 d-grid align-self-center' # 'd-grid' makes the button fill the column width
                     ),
                     Column('account_destination', css_class='col-5 '),
+                    css_class='mb-0'
                 ),
                 Row(
                     Column('statement', css_class='col-10 mb-2'),
@@ -1320,14 +1338,22 @@ class TransactionModalForm(BSModalModelForm):
                     Column(
                         'verified', 
                         'receipt', 
+                     #   'ismanual',
+                      #  'is_deleted',
+                        #css_class='offset-2 col-6' 
+                        css_class='col-6' 
+                    ),
+                    Column(
+                        #'verified', 
+                        #'receipt', 
                         'ismanual',
                         'is_deleted',
-                        css_class='offset-2 col-8' 
+                        css_class='col-6' 
                     ),
                 ),
-                Row(
-                    Column('budgetedevent', css_class='col-12'),
-                ),
+                #Row(
+                 #   Column('budgetedevent', css_class='col-12'),
+                #),
                 Field('audit', type='hidden'),
                 # Field('is_deleted', type='hidden'),
             ])

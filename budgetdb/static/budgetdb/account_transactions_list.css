@@ -89,9 +89,6 @@
     content: "\e834";
   }
   
-
-   
-  /* The checkmark/badge */
 .save-badge {
     display: inline-block;
     color: #28a745; /* Bootstrap success green */
@@ -158,4 +155,18 @@
     cursor: not-allowed;      /* Shows the "no" circle on hover */
     border-color: #dee2e6;
     pointer-events: none;     /* Optional: disables click-to-focus */
+}
+.badge-container {
+    position: relative;
+    display: inline-block;
+}
+
+.floating-badge {
+    position: absolute;
+    left: 100%; /* Puts it just to the right of the text */
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    white-space: nowrap;
+    z-index: 10;
 }
