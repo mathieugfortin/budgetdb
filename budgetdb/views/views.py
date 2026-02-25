@@ -1742,8 +1742,12 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
             if statement:
                 self.statement = statement.pk
                 self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
-                last = Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last().date_actual
-                self.end = max(statement.statement_date + timedelta(days=preference.statement_buffer_after),last)
+                self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
+                
+                #extend for late transactions
+                if last_obj := Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last():
+                    last_date = last_obj.date_actual
+                    self.end = max(self.end,last_date)
 
         # overload dates preferences with custom dates
         if date1 is not None and date2 is not None:

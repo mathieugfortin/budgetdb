@@ -1239,8 +1239,10 @@ class TransactionModalForm(BSModalModelForm):
         self.fields['account_source'].label = 'Source'
         self.fields['account_destination'].queryset = Account.admin_objects.all()
         self.fields['account_destination'].label = 'Destination'
-        statement_qs = Statement.admin_objects.order_by('-statement_date').exclude(verified_lock=True) | Statement.admin_objects.filter(id=self.initial['statement'])
-        self.fields['statement'].queryset = statement_qs.order_by('statement_date')
+        statement_qs = Statement.admin_objects.order_by('-statement_date').exclude(verified_lock=True)
+        if 'statement' in self.initial:
+            statement_qs= statement_qs | Statement.admin_objects.filter(id=self.initial['statement'])
+        self.fields['statement'].queryset = statement_qs.order_by('-statement_date')
         self.fields['statement'].widget.attrs.update({
                                                 'class': 'django-select2',
                                                 'data-width': '100%' # Optional: helps Select2 fit inside modal widths
@@ -1261,7 +1263,7 @@ class TransactionModalForm(BSModalModelForm):
             self.fields['date_actual'].help_text = "Locked, imported by OFX."
             self.fields['amount_actual'].help_text = "Locked, imported by OFX."
 
-        if self.instance and self.instance.statement.verified_lock:
+        if self.instance and self.instance.statement and self.instance.statement.verified_lock:
             #self.fields['date_actual'].widget.attrs['disabled'] = True
             self.fields['statement'].widget = forms.HiddenInput() 
             self.fields['verified'].widget = forms.HiddenInput() 
