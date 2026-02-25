@@ -1,7 +1,10 @@
 <button  
     type="button" 
     title="Add a transaction for this day"
-    class="update-transaction btn btn-link btn-sm" 
+    class="update-transaction btn btn-link btn-sm p-0 border-0 line-height-1 text-decoration-none"
     data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' account_id record.date_actual|date:'Y-m-d' %}">
-    <span class="material-symbols-outlined">add_circle</span>
+    <span class="material-symbols-outlined"
+          style="font-size: 18px; vertical-align: middle; display: inline-block;">
+          add_circle
+    </span>
 </button>

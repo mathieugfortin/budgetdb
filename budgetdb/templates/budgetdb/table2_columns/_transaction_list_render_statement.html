@@ -1,7 +1,17 @@
-{% if record.statement %}
-    {% if view.statement == record.statement.id %}
-        <a href="{% url 'budgetdb:details_statement' record.statement.id %}" class="btn btn-primary btn-sm"> {{ record.statement.statement_date|date:"Y-m-d" }} </a>
-    {% else %}
-        <a href="{% url 'budgetdb:details_statement' record.statement.id %}" class="btn btn-outline-primary btn-sm"> {{ record.statement.statement_date|date:"Y-m-d" }} </a>
-    {% endif %}    
-{% endif %}
+<div class="d-flex align-items-center justify-content-end gap-3">
+    {% if record.statement %}
+        {% if view.statement == record.statement.id %}
+            <a href="{% url 'budgetdb:details_statement' record.statement.id %}" 
+               class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-sm py-0 px-2" style="font-size: 0.8rem;">
+                <span class="material-symbols-outlined" style="font-size: 14px;">description</span>
+                {{ record.statement.statement_date|date:"Y-m-d" }}
+            </a>
+        {% else %}
+            <a href="{% url 'budgetdb:details_statement' record.statement.id %}" 
+               class="btn btn-sm btn-outline-secondary border-0 d-inline-flex align-items-center gap-1 text-muted opacity-75 py-0">
+                <span class="material-symbols-outlined" style="font-size: 14px;">article</span>
+                {{ record.statement.statement_date|date:"Y-m-d" }}
+            </a>
+        {% endif %}
+    {% endif %}
+</div>

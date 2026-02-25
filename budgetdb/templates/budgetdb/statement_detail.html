@@ -18,9 +18,11 @@
     <tr>
         <td>{{ statement.statement_date|date:"Y-m-d"  }}</td>
         <td>{{ statement.balance }}$</td>
-        <td>{{ statement.minimum_payment }}$</td>
+        <td>{{ statement.minimum_payment }}{{ statement.account.currency.symbol }}</td>
         <td>{{ statement.statement_due_date|date:"Y-m-d"  }}</td>
     </tr>
+
+
     {% if statement.error != 0 %}
     <tr>
         <td></td>
@@ -33,11 +35,12 @@
         <td></td>
     </tr>
     {% endif %}
-
-
-
 </table>
 
+{% if statement.comment %}
+   <h5><bold>Comment:</bold> {{ statement.comment }}</h5>
+    <p></p>
+{% endif  %}
 
 {% if statement.payment_transaction %}
 <h5>Payment: {{ statement.payment_transaction.amount_actual }}$ on {{ statement.payment_transaction.date_actual }} from account  {{ statement.payment_transaction.account_source }}</h5>

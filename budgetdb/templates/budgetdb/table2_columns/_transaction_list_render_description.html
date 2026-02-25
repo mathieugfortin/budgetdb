@@ -1,63 +1,66 @@
+<div class="d-flex align-items-center flex-wrap gap-2">
+    {# 1. Vendor #}
+    {% if record.vendor %}
+        <span class="badge rounded-pill border border-primary-subtle text-primary bg-primary-subtle fw-medium px-2 py-1">
+            <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 2px;">store</span>
+            {{ record.vendor }}
+        </span>
+    {% endif %}
 
-{# Vendor#}
-{% if record.vendor %}
-    <span class="badge rounded-pill border text-primary bg-light fw-normal px-2 py-1">
-        <span class="material-symbols-outlined style="font-size: 14px; vertical-align: middle;">store</span>
-        {{ record.vendor }}
-    </span>
-{% endif %}
-
-{# Description #}
-<button type="button" class="update-transaction btn btn-secondary btn-sm" 
+    {# 2. Description (Primary Action) #}
+    <button type="button" class="update-transaction btn btn-link btn-sm text-decoration-none fw-semibold p-0 text-dark-emphasis" 
         data-bs-toggle="modal" 
         data-bs-target="#modal" 
         data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' record.id %}">
-        {{record.description}}
-</button>
+        {{ record.description }}
+    </button>
 
-{% if record.currency.id != account_currency_id %}
-    <button type="button" class="btn btn-info btn-sm">{{record.amount_actual_foreign_currency}} {{record.currency.name_short}}</button>
-{% endif %}
+    {# 3. Foreign Currency Pill #}
+    {% if record.currency.id != account_currency_id %}
+        <span class="badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle fw-normal">
+            {{ record.amount_actual_foreign_currency }} {{ record.currency.name_short }}
+        </span>
+    {% endif %}
 
-
-{# Unit/Price Box #}
+    {# 4. Unit/Price Box (Clean & Minimal) #}
     {% if record.Unit_QTY or record.Unit_price %}
-        <div class="d-inline-flex border rounded bg-white overflow-hidden" style="font-size: 0.85rem;">
+        <div class="d-inline-flex align-items-center border rounded bg-white overflow-hidden shadow-sm" style="font-size: 0.75rem; height: 22px;">
             {% if record.Unit_QTY %}
-                <span class="px-2 py-0 bg-light border-end text-muted">{{ record.Unit_QTY|floatformat:2 }} qty</span>
+                <span class="px-2 py-0 bg-light border-end text-muted h-100 d-flex align-items-center">{{ record.Unit_QTY|floatformat:2 }} qty</span>
             {% endif %}
             {% if record.Unit_price %}
-                <span class="px-2 py-0">{{ record.Unit_price }}{{ record.currency.symbol }}</span>
+                <span class="px-2 py-0 text-dark h-100 d-flex align-items-center fw-medium">{{ record.Unit_price }}{{ record.currency.symbol }}</span>
             {% endif %}
         </div>
     {% endif %}
 
-{% with jid=record.joined_transaction_id %}
-    {% if jid %}
-        <a href="{% url 'budgetdb:update_joinedtransactions' pk=jid datep=record.date_planned|date:'Y-m-d' datea=record.date_actual|date:'Y-m-d' %}" 
-           title="Edit the joined transactions"
-           class="btn btn-sm p-0">
-            <span class="material-symbols-outlined">dynamic_feed</span>
-        </a>
-    {% endif %}
-{% endwith %}
+    {# 5. Joined Transactions Icon #}
+    {% with jid=record.joined_transaction_id %}
+        {% if jid %}
+            <a href="{% url 'budgetdb:update_joinedtransactions' pk=jid datep=record.date_planned|date:'Y-m-d' datea=record.date_actual|date:'Y-m-d' %}" 
+               title="Edit the joined transactions"
+               class="btn btn-sm p-0 text-secondary hover-primary">
+                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">dynamic_feed</span>
+            </a>
+        {% endif %}
+    {% endwith %}
 
-{% if record.account_destination %}
-    {% if record.account_destination.id != account_id %}
+    {# 6. Transfer Links (Source/Destination) #}
+    {% if record.account_destination and record.account_destination.id != account_id %}
         <a href="{% url 'budgetdb:list_account_activity' record.account_destination.id %}"
-            class="btn btn-info btn-sm" role="button">
-            <span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_right</span>
+           class="btn btn-outline-info btn-sm rounded-pill py-0 px-2 d-inline-flex align-items-center fw-medium" 
+           style="font-size: 0.75rem; border-style: dashed;">
+            <span class="material-symbols-outlined me-1" style="font-size: 14px;">east</span>
             {{record.account_destination}}
         </a>
     {% endif %}
-{% endif %}
 
-{% if record.account_source %}
-    {% if record.account_source.id != account_id%}   
+    {% if record.account_source and record.account_source.id != account_id %}
         <a href="{% url 'budgetdb:list_account_activity' record.account_source.id %}" 
-            class="btn btn-info btn-sm" role="button">
-            <span class="material-symbols-outlined" style="vertical-align: -8px;">keyboard_double_arrow_left</span>
+           class="btn btn-outline-info btn-sm rounded-pill py-0 px-2 d-inline-flex align-items-center fw-medium" 
+           style="font-size: 0.75rem; border-style: dashed;">
+            <span class="material-symbols-outlined me-1" style="font-size: 14px;">west</span>
             {{record.account_source}}
         </a>
     {% endif %}
-{% endif %}     
+</div>

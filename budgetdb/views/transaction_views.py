@@ -1,9 +1,13 @@
+from crum import get_current_user
+from datetime import datetime, date, timedelta
+from dateutil.relativedelta import relativedelta
+from decimal import *
 from django import forms
 from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
@@ -16,16 +20,15 @@ from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Acco
 from budgetdb.models import JoinedTransactions, AccountBalanceDB
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
-from datetime import datetime, date, timedelta
-from dateutil.relativedelta import relativedelta
+
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
 from ofxparse import OfxParser
-from decimal import *
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, BSModalDeleteView
-from crum import get_current_user
 import json
+from urllib.parse import urlparse, urlunparse
+
 
 
 ###################################################################################################################
@@ -315,15 +318,19 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         # This keeps the full URL including existing query params (?sort=date...)
         next_url = self.request.GET.get('next') or self.request.META.get('HTTP_REFERER', '/')
         
-        # Check if we already have query params
-        separator = '&' if '?' in next_url else '?'
+        # 1. Deconstruct the URL
+        url_parts = list(urlparse(next_url))
         
-        # We strip any old updated_id just in case of double-saves
-        import re
-        clean_url = re.sub(r'[&?]updated_id=\d+', '', next_url)
+        # 2. Parse the existing query string (the 4th element in urlparse)  
+        # Using QueryDict handles multiple values and encoding automatically
+        query_params = QueryDict(url_parts[4], mutable=True)
         
-        # Append the new id
-        return f"{clean_url}{separator}updated_id={self.object.pk}"
+        # 3. Update or Add the updated_id (this replaces any existing one)
+        query_params['updated_id'] = self.object.pk
+        
+        # 4. Reconstruct the URL
+        url_parts[4] = query_params.urlencode()
+        return urlunparse(url_parts)
 
 def import_ofx_view(request):
     # --- STEP 4: FINAL CONFIRMATION (Save to DB) ---
@@ -347,6 +354,9 @@ def import_ofx_view(request):
                 matched = Transaction.admin_objects.get(pk=data["existing_id"])
                 matched.fit_id = data['fit_id']
                 matched.comment = f'imported description: {data['description'][:180]}'
+                if matched.account_destination == matched.account_source:
+                    pass
+                    pass
                 matched.save()
             else:
                 if data['vendor_id']:

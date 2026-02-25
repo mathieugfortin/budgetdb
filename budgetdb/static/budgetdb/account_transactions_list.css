@@ -1,93 +1,126 @@
-  
-  /* account_transactions_list.css */
 
-  
-    .table {
-        width: 100% !important;
-        table-layout: auto;
-    }
+/* account_transactions_list.css */
+
+/* --- 1. LIGHT MODE (Default) --- */
+:root {
+    --status-bg-opacity: 0.3;     /* Brighter tint for light mode */
+    --status-border-width: 5px;
+}
+
+/* --- 2. DARK MODE (When you implement it) --- */
+[data-bs-theme="dark"] {
+    --status-bg-opacity: 0.15;    /* Subtler tint for dark mode */
+}
+
+.table {
+    width: 100% !important;
+    table-layout: auto;
+}
 
 
-    /* Default for Mobile (usually taller if the brand/toggle stack) */
+/* Default for Mobile (usually taller if the brand/toggle stack) */
+.table thead {
+    position: sticky;
+    top: 50px; 
+    z-index: 100;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: top 0.2s
+}
+
+/* For Tablets/Laptops where the navbar might be thinner */
+@media (min-width: 992px) {
     .table thead {
-        position: sticky;
-        top: 50px; 
-        z-index: 100;
-        background-color: #fff;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        transition: top 0.2s
+        top: 90px; 
     }
+}
 
-    /* For Tablets/Laptops where the navbar might be thinner */
-    @media (min-width: 992px) {
-        .table thead {
-            top: 90px; 
-        }
-    }
+/* Let the description (or your primary column) soak up extra space */
+td.description-column {
+    width: auto;
+}
+/* Limit the column width */
+td .cat1-select,
+td .cat2-select {
+    max-width: 140px;       /* Set this to your 'sweet spot' */
+    min-width: 110px;   /* Won't shrink below this on tablets */
+    overflow: hidden;
+}
 
-    /* Let the description (or your primary column) soak up extra space */
-    td.description-column {
-        width: auto;
-    }
-    /* Limit the column width */
-    td .cat1-select,
-    td .cat2-select {
-        max-width: 140px;       /* Set this to your 'sweet spot' */
-        min-width: 110px;   /* Won't shrink below this on tablets */
-        overflow: hidden;
-    }
-
-    /* Force the dropdown to stay within that limit */
-    td .cat1-select, 
-    td .cat2-select {
-        width: 100%;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    /* Keep your min columns from stretching */
-    td.min {
-        width: 1%;
-        white-space: nowrap;
-    }
+/* Force the dropdown to stay within that limit */
+td .cat1-select, 
+td .cat2-select {
+    width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Keep your min columns from stretching */
+td.min {
+    width: 1%;
+    white-space: nowrap;
+}
 
 
-  /* List formatting, color by transaction caracteristics */
-  
-  tr.AUDIT {
-    --bs-table-bg: rgb(147, 154, 185)
-  }
-  tr.UNVERIFIED.BUDGET {
-    --bs-table-bg: rgb(78, 167, 240)
-  }
-  tr.UNVERIFIED {
-    --bs-table-bg: rgb(252, 221, 156)
-  }
-  tr.UNVERIFIED.MANUAL.NORECEIPT {
-    --bs-table-bg: rgb(233, 111, 90)
-  }
-  tr.UNVERIFIED.RECEIPT {
-    --bs-table-bg: rgb(177, 219, 230)
-  }
-  
-  /* check buttons by verified and receipt status */  
+/* ***************************************************
+List formatting, color by transaction caracteristics */
 
-   span.NORECEIPT::before {
-     font-family: "Material Symbols Outlined";
-     content: "\e835";
-   }
-   span.RECEIPT::before {
-     font-family: "Material Symbols Outlined";
-     content: "\e834";
-   }
+/* Custom Row Statuses */
+tr {
+    transition: background-color 0.15s ease;
+    border-left: 5px solid transparent; /* Prevents layout shifting */
+}
 
-   span.UNVERIFIED::before {
+tr.AUDIT {
+    --bs-table-bg: rgba(147, 154, 185, var(--status-bg-opacity));
+    border-left: var(--status-border-width) solid rgb(147, 154, 185);
+}
+
+tr.UNVERIFIED.BUDGET {
+    --bs-table-bg: rgba(78, 167, 240, var(--status-bg-opacity));
+    border-left: var(--status-border-width) solid rgb(78, 167, 240);
+}
+
+tr.UNVERIFIED {
+    --bs-table-bg: rgba(252, 221, 156, var(--status-bg-opacity));
+    border-left: var(--status-border-width) solid rgb(252, 221, 156);
+}
+
+tr.UNVERIFIED.MANUAL.NORECEIPT {
+    --bs-table-bg: rgba(233, 111, 90, var(--status-bg-opacity));
+    border-left: var(--status-border-width) solid rgb(233, 111, 90);
+
+}
+
+tr.UNVERIFIED.RECEIPT {
+    --bs-table-bg: rgba(177, 219, 230, var(--status-bg-opacity));
+    border-left: var(--status-border-width) solid rgb(177, 219, 230);
+}
+
+/* Ensure text remains legible over the tints */
+tr[class*="UNVERIFIED"], tr.AUDIT {
+    color: var(--bs-emphasis-color);
+}
+
+
+/* check buttons by verified and receipt status */  
+
+span.NORECEIPT::before {
     font-family: "Material Symbols Outlined";
     content: "\e835";
-  }
-  span.VERIFIED::before {
+}
+span.RECEIPT::before {
     font-family: "Material Symbols Outlined";
     content: "\e834";
-  }
+}
+
+span.UNVERIFIED::before {
+    font-family: "Material Symbols Outlined";
+    content: "\e835";
+}
+span.VERIFIED::before {
+    font-family: "Material Symbols Outlined";
+    content: "\e834";
+}
   
 .save-badge {
     display: inline-block;

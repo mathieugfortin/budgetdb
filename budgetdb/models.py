@@ -290,7 +290,6 @@ class Preference(models.Model):
     theme = models.CharField('Color Mode',max_length=15, choices=COLOR_MODE, default='Dark')
     # add ordre of listing, old first/ new first
 
-
     def save(self, *args, **kwargs):
 
         super(Preference, self).save(*args, **kwargs)

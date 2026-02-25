@@ -1,4 +1,6 @@
 To start a new session:
+
+
 Project Context: I'm working on a Django project called budgetdb.
 
 Tech Stack: Django 6.0, Bootstrap 5, Crispy Forms, and django-tables2. I'm using i18n_patterns with an en-ca prefix.
@@ -9,6 +11,6 @@ Namespace: My app uses app_name = 'budgetdb'.
 
 Auth: I'm using the built-in django.contrib.auth.urls but overriding templates in templates/registration/.
 
-Recent Progress: We just fixed the password reset flow and set up AJAX-dependent dropdowns for the StatementForm (filtering payment_transaction by account).
+I have classes for AccountHost (like a bank), Account, AccountCategory (group account for metrics), CatType (group categories for metrics), Cat1, Cat2 (subcategory, dependant on cat1), Vendor, Transaction, BudgetedEvent (recurring pattern, creates transactions), Statement, JoinedTransactions (join transaction or budgeted events for things that always are together like a paystub with one gross earning, one federal tax, one insurance...)
 
 Current Task: [Describe what you want to work on next]

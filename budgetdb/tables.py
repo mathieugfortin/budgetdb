@@ -141,7 +141,8 @@ class AccountActivityListTable(tables.Table):
         verbose_name='',
         attrs={"td": {"class": "description-column"}}
     )
-    date_actual = tables.Column(
+    date_actual = tables.TemplateColumn(
+        template_name="budgetdb/table2_columns/_transaction_list_render_date.html",
         verbose_name='Date',
         attrs={"td": {"class": "min"}},
         order_by=("date_actual", 'audit','-verified', '-id')
@@ -291,7 +292,7 @@ class AccountActivityListTable(tables.Table):
         return format_html('<button  type="button" '
                            'title="Confirm account balance for this day"'
 						   'class="update-transaction btn btn-link btn-sm" data-form-url="{url}">'
-                           '<span class="material-symbols-outlined">add_circle</span>'
+                           '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; display: inline-block;">add_circle</span>'
                            '</button>',
                            url=reverse_url
                            )
@@ -457,7 +458,11 @@ class TransactionListTable(tables.Table):
 
 class StatementListTable(MySharingColumns, tables.Table):
     account_host = tables.Column(verbose_name='Host', empty_values=(), orderable=False)
-    reconciled = tables.Column(empty_values=(), verbose_name="Reconciled")
+    reconciled = tables.Column(
+        empty_values=(),
+        verbose_name="Reconciled",
+        orderable=False
+    )
     verified_lock = tables.Column(
         orderable=True, 
         verbose_name='Verified and locked',

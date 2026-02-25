@@ -493,6 +493,7 @@ def GetCat2ListJSON(request):
 
     return JsonResponse(array, safe=False)
 
+
 class TemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
@@ -1495,6 +1496,7 @@ class InvitationRejectView(UserPassesTestMixin, MyNotificationLoggedin):
 class VendorListView(MyListView):
     model = Vendor
     table_class = VendorListTable
+    paginate_by = 15
 
     def get_queryset(self):
         return self.model.view_objects.all().order_by('name')
@@ -1743,7 +1745,7 @@ class AccountTransactionListView(UserPassesTestMixin, MyListView):
                 self.statement = statement.pk
                 self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
                 self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
-                
+
                 #extend for late transactions
                 if last_obj := Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last():
                     last_date = last_obj.date_actual
