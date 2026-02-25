@@ -11,6 +11,7 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
@@ -149,6 +150,15 @@ def PreferenceGetJSON(request):
 
     return JsonResponse(data, safe=False)
 
+@login_required
+@require_POST
+def update_theme_preference(request):
+    theme = request.POST.get('theme')
+    if theme in ['light', 'dark']:
+
+        get_current_user().preference_set.update(theme=theme)
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)
 
 def GetAccountViewListJSON(request):
     if request.user.is_authenticated is False:
@@ -835,6 +845,7 @@ class MyDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
 class MyListView(LoginRequiredMixin, SingleTableView):
     template_name = 'budgetdb/generic_list.html'
+    template_css = None
     create = True
     url = ''
     title = ''
@@ -850,6 +861,7 @@ class MyListView(LoginRequiredMixin, SingleTableView):
         else:
             context['add_url'] = None
         context["create"] = self.create
+        context["template_css"] = self.template_css
         return context
 
 
@@ -1522,6 +1534,7 @@ class VendorCreateView(MyCreateView):
 
 
 class StatementListView(MyListView):
+    template_css = 'budgetdb/statement_list.css'
     model = Statement
     table_class = StatementListTable
     paginate_by = 15
@@ -1629,7 +1642,7 @@ class StatementCreateView(MyCreateView):
     template_name = 'budgetdb/statement_form.html'
 
 # views.py
-def StatementVerifyToggle(request, pk):
+def StatementLockToggle(request, pk):
     if request.user.is_authenticated is False:
         return JsonResponse({}, status=401)
 
@@ -1639,6 +1652,8 @@ def StatementVerifyToggle(request, pk):
     if obj.can_edit():
         obj.verified_lock = not obj.verified_lock
         obj.save()
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success'})
         return redirect('budgetdb:list_statement')
     return HttpResponse(status=401)
 

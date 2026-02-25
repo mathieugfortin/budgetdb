@@ -1,14 +1,14 @@
 <div class="d-flex align-items-center flex-wrap gap-2">
     {# 1. Vendor #}
     {% if record.vendor %}
-        <span class="badge rounded-pill border border-primary-subtle text-primary bg-primary-subtle fw-medium px-2 py-1">
-            <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 2px;">store</span>
+         <span class="badge rounded-pill bg-info-subtle text-primary-emphasis border border-primary-subtle fw-medium px-2 py-1">
+            <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-top: -2px;">store</span>
             {{ record.vendor }}
         </span>
     {% endif %}
 
     {# 2. Description (Primary Action) #}
-    <button type="button" class="update-transaction btn btn-link btn-sm text-decoration-none fw-semibold p-0 text-dark-emphasis" 
+    <button type="button" class="update-transaction btn btn-link btn-sm text-decoration-none fw-semibold p-0" 
         data-bs-toggle="modal" 
         data-bs-target="#modal" 
         data-form-url="{% url 'budgetdb:account_listview_update_transaction_modal' record.id %}">
@@ -24,12 +24,12 @@
 
     {# 4. Unit/Price Box (Clean & Minimal) #}
     {% if record.Unit_QTY or record.Unit_price %}
-        <div class="d-inline-flex align-items-center border rounded bg-white overflow-hidden shadow-sm" style="font-size: 0.75rem; height: 22px;">
+        <div class="d-inline-flex align-items-center border rounded overflow-hidden shadow-sm" style="font-size: 0.75rem; height: 22px;">
             {% if record.Unit_QTY %}
-                <span class="px-2 py-0 bg-light border-end text-muted h-100 d-flex align-items-center">{{ record.Unit_QTY|floatformat:2 }} qty</span>
+                <span class="px-2 py-0 border-end text-muted h-100 d-flex align-items-center">{{ record.Unit_QTY|floatformat:2 }} qty</span>
             {% endif %}
             {% if record.Unit_price %}
-                <span class="px-2 py-0 text-dark h-100 d-flex align-items-center fw-medium">{{ record.Unit_price }}{{ record.currency.symbol }}</span>
+                <span class="px-2 py-0 h-100 d-flex align-items-center fw-medium">{{ record.Unit_price }}{{ record.currency.symbol }}</span>
             {% endif %}
         </div>
     {% endif %}

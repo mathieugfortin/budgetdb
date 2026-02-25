@@ -45,11 +45,7 @@ urlpatterns = [
     
     path('', views.IndexView.as_view(), name='index'),
 
-    path('preference/getJSON', views.PreferenceGetJSON,
-         name='preferences_json'),
-    path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
-         name='setinterval_json'),
-    
+
     path('chart/timeline/', views.EChartTimelineView.as_view(),
          name='timeline_chart'),
     path('chart/echartOptionTimelineJSON', views.echartOptionTimeline2JSON, name='timeline_option_json'),
@@ -267,6 +263,13 @@ urlpatterns = [
     # Preferences
     path('preferences/update/', views.PreferencesUpdateView.as_view(),
          name='update_preferences'),
+    path('preferences/update-theme/', views.update_theme_preference,
+         name='update_theme_preference'),
+    path('preference/getJSON', views.PreferenceGetJSON,
+         name='preferences_json'),
+    path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
+         name='setinterval_json'),
+    
 
     ##########################################################################################################
     # Statement
@@ -280,8 +283,8 @@ urlpatterns = [
          name='create_statement'),
     path('statement/update/<int:pk>/', views.StatementUpdateView.as_view(),
          name='update_statement'),
-    path('statement/toggleverify/<int:pk>/', views.StatementVerifyToggle,
-         name='toggleverifystatement_json'),
+    path('statement/toggleverify/<int:pk>/', views.StatementLockToggle,
+         name='togglelockstatement_json'),
 
     ##########################################################################################################
     # Template

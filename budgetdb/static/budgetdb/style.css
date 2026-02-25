@@ -4,20 +4,20 @@ body {
 
 #logout-form {
     display: inline;
-  }
-  #logout-form button {
+}
+
+#logout-form button {
     background: none;
     border: none;
     cursor: pointer;
     padding: 0;
   
-  }
+}
 
- .navbar-nav .dropdown-menu {
+.navbar-nav .dropdown-menu {
     max-height: 85vh;
     overflow-y: auto;
 }
-
 
 .container-90 {
     width: 100%;       /* Full width on mobile */
@@ -32,7 +32,6 @@ body {
 }
 
 .modal {
-
     overflow-y: scroll;
 }
 .transparent-select {
@@ -90,3 +89,70 @@ body {
 td {
     white-space: nowrap;
 }
+
+/* --- 1. SLIDER CONTAINER & TRACK --- */
+#input_range {
+    height: 4px !important;  /* Thin, modern track */
+    margin-top: 18px;        /* Center vertically in navbar */
+    margin-bottom: 10px;
+    border: none;
+    background: var(--bs-gray-300);
+    min-width: 200px;
+}
+
+[data-bs-theme="dark"] #input_range {
+    background: var(--bs-gray-800);
+}
+
+.noUi-connect {
+    background: var(--bs-primary);
+}
+
+/* --- 2. THE HANDLES --- */
+.noUi-handle {
+    width: 16px !important;
+    height: 16px !important;
+    right: -8px !important;
+    top: -7px !important;   /* Aligns with 4px track */
+    border-radius: 50% !important;
+    border: 2px solid var(--bs-primary) !important;
+    background: #fff !important; /* Default light */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+    cursor: grab;
+    transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+/* Dark Mode Handle Override */
+[data-bs-theme="dark"] .noUi-handle {
+    background: var(--bs-gray-900) !important;
+    border-color: var(--bs-info) !important;
+}
+
+/* Hover/Active states */
+.noUi-handle:active { cursor: grabbing; }
+.noUi-active .noUi-handle {
+    transform: scale(0.85);
+    background: var(--bs-primary) !important;
+}
+
+/* Remove internal handle decorations (the three dots) */
+.noUi-handle:before, .noUi-handle:after {
+    display: none !important;
+}
+
+/* --- 3. THE TOOLTIPS (DATES) --- */
+.noUi-tooltip {
+    display: block;
+    position: absolute;
+    border: none !important;
+    background: transparent !important;
+    color: var(--bs-body-color);
+    font-size: 0.75rem;
+    font-weight: 600;
+    bottom: 135% !important;
+    padding: 0 !important;
+    white-space: nowrap;
+    
+    /* Center logic */
+    left: 50%;
+    transform: translateX(-50%);
