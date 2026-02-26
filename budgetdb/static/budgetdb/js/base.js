@@ -44,8 +44,7 @@ function setTheme(config, themeName) {
     // 2. (Optional) Save it to the server via AJAX so it persists
     // fetch('/update-preferences/', { method: 'POST', body: ... });
 
-    const isDark = $(this).is(':checked');
-    
+
 
     // 1. Immediate UI update (Bootstrap 5.3 style)
     document.documentElement.setAttribute('data-bs-theme', themeName);
