@@ -1,0 +1,33 @@
+/* Generic wrapper logic */
+.lock-wrapper { 
+    transition: transform 0.2s; 
+    display: inline-block; 
+}
+.lock-wrapper:hover { 
+    transform: scale(1.2); 
+    cursor: pointer; 
+}
+
+.lock-icon-verified, 
+.lock-icon-unverified {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;   /* Fixed footprint */
+    height: 30px;  /* Fixed footprint */
+    line-height: 1;
+    vertical-align: middle;
+}
+
+.lock-icon-verified {
+    background-color: var(--bs-success);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 18px; /* Slightly smaller icon inside the circle */
+}
+
+.lock-icon-unverified {
+    color: var(--bs-secondary-color);
+    background-color: transparent;
+    font-size: 24px; /* Larger because it doesn't have the circle background */
+}

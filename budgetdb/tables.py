@@ -513,76 +513,44 @@ class StatementListTable(MySharingColumns, tables.Table):
         if record.balance == total:
             unverified_count = Transaction.objects.filter(statement_id=record.id,verified=False,is_deleted=False).count()
             if unverified_count>0:
-                return format_html('<b style="color: green;">OK but {} transactions are not verified', unverified_count)
+                return format_html('<b class="text-success-emphasis">OK but {} transactions are not verified', unverified_count)
             else:
-                return mark_safe('<b style="color: green;">OK All verified</b>')
+                return mark_safe('<b class="text-success-emphasis">OK All verified</b>')
         delta = record.balance - total
         formatted_delta = "{:.2f}".format(delta)
-        return format_html('<b style="color: red;">Total: {} Delta: {}{}</b>',total, formatted_delta,record.account.currency.symbol)
+        return format_html('<b class="text-danger-emphasis">Total: {} Delta: {}{}</b>',total, formatted_delta,record.account.currency.symbol)
 
     def render_verified_lock(self, value, record):
-        lockable=False
-        if record.balance == getattr(record, 'calculated_total', 0) and Transaction.objects.filter(statement_id=record.id,verified=False,is_deleted=False).count() == 0:
-            lockable=True
-        if value:
-            icon = "lock"
-            tooltip = "Click to Unlock"
-            css_class = "lock-icon-verified"
-        else:
+        # Calculate if the statement is ready to be locked
+        is_balanced = record.balance == getattr(record, 'calculated_total', 0)
+        has_unverified = Transaction.objects.filter(
+            statement_id=record.id, verified=False, is_deleted=False
+        ).exists() 
+        
+        lockable = is_balanced and not has_unverified
+
+        if value: # Currently Locked
+            icon, css_class, tooltip = "lock", "lock-icon-verified", "Click to Unlock"
+        else: # Currently Unlocked
             icon = "lock_open"
             css_class = "lock-icon-unverified"
-            if lockable:
-                tooltip = "Click to Lock"
-            else:
-                tooltip = "Not ready to Lock"
+            tooltip = "Click to Lock" if lockable else "Not ready to Lock"
 
-        
-        toggle_url = reverse('budgetdb:toggleverifystatement_json', kwargs={'pk': record.pk})
+        # Only provide the link if it's already locked OR if it's eligible to be locked
         if value or lockable:
+            toggle_url = reverse('budgetdb:togglelockstatement_json', kwargs={'pk': record.pk})
             return format_html(
-                '''
-                <style>
-                    .lock-wrapper {{ transition: transform 0.2s; display: inline-block; }}
-                    .lock-wrapper:hover {{ transform: scale(1.2); cursor: pointer; }}
-                    .lock-icon-verified {{ 
-                        display: inline-flex; align-items: center; justify-content: center; 
-                        background-color: #2e7d32; color: white; border-radius: 50%; 
-                        width: 30px; height: 30px; font-size: 18px; 
-                    }}
-                    .lock-icon-unverified {{ 
-                        color: #9e9e9e; font-size: 30px; vertical-align: middle; 
-                    }}
-                </style>
-                <a href="{0}" title="{1}" class="lock-wrapper">
-                    <span class="material-symbols-outlined {2}">{3}</span>
-                </a>
-                ''',
-                toggle_url,
-                tooltip,
-                css_class,
-                icon
+                '<a href="{}" title="{}" class="lock-wrapper toggle-statement-lock">'
+                '<span class="material-symbols-outlined {}">{}</span>'
+                '</a>',
+                toggle_url, tooltip, css_class, icon
             )
-        else:
-            return format_html(
-                '''
-                <style>
-                    .lock-wrapper {{ transition: transform 0.2s; display: inline-block; }}
-                    .lock-wrapper:hover {{ transform: scale(1.2); cursor: pointer; }}
-                    .lock-icon-verified {{ 
-                        display: inline-flex; align-items: center; justify-content: center; 
-                        background-color: #2e7d32; color: white; border-radius: 50%; 
-                        width: 30px; height: 30px; font-size: 18px; 
-                    }}
-                    .lock-icon-unverified {{ 
-                        color: #9e9e9e; font-size: 30px; vertical-align: middle; 
-                    }}
-                </style>
-                <span class="material-symbols-outlined {1}" title="{0}">{2}</span>
-                ''',
-                tooltip,
-                css_class,
-                icon
-            )
+        
+        # Just a dead icon if it's not ready
+        return format_html(
+            '<span class="material-symbols-outlined {}" title="{}">{}</span>',
+            css_class, tooltip, icon
+        )
 
 
 class VendorListTable(MySharingColumns, tables.Table):

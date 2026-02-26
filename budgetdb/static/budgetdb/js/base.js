@@ -6,13 +6,10 @@ function tsToDate(ts) {
         year: 'numeric', month: 'numeric', day: 'numeric'
     });
 }
-
-function parseDateIS(date) {
-    const year = date.substr(0, 4);
-    let month = date.substr(5, 2) - 1;
-    const day = date.substr(8, 2);
-    return new Date(year, month, day).valueOf();
+function onRangeUpdate(begin, end) {
+    // Placeholder for page-specific range logic
 }
+
 
 function addA(baseURL, pk, label, attachTo) {
     const container = document.getElementById(attachTo);
@@ -25,9 +22,6 @@ function addA(baseURL, pk, label, attachTo) {
     container.append(newA);
 }
 
-function onRangeUpdate(begin, end) {
-    // Placeholder for page-specific range logic
-}
 
 /**
  * Modal & Help Logic
@@ -43,6 +37,37 @@ function openHelp(tabId) {
     }
     modal.show();
 }
+
+function setTheme(config, themeName) {
+    //document.documentElement.setAttribute('data-bs-theme', themeName);
+    
+    // 2. (Optional) Save it to the server via AJAX so it persists
+    // fetch('/update-preferences/', { method: 'POST', body: ... });
+
+
+
+    // 1. Immediate UI update (Bootstrap 5.3 style)
+    document.documentElement.setAttribute('data-bs-theme', themeName);
+
+    // 2. Persist to the database
+    $.post(config.urls.update_theme_preference, {
+        'theme': themeName
+    })
+    .done(function(response) {
+        console.log("Theme saved: " + themeName);
+    })
+    .fail(function() {
+        // Fallback: Revert UI if the server save fails
+        alert("Failed to save theme preference.");
+    });
+
+
+
+}
+
+
+
+
 
 /**
  * Main Initialization
@@ -75,26 +100,99 @@ $(document).ready(function() {
         $.getJSON(config.urls.accountcat_list, (result) => {
             result.forEach(field => addA(`${config.urls.timeline_chart}?ac=12345`, field[0].pk, field[1].name, 'timeline_menu'));
         });
+        // 1. Get the container
+        const sliderElement = document.getElementById('input_range'); // Use your actual ID
 
-        // Initialize Slider
-        $.getJSON(config.urls.preferences, (res) => {
-            $(".js-range-slider").ionRangeSlider({
-                type: "double",
-                skin: "big",
-                min: parseDateIS(res.timeline_start),
-                max: parseDateIS(res.timeline_stop),
-                from: parseDateIS(res.slider_start),
-                to: parseDateIS(res.slider_stop),
-                prettify: tsToDate,
-                onFinish: function(data) {
-                    $.post(config.urls.set_interval, {
-                        'begin_interval': data.from_pretty,
-                        'end_interval': data.to_pretty
-                    });
-                    onRangeUpdate(data.from_pretty, data.to_pretty);
+        document.getElementById('themeToggle').addEventListener('change', function(e) {
+            const theme = e.target.checked ? 'dark' : 'light';
+            setTheme(config, theme);
+        });
+
+        $(document).on('click', '.toggle-statement-lock', function(e) {
+            e.preventDefault(); 
+         
+            const $link = $(this);
+            const $icon = $link.find('.material-symbols-outlined');
+            const url = $link.attr('href');
+
+            // Add a slight fade to show "activity"
+            $icon.css('opacity', '0.5');
+
+            $.post(url, (data) => {
+                if (data.status === 'success') {
+                    // Check current state to flip it
+                    debugger
+                    if ($icon.hasClass('lock-icon-verified')) {
+                        // Flip to UNVERIFIED (Unlocked)
+                        $icon.removeClass('lock-icon-verified')
+                            .addClass('lock-icon-unverified')
+                            .text('lock_open'); // Changes the Material Icon shape
+                        $link.attr('title', 'Click to Lock');
+                    } else {
+                        // Flip to VERIFIED (Locked)
+                        $icon.removeClass('lock-icon-unverified')
+                            .addClass('lock-icon-verified')
+                            .text('lock'); // Changes the Material Icon shape
+                        $link.attr('title', 'Click to Unlock');
+                    }
                 }
+            })
+            .always(() => {
+                debugger
+                $icon.css('opacity', '1'); // Bring opacity back
+            })
+            .fail(() => {
+                debugger
+                alert("Server error: Could not toggle lock status.");
             });
         });
+
+        if (sliderElement) {
+            // 2. Fetch the dates to initialize the slider
+            $.getJSON(config.urls.preferences, (res) => {
+                
+                // 3. Create the slider
+                noUiSlider.create(sliderElement, {
+                    range: {
+                        'min': new Date(res.timeline_start).getTime(),
+                        'max': new Date(res.timeline_stop).getTime()
+                    },
+                    step: 24 * 60 * 60 * 1000, // 1 day
+                    start: [new Date(res.slider_start).getTime(), new Date(res.slider_stop).getTime()],
+                    connect: true,
+                    tooltips: [true, true],
+                    format: {
+                        to: value => tsToDate(value), // Your existing date formatter
+                        from: value => value
+                    }
+                });
+
+                // 4. Attach the listener (The code you wrote)
+                sliderElement.noUiSlider.on('change', function (values, handle) {
+                    let [start, end] = values;
+                    $.post(config.urls.set_interval, {
+                        'begin_interval': start,
+                        'end_interval': end
+                    });
+                    onRangeUpdate(start, end);
+                });
+
+                sliderElement.noUiSlider.on('update', function (values, handle) {
+                    const tooltips = sliderElement.querySelectorAll('.noUi-tooltip');
+                    if (tooltips.length < 2) return;
+
+                    // Get the horizontal position (%) of both handles
+                    const positions = sliderElement.noUiSlider.getPositions();
+                    const distance = Math.abs(positions[0] - positions[1]);
+
+                    // If handles are within 15% of the total bar width, trigger the offset
+                    // This is much smoother than pixel-counting tooltips
+                    const isOverlapping = distance < 18; 
+
+                    sliderElement.classList.toggle('tooltips-overlapping', isOverlapping);
+                });
+            });
+        }
     }
 
     // 2. Optimized Instruction Search Listener

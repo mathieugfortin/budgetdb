@@ -996,10 +996,6 @@ class PreferenceForm(forms.ModelForm):
         
         self.helper.layout = Layout(
             Div(
-                Div('theme', css_class='form-group col-md-4  '),
-                css_class='row'
-            ),
-            Div(
                 Div('slider_start', css_class='form-group col-md-4  '),
                 Div('slider_stop', css_class='form-group col-md-4  '),
                 css_class='row'

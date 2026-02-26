@@ -5,6 +5,12 @@
 
 {% block title %}{{title}} {% endblock %}
 
+{% if template_css %}
+    {% block headblock %}
+       {% load static %} <link rel="stylesheet" type="text/css" href="{% static template_css %}">
+    {% endblock %}
+{% endif %}
+
 {% block content %}
     {% load render_table from django_tables2 %}
     
