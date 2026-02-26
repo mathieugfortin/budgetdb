@@ -1,5 +1,5 @@
 body {
-    padding-top: 190px;
+    padding-top: 75px;
 }
 
 #logout-form {
@@ -93,8 +93,8 @@ td {
 /* --- 1. SLIDER CONTAINER & TRACK --- */
 #input_range {
     height: 4px !important;  /* Thin, modern track */
-    margin-top: 18px;        /* Center vertically in navbar */
-    margin-bottom: 10px;
+    margin-top: 24px;        /* Center vertically in navbar */
+    margin-bottom: 6px;
     border: none;
     background: var(--bs-gray-300);
     min-width: 200px;
