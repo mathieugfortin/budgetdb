@@ -1,0 +1,137 @@
+<script type="text/javascript">
+(function($) {
+    $(function() {
+
+        // --- 1. Calculation Logic ---
+        function calculateRowSum($row) {
+            let total = 0;
+            // Find all checked boxes within the indices-container of THIS row
+            $row.find('.indices-container input:checked').each(function() {
+                const labelText = $(this).closest('label').text().trim();
+
+                // 1. Date Check: If it contains '/' or '-' and looks like a date, skip it
+                const datePattern = /[0-9]{2,4}[\/|-][0-9]{2}[\/|-][0-9]{2,4}/;
+                if (datePattern.test(labelText)) {
+                    return; // Continue to next checkbox
+                }
+
+                // 2. Amount Check: Strip symbols, but keep the decimal point and minus sign
+                const value = parseFloat(labelText.replace(/[^0-9.-]+/g, ""));
+                
+                // 3. Logic Check: Typical paystub amounts won't be in the millions 
+                // unless you're a CEO. This prevents accidental date-to-number conversion.
+                if (!isNaN(value) && value < 1000000) { 
+                    total += value;
+                }
+            });
+
+            // Update the badge with formatted currency
+            const $badge = $row.find('.row-preview');
+            $badge.text('Sum: $' + total.toLocaleString(undefined, {
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2
+            }));
+        }
+
+        // Trigger calculation on change of any checkbox in the indices container
+        $(document).on('change', '.indices-container input[type="checkbox"]', function() {
+            calculateRowSum($(this).closest('tr'));
+        });
+
+        // --- 2. Existing Global "Show Ignored" Switch ---
+        $('#toggleIgnored').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('.line-ignored').removeClass('d-none').addClass('table-light opacity-50');
+            } else {
+                $('.line-ignored').addClass('d-none');
+            }
+        });
+
+        // --- 3. Individual Row "Ignore" Toggle ---
+        $(document).on('change', 'input[id$="-is_ignored"]', function() {
+            var $row = $(this).closest('tr');
+            var isChecked = $(this).is(':checked');
+            
+            if (isChecked) {
+                $row.addClass('line-ignored');
+                if (!$('#toggleIgnored').is(':checked')) {
+                    $row.addClass('d-none');
+                } else {
+                    $row.addClass('table-light opacity-50');
+                }
+            } else {
+                $row.removeClass('line-ignored table-light opacity-50 d-none').show();
+            }
+        });
+
+        // --- 4. AJAX: Load Cat2 based on Cat1 ---
+        $(document).on('change', 'select[id$="-cat1"]', function () {
+            var $cat1Field = $(this);
+            var url = "{% url 'budgetdb:ajax_load_cat2' %}";
+            var namePrefix = $cat1Field.attr('name').replace('-cat1', '');
+            var $cat2Field = $('select[name="' + namePrefix + '-category"]');
+
+            $.ajax({
+                url: url,
+                data: { 'cat1': $cat1Field.val() },
+                success: function (data) { $cat2Field.html(data); }
+            });
+        });
+
+        // --- 5. UI & Initial Load ---
+        function updateRowUI($row) {
+            var isHeader = $row.find('input[id$="-is_header"]').is(':checked');
+            var isDate = $row.find('input[id$="-is_date_line"]').is(':checked');
+            
+            var $cat1 = $row.find('select[id$="-cat1"]').closest('.mb-3');
+            var $cat2 = $row.find('select[id$="-category"]').closest('.mb-3');
+            var $dest_account = $row.find('select[id$="-destination_account"]').closest('.mb-3');
+            var $entry_type = $row.find('select[id$="-entry_type"]').closest('.mb-3');
+            var $indices = $row.find('.indices-container');
+            var $badge = $row.find('.row-preview');
+
+            if (isHeader) {
+                $cat1.css('visibility', 'hidden');
+                $cat2.css('visibility', 'hidden');
+                $dest_account.css('visibility', 'hidden');
+                $entry_type.css('visibility', 'hidden');
+                $indices.css('visibility', 'hidden');
+                $row.addClass('table-primary opacity-75');
+                $badge.hide();
+            } else if (isDate) {
+                $cat1.css('visibility', 'hidden');
+                $cat2.css('visibility', 'hidden');
+                $dest_account.css('visibility', 'hidden');
+                $entry_type.css('visibility', 'hidden');
+                $indices.css('visibility', 'visible');
+                $row.removeClass('table-primary opacity-75').addClass('table-info');
+                $badge.show();
+            } else {
+                $cat1.css('visibility', 'visible');
+                $cat2.css('visibility', 'visible');
+                $dest_account.css('visibility', 'visible');
+                $entry_type.css('visibility', 'visible');
+                $indices.css('visibility', 'visible');
+                $row.removeClass('table-primary table-info opacity-75');
+                $badge.show();
+            }
+            
+            // Only calculate if the badge is visible
+            if ($badge.is(':visible')) {
+                calculateRowSum($row);
+            }
+        }
+
+        // Initialize UI and Sums for all rows on page load
+        $('.mapping-row').each(function() {
+            updateRowUI($(this));
+        });
+
+        // Bind UI updates to checkbox changes
+        $(document).on('change', 'input[id$="-is_header"], input[id$="-is_date_line"]', function() {
+            updateRowUI($(this).closest('tr'));
+        });
+
+    });
+})(jQuery);
+</script>

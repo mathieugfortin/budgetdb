@@ -37,7 +37,11 @@
     {# 5. Joined Transactions Icon #}
     {% with jid=record.joined_transaction_id %}
         {% if jid %}
-            <a href="{% url 'budgetdb:update_joinedtransactions' pk=jid datep=record.date_planned|date:'Y-m-d' datea=record.date_actual|date:'Y-m-d' %}" 
+            {% if record.date_planned %}
+                <a href="{% url 'budgetdb:update_joinedtransactions' pk=jid datep=record.date_planned|date:'Y-m-d' datea=record.date_actual|date:'Y-m-d' %}" 
+            {% else %}
+                <a href="{% url 'budgetdb:update_joinedtransactions' pk=jid datea=record.date_actual|date:'Y-m-d' %}" 
+            {% endif %}
                title="Edit the joined transactions"
                class="btn btn-sm p-0 text-secondary hover-primary">
                 <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">dynamic_feed</span>

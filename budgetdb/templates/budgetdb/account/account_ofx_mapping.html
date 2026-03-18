@@ -16,7 +16,7 @@
                     <select name="identify_account" class="form-select" required>
                         <option value="" selected disabled>Choose an account...</option>
                         {% for acc in accounts %}
-                        <option value="{{ acc.id }}">{{ acc.name }} ({{ acc.currency.name_short }})</option>
+                        <option value="{{ acc.id }}">{{ acc }} ({{ acc.currency.name_short }})</option>
                         {% endfor %}
                     </select>
                 </div>

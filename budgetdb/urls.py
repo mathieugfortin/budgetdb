@@ -260,6 +260,11 @@ urlpatterns = [
          name='update_cattype'),
 
     ##########################################################################################################
+    # PayStubs
+    path('paystubprofile/add/', views.PayStubProfileCreateView.as_view(),
+         name='create_paystubprofile'),
+
+    ##########################################################################################################
     # Preferences
     path('preferences/update/', views.PreferencesUpdateView.as_view(),
          name='update_preferences'),
@@ -327,6 +332,12 @@ urlpatterns = [
          name='update_transaction'),
     path('transaction/uploadOFX/', views.import_ofx_view,
          name='upload_transactions_OFX'),         
+    path('transaction/uploadPDFpaystub/<int:profile_id>/', views.setup_paystub_mapping,
+         name='upload_paystub_PDF'),         
+    path('transaction/uploadPDFpaystub/', views.setup_paystub_mapping,
+         name='upload_paystub_PDF'),         
+    path('transaction/commitpaystub/', views.commit_paystub,
+         name='commit_paystub_PDF'), 
 
          
     # path('audit/<int:pk>/', views..as_view(),
@@ -351,6 +362,8 @@ urlpatterns = [
     path('joinedtransactions/add/', views.JoinedTransactionsConfigUpdateView.as_view(),
          name='create_joinedtransactions'),
     path('joinedtransactions/update/<int:pk>/<slug:datep>/', views.JoinedTransactionsUpdateView.as_view(),
+         name='update_joinedtransactions'),
+    path('joinedtransactions/update/<int:pk>/<slug:datea>/', views.JoinedTransactionsUpdateView.as_view(),
          name='update_joinedtransactions'),
     path('joinedtransactions/update/<int:pk>/<slug:datep>/<slug:datea>', views.JoinedTransactionsUpdateView.as_view(),
          name='update_joinedtransactions'),

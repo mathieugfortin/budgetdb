@@ -103,3 +103,7 @@ Perform the Move: Rename your folders (e.g., move budgetdb/user/ to budgetdb/acc
 Bulk Search & Replace: Update your views.py and {% extends %} tags.
 
 Run the Dynamic URL Test again: If any view fails with a 500, you missed a reference in that specific view.
+
+When it complains about "did you install mysqlclient?"  do this:
+sudo apt-get update
+sudo apt-get install -y libmariadb-dev

@@ -8,16 +8,17 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict
+from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from django.utils.dateparse import parse_date
 from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
-from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data
+from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data, PaystubEngine
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
-from budgetdb.models import JoinedTransactions, AccountBalanceDB
+from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
 
@@ -28,7 +29,6 @@ from ofxparse import OfxParser
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, BSModalDeleteView
 import json
 from urllib.parse import urlparse, urlunparse
-
 
 
 ###################################################################################################################
@@ -331,6 +331,7 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         # 4. Reconstruct the URL
         url_parts[4] = query_params.urlencode()
         return urlunparse(url_parts)
+
 
 def import_ofx_view(request):
     # --- STEP 4: FINAL CONFIRMATION (Save to DB) ---
