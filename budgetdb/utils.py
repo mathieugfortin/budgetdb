@@ -2,9 +2,13 @@
 from calendar import HTMLCalendar
 from django.urls import reverse, reverse_lazy
 from ofxparse import OfxParser
-from .models import Transaction, Statement, Vendor
+from .models import Transaction, Statement, Vendor, PaystubMapping
 from django.db.models import Q
 import datetime
+from dateutil import parser
+import pdfplumber
+import re
+from decimal import Decimal
 
 class Calendar(HTMLCalendar):
     def __init__(self, year=None, month=None):
@@ -203,3 +207,168 @@ def analyze_ofx_serialized_data(serialized_list, account):
         final_data.append(item)
         
     return final_data
+
+
+class PaystubEngine:
+    def __init__(self, data, profile=None):
+        self.sections = {}
+        self.profile = profile
+        
+        # If 'data' is a string, we already have the text.
+        # If it's bytes/file, we open the source file it.
+        if isinstance(data, str):
+            self.raw_text = data
+        else:
+            self.raw_text = self._extract_text(data)
+            
+        self.tokenized_lines = self._tokenize_all()
+        #self.token_dict = self._tokenize(self.raw_text)
+
+    def _extract_text(self, pdf_file):
+        """Internal helper to convert binary PDF to string text."""
+        extracted_text = ""
+        try:
+            with pdfplumber.open(pdf_file) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        extracted_text += page_text + "\n"
+        except Exception as e:
+            print(f"PDF Extraction Error: {e}")
+            return ""
+        return extracted_text
+
+    def _tokenize_all(self):
+        """Turn the whole PDF into a clean list of token lists."""
+        tokenized = []
+        # Your regex for splitting numbers/spaces
+        regex = r'\s{2,}|\s(?=\$|\d|-(?!\s))'
+        
+        for line in self.raw_text.split('\n'):
+            clean_line = line.strip()
+            if not clean_line: continue
+            
+            # Split the line into parts (Keyword, Value1, Value2...)
+            parts = [p.strip() for p in re.split(regex, clean_line) if p.strip()]
+            if parts:
+                tokenized.append(parts)
+        return tokenized
+
+    def calculate_mapped_value(self, mapping, tokens):
+        """
+        Takes the saved mapping (with index string like "1,3") 
+        and the raw tokens, returns the final float.
+        """
+        if not mapping.column_indices or mapping.column_indices == "-1":
+            return 0.0
+
+        total = 0.0
+        # "1,3" -> [1, 3]
+        indices = [int(i) for i in mapping.column_indices.split(',')]
+        
+        for idx in indices:
+            try:
+                # Clean "$1,234.56" -> "1234.56"
+                raw_val = tokens[idx].replace('$', '').replace(',', '').strip()
+                total += float(raw_val)
+            except (IndexError, ValueError):
+                continue
+                
+        return abs(total)
+
+    def sync_mappings_with_db(self, profile):
+        token_dict = self.get_token_dict()
+
+        for i, (keyword, tokens) in enumerate(token_dict.items()):
+            # Look up which section this keyword belongs to
+            section_name = self.find_section_for_keyword(keyword)
+
+            PaystubMapping.objects.update_or_create(
+                profile=profile,
+                line_keyword=keyword,
+                defaults={
+                    'section_name': section_name,
+                    'line_sequence': i,
+                }
+            )
+
+    def get_mapped_amounts(self):
+        """
+        Returns a dictionary: { cat2_id: total_decimal_amount }
+        """
+        results = {}
+        mappings = PaystubMapping.objects.select_related('category').all()
+
+        for map_obj in mappings:
+            section_lines = self.sections.get(map_obj.section_name, [])
+            
+            # Find the specific line in this section
+            for line in section_lines:
+                if map_obj.line_keyword.lower() in line.lower():
+                    # Tokenize by multiple spaces or tabs
+                    tokens = re.split(r'\s{2,}', line)
+                    
+                    line_sum = Decimal('0.00')
+                    for idx in map_obj.get_indices():
+                        try:
+                            # Clean the token ($ and ,)
+                            raw_val = tokens[idx].replace('$', '').replace(',', '').strip()
+                            # Handle negative signs like $-89.97 or -89.97
+                            if raw_val.startswith('$-'):
+                                raw_val = raw_val.replace('$-', '-')
+                            
+                            line_sum += Decimal(raw_val)
+                        except (IndexError, ValueError):
+                            continue
+                    
+                    # Aggregate by category ID
+                    cat_id = map_obj.category.id
+                    results[cat_id] = results.get(cat_id, Decimal('0.00')) + line_sum
+                    
+        return results
+
+    def get_token_dict(self):
+        """Used by the Mapping UI: maps keyword -> full list of tokens."""
+        # Parts[0] is the keyword (e.g., 'Canada Income Tax')
+        return {parts[0]: parts for parts in self.tokenized_lines}
+
+    def find_section_for_keyword(self, keyword):
+        """
+        Looks through the engine's internal section dictionary 
+        to see which header 'owns' this line keyword.
+        """
+        for section_name, lines in self.sections.items():
+            for line in lines:
+                # Check if this keyword is at the start of any line in this section
+                if line.strip().startswith(keyword):
+                    return section_name
+        return "General" # Fallback if not found
+
+    def find_pay_date(self, profile):
+        """Looks for the date string using the user's saved mapping."""
+        # 1. Get the line keyword and index saved as the date line
+        date_mapping = PaystubMapping.objects.filter(
+            profile=profile, 
+            is_date_line=True
+        ).first()
+
+        if date_mapping:
+            # Get the tokens for that specific line from our Engine
+            tokens = self.get_token_dict().get(date_mapping.line_keyword)
+            
+            if tokens:
+                try:
+                    # Use the saved index (e.g. index 2 from your debug screenshot)
+                    indices = [int(i) for i in date_mapping.column_indices.split(',')]
+                    
+                    for idx in indices:
+                        raw_date = tokens[idx]
+                        try:
+                            stub_date = parser.parse(raw_date).date()
+                        except (IndexError, ValueError):
+                            continue
+                        return stub_date
+
+                except (ValueError, IndexError, TypeError):
+                    return None
+        return None

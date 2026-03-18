@@ -1502,6 +1502,14 @@ class InvitationRejectView(UserPassesTestMixin, MyNotificationLoggedin):
 
 
 ###################################################################################################################
+# PayStub
+
+class PayStubProfileCreateView(MyCreateView):
+    model = PaystubProfile
+    form_class = PaystubProfileForm
+
+
+###################################################################################################################
 # Vendor
 
 

@@ -124,10 +124,11 @@ class ViewerManager(BaseManager):
     deleted_filter = "active_only"  # active_only - deleted_only - all
 
     def apply_permission_filters(self, qs, user):
+        is_system = Q(system_object=True)
         is_owner = Q(owner=user)
         is_admin = Q(users_admin=user)
         is_viewer = Q(users_view=user)
-        return qs.filter(is_owner | is_admin | is_viewer).distinct()
+        return qs.filter(is_system | is_owner | is_admin | is_viewer).distinct()
 
 
 class ViewerDeletedManager(BaseManager):
@@ -205,6 +206,9 @@ class ClassOwner(models.Model):
 
 
 class UserPermissions(ClassOwner):
+    class Meta:
+        abstract = True
+
     # groups_admin = models.ManyToManyField(Group, related_name='g_can_mod_%(app_label)s_%(class)s', blank=True)
     # groups_view = models.ManyToManyField(Group, related_name='g_can_view_%(app_label)s_%(class)s', blank=True)
     users_admin = models.ManyToManyField("User", related_name='users_full_access_%(app_label)s_%(class)s', blank=True)
@@ -213,8 +217,11 @@ class UserPermissions(ClassOwner):
     view_objects = ViewerManager()
     view_deleted_objects = ViewerDeletedManager()
     admin_objects = AdminManager()
+    system_object = models.BooleanField(default=False)
 
     def can_edit(self):
+        if self.system_object:
+            return False
         user = get_current_user()
         if self.owner == user:
             return True
@@ -225,6 +232,8 @@ class UserPermissions(ClassOwner):
         return False
 
     def can_view(self):
+        if self.system_object:
+            return True
         user = get_current_user()
         if self.owner == user:
             return True
@@ -435,7 +444,6 @@ class AccountHost(BaseSoftDelete, UserPermissions):
         verbose_name_plural = 'Financial Institutions'
         ordering = ['name']
 
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='accounthost_permissions_child')
     name = models.CharField(max_length=200)
 
     def __str__(self):
@@ -508,8 +516,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         verbose_name_plural = 'Accounts'
         ordering = ['account_host__name', 'name']
 
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='account_permissions_child')
-
     ofx_acct_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bank's ACCTID from OFX")  # <ACCTID>
     ofx_org = models.CharField(max_length=50, blank=True, null=True) # <ORG>
     ofx_fid = models.CharField(max_length=50, blank=True, null=True) # <FID>
@@ -546,6 +552,12 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         instance._loaded_values = dict(zip(field_names, values))
         
         return instance
+
+    @property
+    def full_display_name(self):
+        if self.owner.name == "user":
+            return f"{self.account_host.name} - {self.name}"
+        return f"{self.account_host.name} - ({self.owner.name}) - {self.name}"
 
     def new_balances(self, begin, end):
         # Ensure begin is a date object, not a string
@@ -815,11 +827,11 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             event.balance = balance
             event.save()
             # checking if the event is part of a joinedTransaction
-            if event.transactions.first() is not None:
-                event.joinedtransaction = event.transactions.first()
+            if event.joined_transactions.first() is not None:
+                event.joinedtransaction = event.joined_transactions.first()
             elif event.budgetedevent is not None:
-                if event.budgetedevent.budgeted_events.first() is not None:
-                    event.joinedtransaction = event.budgetedevent.budgeted_events.first()
+                if event.budgetedevent.joined_transactions.first() is not None:
+                    event.joinedtransaction = event.budgetedevent.joined_transactions.first()
         return events
 
     def leaf_balances_needed_cleaning(self, start_date, end_date):
@@ -959,8 +971,6 @@ class AccountCategory(MyMeta, BaseSoftDelete, UserPermissions):
         verbose_name = 'Account Category'
         verbose_name_plural = 'Account Categories'
         ordering = ['name']
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='accountcategory_permissions_child')
     accounts = models.ManyToManyField(Account, related_name='account_categories')
     name = models.CharField(max_length=200)
 
@@ -1087,8 +1097,6 @@ class CatBudget(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Category Budget'
         verbose_name_plural = 'Categories Budgets'
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='catbudget_permissions_child')
     name = models.CharField(max_length=200)
     FREQUENCIES = (
         ('D', 'Daily'),
@@ -1157,8 +1165,6 @@ class CatType(BaseSoftDelete, UserPermissions):
         verbose_name = 'Category Type'
         verbose_name_plural = 'Categories Type'
         ordering = ['name']
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='cattype_permissions_child')
     name = models.CharField(max_length=200)
     date_open = models.DateField('date opened', blank=True, null=True)
     date_closed = models.DateField('date closed', blank=True, null=True)
@@ -1211,15 +1217,12 @@ class Cat1(BaseSoftDelete, UserPermissions):
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
         ordering = ['name']
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='cat1_permissions_child')
     name = models.CharField(max_length=200)
     catbudget = models.ForeignKey('CatBudget', on_delete=models.CASCADE,
                                   blank=True, null=True)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     date_open = models.DateField('date opened', blank=True, null=True)
     date_closed = models.DateField('date closed', blank=True, null=True)
-
     def __str__(self):
         return self.name
 
@@ -1232,14 +1235,12 @@ class Cat2(BaseSoftDelete, UserPermissions):
         verbose_name = 'Sub-Category'
         verbose_name_plural = 'Sub-Categories'
         ordering = ['name']
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='cat2_permissions_child')
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE)
     cattype = models.ForeignKey(CatType, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     catbudget = models.ForeignKey(CatBudget, on_delete=models.CASCADE, blank=True, null=True)
     unit_price = models.BooleanField('Do we keep unit quantity and cost per for this subcategory', default=False)
-    
+
     def __str__(self):
         return self.name
 
@@ -1247,13 +1248,65 @@ class Cat2(BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:details_cat1', kwargs={'pk': self.cat1.pk})
 
 
+class PaystubProfile(BaseSoftDelete, UserPermissions):
+    name = models.CharField(max_length=100, help_text="e.g., Bell Canada Mgmt")
+    pay_account = models.ForeignKey('Account', on_delete=models.CASCADE, related_name='pay_sources')
+    checking_account = models.ForeignKey('Account', on_delete=models.CASCADE, related_name='pay_destinations')
+
+    # Date Extraction Rules
+    date_section = models.CharField(max_length=100, help_text="e.g., BANK Account number")
+    date_keyword = models.CharField(max_length=100, help_text="e.g., 2026/")
+    date_index = models.IntegerField(default=2)
+
+    def get_absolute_url(self):
+        return reverse('budgetdb:home')
+
+
+class PaystubMapping(BaseSoftDelete, UserPermissions):
+    class EntryType(models.TextChoices):
+        INCOME = '1.0', 'Income (+)'
+        DEDUCTION = '-1.0', 'Deduction (-)'
+        # Easy to add more later, e.g.:
+        # INFORMATIONAL = '0.0', 'Info Only'
+    profile = models.ForeignKey(PaystubProfile, on_delete=models.CASCADE, related_name='mappings')
+    section_name = models.CharField(max_length=100)
+    line_keyword = models.CharField(max_length=100)
+    line_sequence = models.IntegerField(default=0, help_text="Order of the line in the document")
+    category = models.ForeignKey('Cat2', on_delete=models.SET_NULL, null=True, blank=True)
+    column_indices = models.CharField(max_length=20, default="-1")
+    
+    is_header = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+    is_date_line = models.BooleanField(default=False)
+    is_ignored = models.BooleanField(default=False)
+    is_net_pay = models.BooleanField(default=False)
+    entry_type = models.CharField(
+        max_length=10,
+        choices=EntryType.choices,
+        default=EntryType.INCOME,
+        help_text="Determines if the value adds to or subtracts from the total."
+    )
+    destination_account = models.ForeignKey(
+        'Account', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='paystub_mappings'
+    )
+    def get_indices(self):
+        if not self.column_indices or self.column_indices == "-1":
+            return []
+        return self.column_indices.split(',')
+
+    def __str__(self):
+        return f'{self.section_name} - {self.category}'
+
+
 class Vendor(BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Vendor'
         verbose_name_plural = 'Vendors'
         ordering = ['name']
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='vendor_permissions_child')
     name = models.CharField(max_length=200)
     OFX_name = models.CharField('Bank import key', max_length=200, blank=True, null=True)
 
@@ -1329,8 +1382,6 @@ class Template(MyMeta, BaseSoftDelete, BaseEvent, UserPermissions):
         verbose_name = 'Template'
         verbose_name_plural = 'Templates'
 
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='template_permissions_child')
-
     def __str__(self):
         return f'{self.vendor} - {self.description}'
 
@@ -1390,11 +1441,11 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     def joined_transaction_id(self):
         """Returns the ID of the related joined transaction if one exists."""
         if self.budgetedevent:
-            first_event = self.budgetedevent.budgeted_events.first()
+            first_event = self.budgetedevent.joined_transactions.first()
             if first_event:
                 return first_event.id
         
-        first_tx = self.transactions.first()
+        first_tx = self.joined_transactions.first()
         if first_tx:
             return first_tx.id
             
@@ -1402,14 +1453,14 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
 
     def clean(self):
         super().clean()
-        
-        # 1. Audit must have an amount
+
+        # Audit must have an amount
         if self.audit and self.amount_actual is None:
             raise ValidationError({
                 'amount_actual': _('An audited transaction must have an actual amount.')
             })
             
-        # 2. Prevent transfers to the same account
+        # Prevent transfers to the same account
         if self.account_source == self.account_destination and self.account_source is not None:
             raise ValidationError(
                 _('Source and destination accounts cannot be the same.')
@@ -1611,12 +1662,6 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
     class Meta:
         verbose_name = 'Budgeted Event'
         verbose_name_plural = 'Budgeted Events'
-
-    user_permissions = models.OneToOneField(to=UserPermissions,
-                                            parent_link=True,
-                                            on_delete=models.CASCADE,
-                                            related_name='budgetedevent_permissions_child'
-                                            )
     generated_interval_start = models.DateField('begining of the generated events interval', blank=True, null=True)
     generated_interval_stop = models.DateField('end of the generated events interval', blank=True, null=True)
     percent_planned = models.DecimalField('percent of another event.  say 10% of pay goes to RRSP',
@@ -1722,8 +1767,6 @@ class Statement (MyMeta, BaseSoftDelete, UserPermissions):
         verbose_name = 'Statement'
         verbose_name_plural = 'Statements'
         ordering = ['-statement_date']
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='statement_permissions_child')
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='statement_account')
     balance = models.DecimalField('Statement balance', decimal_places=2, max_digits=10, default=Decimal('0.00'))
     minimum_payment = models.DecimalField('Minimum Payment', decimal_places=2, max_digits=10, default=Decimal('0.00'))
@@ -1763,10 +1806,8 @@ class JoinedTransactions(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
         verbose_name = 'Joined Transactions'
         verbose_name_plural = 'Joined Transactions'
-
-    user_permissions = models.OneToOneField(to=UserPermissions, parent_link=True, on_delete=models.CASCADE, related_name='joinedtransactions_permissions_child')
     name = models.CharField(max_length=200)
     comment = models.CharField(max_length=200, blank=True, null=True)
-    transactions = models.ManyToManyField(Transaction, related_name='transactions')
-    budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='budgeted_events')
+    transactions = models.ManyToManyField(Transaction, related_name='joined_transactions') #was transactions
+    budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='joined_transactions') #was budgeted_events
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)

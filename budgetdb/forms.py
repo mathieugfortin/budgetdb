@@ -4,14 +4,15 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.core.exceptions import PermissionDenied
 from django.db.models import Case, When, Value, IntegerField
-from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
+from django.forms.models import inlineformset_factory, formset_factory
+from django.forms import BaseModelFormSet, modelformset_factory
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 from .models import User, Preference, Invitation
 from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
-from .models import BudgetedEvent, Transaction, JoinedTransactions
+from .models import BudgetedEvent, Transaction, JoinedTransactions, PaystubMapping, PaystubProfile
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
 from crispy_forms.bootstrap import AppendedText, PrependedText, StrictButton
@@ -674,8 +675,8 @@ class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):
             self.fields["weeksOfMonth"].initial = map
         full = True
         if kwargs['instance'] is not None:
-            if kwargs['instance'].budgeted_events is not None:
-                if kwargs['instance'].budgeted_events.first() is not None:
+            if kwargs['instance'].joined_transactions is not None:
+                if kwargs['instance'].joined_transactions.first() is not None:
                     full = False
         if full:
             self.helper.layout = Layout(
@@ -954,6 +955,174 @@ class JoinedTransactionsForm(forms.ModelForm):
             # Fieldset('', Formset('formset', helper_context_name='helper')),
             Formset('formset', helper_context_name='helper'),
             HTML("</table>"),
+        )
+
+
+class PaystubUploadForm(forms.Form):
+    paystub_pdf = forms.FileField(
+        label="Select a PDF file",
+        help_text="Only PDF files are accepted.",
+        widget=forms.FileInput(attrs={'accept': 'application/pdf'}) # This filters the picker
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_enctype = 'multipart/form-data'
+        
+        self.helper.layout = Layout(
+            'paystub_pdf',
+            Submit('submit', 'Parse PDF', css_class='btn-primary mt-3')
+        )
+
+
+class BaseMappingFormSet(BaseModelFormSet):
+    def __init__(self, *args, **kwargs):
+        # We pass a dictionary of {keyword: [tokens]} from the view
+        self.live_tokens = kwargs.pop('live_tokens', {})
+        super().__init__(*args, **kwargs)
+
+    def _construct_form(self, i, **kwargs):
+        form = super()._construct_form(i, **kwargs)
+        # Match the database instance's keyword to our live PDF tokens
+        keyword = form.instance.line_keyword
+        form.tokens = self.live_tokens.get(keyword, [])
+        
+        # Manually trigger the __init__ logic of our MappingRowForm
+        # to build the checkboxes based on these tokens
+        form.fields['selected_indices'].choices = [
+            (idx, token) for idx, token in enumerate(form.tokens)
+        ]
+        return form
+
+
+class MappingRowForm(forms.ModelForm):
+    ENTRY_TYPE_CHOICES = [
+        (1.0, 'Income (+)'),
+        (-1.0, 'Deduction (-)')
+    ]
+    entry_type = forms.ChoiceField(
+        choices=ENTRY_TYPE_CHOICES, 
+        widget=forms.Select(attrs={'class': 'form-select-sm'}),
+        # initial=1.0
+    )   
+    selected_indices = forms.MultipleChoiceField(
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        required=False
+    )
+    cat1 = forms.ModelChoiceField(
+        queryset=Cat1.objects.none(), 
+        required=False,
+        label="Category"
+    )
+    category = forms.ModelChoiceField(
+        queryset=Cat2.objects.none(), # Use your custom manager here
+        required=False,
+        label="Sub-Category"
+    )
+    class Meta:
+        model = PaystubMapping
+        fields = ['cat1', 'category', 'is_header', 'is_date_line', 'is_ignored', 'entry_type', 'destination_account','is_net_pay']
+
+    def __init__(self, *args, **kwargs):
+        self.tokens = kwargs.pop('tokens', [])
+        super().__init__(*args, **kwargs)
+
+        self.fields['cat1'].queryset = Cat1.admin_objects.all()
+
+        cat1_id = None
+        if self.is_bound:
+            cat1_id = self.data.get(self.add_prefix('cat1'))
+        elif self.instance and self.instance.pk and self.instance.category:
+            cat1_id = self.instance.category.cat1_id
+
+        if cat1_id:
+            try:
+                self.fields['category'].queryset = Cat2.admin_objects.filter(cat1_id=int(cat1_id))
+            except (ValueError, TypeError):
+                self.fields['category'].queryset = Cat2.admin_objects.none()
+        else:
+            self.fields['category'].queryset = Cat2.admin_objects.none()
+        
+        if self.instance and self.instance.category:
+            self.initial['cat1'] = self.instance.category.cat1_id
+
+
+        # 3. Build the PDF-specific checkboxes
+        if self.tokens:
+            self.fields['selected_indices'].choices = [
+                (str(i), t) for i, t in enumerate(self.tokens)
+            ]
+
+        # Pre-select existing indices if they were already saved in the DB
+        if self.instance.column_indices:
+            self.initial['selected_indices'] = self.instance.get_indices()
+
+
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Convert the list of indices ['1', '4'] into a string "1,4"
+        selected_indices = self.cleaned_data.get('selected_indices', [])
+        if selected_indices:
+            instance.column_indices = ",".join(selected_indices)
+        else:
+            instance.column_indices = "-1"
+            
+        if commit:
+            instance.save()
+        return instance
+
+class PaystubProfileForm(forms.ModelForm):
+    class Meta:
+        model = PaystubProfile
+        fields = (
+            'name',
+            'pay_account',
+            'checking_account',
+            'date_section',
+            'date_keyword',
+            'date_index',
+            'users_admin',
+            'users_view',
+            'is_deleted',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        friends_ids = get_current_user().friends.values('id')
+        self.helper = FormHelper()
+        self.helper.form_id = 'PaystubProfileForm'
+        self.fields["users_admin"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_admin"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["users_view"].widget = forms.widgets.CheckboxSelectMultiple()
+        self.fields["users_view"].queryset = User.objects.filter(id__in=friends_ids,)
+        self.fields["pay_account"].queryset = Account.admin_objects.all()
+        self.fields["checking_account"].queryset = Account.admin_objects.all()
+        self.helper.layout = Layout(
+            Row(
+                Column('name', css_class='form-group col-md-6  '),
+            ),
+            Row(
+                Column('pay_account', css_class='form-group col-md-6  '),
+                Column('checking_account', css_class='form-group col-md-6  '),
+            ),
+            Row(
+                Column('date_section', css_class='form-group col-md-4  '),
+                Column('date_keyword', css_class='form-group col-md-4  '),
+                Column('date_index', css_class='form-group col-md-4  '),
+            ),
+            Div(
+                Div('is_deleted', css_class='form-group col-md-6  '),
+                css_class='row'
+            ),
+            Div(
+                Div('users_admin', css_class='form-group col-md-4  '),
+                Div('users_view', css_class='form-group col-md-4  '),
+                css_class='row'
+            ),
         )
 
 

@@ -1,0 +1,87 @@
+
+.text-center .mb-3 { margin-bottom: 0 !important; }
+.no-label label { display: none; }
+
+
+[data-bs-theme="dark"] .sticky-top {
+    box-shadow: 0 2px 2px -1px rgba(255, 255, 255, 0.05);
+}
+
+.table tbody tr {
+    background-color: var(--bs-body-bg);
+}
+/* Ensure the sticky header is fully opaque including its borders */
+.table thead.sticky-top th {
+    background-color: var(--bs-body-bg);
+    /* This creates a solid border that matches the table's theme */
+    border-bottom: 2px solid var(--bs-border-color);
+    border-right: 4px solid var(--bs-border-color);
+    /* Prevents the 'weird line' effect on the top edge */
+    background-clip: padding-box; 
+    opacity: 1;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Fix for the very last column border if it looks off */
+.table thead.sticky-top th:last-child {
+    border-right: none;
+}
+table {
+    border-collapse: separate; /* Helps sticky headers stay aligned with borders */
+    border-spacing: 0;
+}
+/* Tighten up the table rows */
+.mapping-row td {
+    padding: 0.5rem 0.25rem;
+    vertical-align: middle;
+}
+
+/* Remove Crispy's bottom margin inside tables */
+.no-label .mb-3 {
+    margin-bottom: 0 !important;
+}
+
+/* Force specific column control */
+.table-fixed {
+    table-layout: fixed;
+    word-wrap: break-word;
+}
+
+/* Compact Value Buttons */
+.indices-container .btn-outline-secondary {
+    padding: 2px 8px !important;
+    font-size: 0.8rem;
+    border-radius: 15px; /* Pill shape */
+    min-width: auto !important; /* Remove the 150px constraint */
+    border: 1px solid #dee2e6;
+    background-color: #f8f9fa !important;
+    transition: all 0.2s ease;
+}
+
+.indices-container .btn-outline-secondary:hover {
+    background-color: #e9ecef !important;
+}
+
+/* Style for when the checkbox is checked */
+.indices-container input[type="checkbox"]:checked + span {
+    color: #0d6efd !important; /* Bootstrap Primary */
+}
+
+/* Ensure the Sum badge doesn't add too much height */
+.row-preview {
+    font-size: 0.7rem;
+    padding: 0.3em 0.6em;
+}
+.mapping-row {
+    transition: opacity 0.3s ease;
+}
+
+/* Highlight selected pills */
+.indices-container input[type="checkbox"]:checked + span {
+    color: #fff !important;
+}
+
+.indices-container label:has(input:checked) {
+    background-color: #0d6efd !important; /* Bootstrap Primary blue */
+    border-color: #0a58ca;
+}

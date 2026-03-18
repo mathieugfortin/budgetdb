@@ -1,0 +1,79 @@
+{% extends 'budgetdb/base.html' %}
+{% block head_comment %}<!--paystub PDF import template-->{% endblock %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block headblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/paystub_extract.css' %}">
+{% endblock %}
+
+{% block content %}
+
+
+{% for section in sections %}
+    {% if section.actions %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-secondary text-white fw-bold">
+                {{ section.header }}
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 30%;">Category</th>
+                            <th style="width: 25%;">Source Account</th>
+                            <th style="width: 25%;">Destination Account</th>
+                            <th style="width: 15%;" class="text-end">Amount</th>
+                            <th style="width: 30%;" class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for action in section.actions %}
+                        <tr>
+                            <td>{{ action.category }}</td>
+                            <td><small class="text-muted">{{ action.source_account }}</small></td>
+                            <td><small class="text-muted">{{ action.destination_account }}</small></td>
+                            <td class="text-end fw-bold {{ action.color_class }}">
+                                {{ action.val|floatformat:2 }}$
+                            </td>
+                            <td class="text-center">
+                                {% if action.type == 'UPDATE' %}
+                                    <span class="badge bg-warning text-dark">Update (Was {{ action.old_val }}$)</span>
+                                {% elif action.type == 'CREATE' %}
+                                    <span class="badge bg-success">New Transaction</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">Matched Existing</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+        {% endif %}
+    {% endfor %}
+    <form method="post" action="{% url 'budgetdb:commit_paystub_PDF' %}">
+        {% csrf_token %}
+        <div class="card p-3 mb-3">
+            <h5>Import Container</h5>
+            <select name="manual_jt_id" class="form-select">
+                <option value="">-- Create New Joined Transaction --</option>
+                {% for jt_id, jt_name in all_discovered_jts.items %}
+                    <option value="{{ jt_id }}" {% if all_discovered_jts|length == 1 %}selected{% endif %}>{{ jt_name }}</option>
+                {% endfor %}
+            </select>
+            {% if all_discovered_jts|length > 1 %}
+            <small class="text-muted">
+                We found {{ all_discovered_jts|length }} existing container(s) linked to these transactions.
+            </small>
+            {% endif %}
+        </div>
+
+        <input type="hidden" name="profile_id" value="{{ profile.id }}">
+        <input type="hidden" name="pay_date" value="{{ pay_date|date:'Y-m-d' }}">
+
+        <button type="submit" class="btn btn-success">Looks Good, Import Everything</button>
+    </form>
+{% endblock %}
