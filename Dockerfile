@@ -31,6 +31,16 @@ RUN apk add --no-cache mariadb-connector-c-dev \
     && pip install --no-cache-dir -r requirements.txt \
     && apk del .build-deps
 
+RUN apk add --no-cache mariadb-connector-c-dev mariadb-client
+RUN apk add --no-cache --virtual .build-deps \
+    build-base \
+    mariadb-dev \
+    musl-dev \
+    pkgconfig \
+    && pip install --no-cache-dir -r requirements.txt \
+    && apk del .build-deps
+
+
 # Copy the current directory contents into the container at /app
 COPY . /app
 
