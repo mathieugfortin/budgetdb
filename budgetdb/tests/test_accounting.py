@@ -41,7 +41,7 @@ class TransactionValidationTests(BudgetBaseTestCase):
 class AccountingTests(BudgetBaseTestCase):
     
     def test_balance_calculation_with_audits(self):
-        """Test that balance_by_EOD respects audits and sums transactions correctly."""
+        """Test that get_balance respects audits and sums transactions correctly."""
         with impersonate(self.user_a):
             # 1. Create an initial Audit (Starting balance of $1000)
             Transaction.objects.create(
@@ -66,11 +66,11 @@ class AccountingTests(BudgetBaseTestCase):
             )
 
             # 3. Verify balance on the 1st (Should be $1000)
-            bal_1st = self.acc_a.balance_by_EOD("2026-02-01")
+            bal_1st = self.acc_a.get_balance("2026-02-01")
             self.assertEqual(bal_1st, Decimal('1000.00'))
 
             # 4. Verify balance on the 2nd (1000 - 200 = $800)
-            bal_2nd = self.acc_a.balance_by_EOD("2026-02-02")
+            bal_2nd = self.acc_a.get_balance("2026-02-02")
             self.assertEqual(bal_2nd, Decimal('800.00'))
 
             # 5. Add a NEW Audit on the 3rd (Hard reset to $500)
@@ -85,7 +85,7 @@ class AccountingTests(BudgetBaseTestCase):
             )
 
             # 6. Verify the audit override works
-            bal_3rd = self.acc_a.balance_by_EOD("2026-02-03")
+            bal_3rd = self.acc_a.get_balance("2026-02-03")
             self.assertEqual(bal_3rd, Decimal('500.00'))
 
     def test_recursive_parent_balance(self):
@@ -127,7 +127,7 @@ class AccountingTests(BudgetBaseTestCase):
             # If children exist, return SUM of children. 
             # Note: Depending on your exact intent, if the parent has its own 
             # transactions, they might be ignored if children exist.
-            parent_bal = self.acc_a.balance_by_EOD("2026-02-02")
+            parent_bal = self.acc_a.get_balance("2026-02-02")
             self.assertEqual(parent_bal, Decimal('500.00'))
 
 
@@ -170,7 +170,7 @@ class AccountingTests(BudgetBaseTestCase):
             # If children exist, return SUM of children. 
             # Note: Depending on your exact intent, if the parent has its own 
             # transactions, they might be ignored if children exist.
-            parent_bal = self.acc_a.balance_by_EOD("2026-02-02")
+            parent_bal = self.acc_a.get_balance("2026-02-02")
             self.assertEqual(parent_bal, Decimal('500.00'))            
 
     def test_recursive_parent_balance_parent_is_fresher(self):
@@ -212,5 +212,5 @@ class AccountingTests(BudgetBaseTestCase):
             # If children exist, return SUM of children. 
             # Note: Depending on your exact intent, if the parent has its own 
             # transactions, they might be ignored if children exist.
-            parent_bal = self.acc_a.balance_by_EOD("2026-02-02")
+            parent_bal = self.acc_a.get_balance("2026-02-02")
             self.assertEqual(parent_bal, Decimal('1000.00'))            

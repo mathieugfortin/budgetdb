@@ -1,3 +1,4 @@
+# dockerfile
 # Use an official Python runtime as a parent image
 FROM python:alpine
 ARG BUILD_DATE
@@ -49,8 +50,12 @@ COPY . /app
 # Make port 8005 available to the world outside this container
 EXPOSE 8005
 
+# Create the log directory and set permissions
+RUN mkdir -p /app/logs/gunicorn && chmod -R 755 /app/logs
+
 # Define environment variable
-ENV DJANGO_SETTINGS_MODULE=web_budget.settings
+NV DJANGO_SETTINGS_MODULE=web_budget.settings
+
 
 # Run app.py when the container launches
 ENTRYPOINT ["gunicorn", "web_budget.wsgi:application", "-c", "/app/config/gunicorn/prod.conf.py"]

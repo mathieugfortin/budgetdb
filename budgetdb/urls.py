@@ -56,6 +56,10 @@ urlpatterns = [
 
     path('dashboard/', views.DashboardView.as_view(), name='home'),
 
+    path('health/jobs/extend_ledger/', views.ledger_status_view,
+         name='trigger_extend_ledger'),
+
+
     # User
     path('user/signup/', views.UserSignupView.as_view(),
          name='signup'),

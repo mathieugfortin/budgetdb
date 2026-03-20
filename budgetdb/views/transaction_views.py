@@ -344,7 +344,7 @@ def import_ofx_view(request):
             messages.error(request, "Session expired. Please re-upload.")
             return redirect('budgetdb:upload_transactions_OFX')
 
-        account = Account.objects.get(id=account_id)
+        account = Account.admin_objects.get(id=account_id)
 
         transactions_to_create = []
         for idx in to_import_indices:
@@ -379,16 +379,10 @@ def import_ofx_view(request):
 
         if transactions_to_create:
             # bulk_create is fast but skips .save() and .full_clean()
-            Transaction.objects.bulk_create(transactions_to_create)
-            # Find the earliest date in the imported batch
-            earliest_date = min(t.date_actual for t in transactions_to_create)
-            latest_date = max(t.date_actual for t in transactions_to_create)
-            
-            # Mark parent/account balances as dirty from that date forward
-            AccountBalanceDB.objects.filter(
-                account=account,
-                db_date__gte=earliest_date
-            ).update(balance_is_dirty=True)
+            new_transactions = Transaction.objects.bulk_create(transactions_to_create)
+            from budgetdb.services import LedgerService
+            LedgerService.sync_transaction_list(new_transactions)
+
             messages.success(request, f"Successfully imported {len(transactions_to_create)} transactions.")
 
         # Clean up session

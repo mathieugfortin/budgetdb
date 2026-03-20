@@ -104,6 +104,9 @@
                         {{ user.get_short_name }}
                     </a>
                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" >
+                        {% if user.is_superuser %}
+                        <a class="dropdown-item " href="#" onclick="openHealth('tab-recurring')">System board</a>
+                        {% endif %}
                         <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preference</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_invitation' %}">Sharing</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:password_update' %}">Change Password</a>

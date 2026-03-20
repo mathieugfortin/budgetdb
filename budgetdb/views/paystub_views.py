@@ -18,7 +18,7 @@ from django.views.generic import ListView, CreateView, UpdateView, View, DetailV
 from budgetdb.utils import PaystubEngine
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
-from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile
+from budgetdb.models import JoinedTransactions, PaystubMapping, PaystubProfile
 from budgetdb.forms import PaystubUploadForm, MappingRowForm, BaseMappingFormSet
 
 
@@ -124,6 +124,7 @@ def process_mapping_line(mapping, profile, pay_date, tokens, engine, commit=Fals
             # Update existing
             existing_tx.amount_actual = Decimal(format(final_amount, ".2f"))
             existing_tx.comment = f"Updated via: {mapping.line_keyword}"
+            existing_tx.receipt=True
             existing_tx.save() # Triggers your overloaded save()
             tx = existing_tx
         else:
@@ -140,6 +141,7 @@ def process_mapping_line(mapping, profile, pay_date, tokens, engine, commit=Fals
                 account_destination=target_destination_account,
                 cat1=mapping.category.cat1,
                 cat2=mapping.category,
+                receipt=True,
                 currency=currency,
                 comment=f"Created via: {mapping.line_keyword}",
                 description=mapping.line_keyword

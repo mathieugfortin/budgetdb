@@ -1191,7 +1191,7 @@ class PreferenceForm(forms.ModelForm):
             new_timeline_stop = self.cleaned_data['timeline_stop']
             accounts = Account.view_objects.all()
             for account in accounts:
-                account.check_balances(new_timeline_stop)
+                account.ensure_records_exist(new_timeline_stop)
         super(PreferenceForm, self).save(commit)
 
 
