@@ -802,14 +802,15 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         current_running_balance = starting_balance
         
         for record in to_clean:
-            if record.audit:
+            if record.is_audit:
                 # FIREWALL: The audit is the new truth. 
                 # We ignore the previous math and the current delta.
-                current_running_balance = record.balance
+                current_running_balance = record.audit
             else:
                 # NORMAL: Math continues as usual.
                 current_running_balance += record.delta
-                record.balance = current_running_balance
+                
+            record.balance = current_running_balance
             record.balance_is_dirty = False
         
         # 4. Bulk update the results back to the DB in one go

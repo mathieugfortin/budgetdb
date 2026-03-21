@@ -252,6 +252,7 @@ class PaystubEngine:
             parts = [p.strip() for p in re.split(regex, clean_line) if p.strip()]
             if parts:
                 tokenized.append(parts)
+
         return tokenized
 
     def calculate_mapped_value(self, mapping, tokens):

@@ -32,7 +32,7 @@ class LedgerService:
         2. Flags the balances as dirty for the future.
         """
         if transaction_instance.audit:
-            AccountBalanceDB.objects.filter(account=transaction_instance.account_source,db_date=transaction_instance.date_actual).update(is_audit=True,audit=transaction_instance.amount_actual,balance=transaction_instance.amount_actual)
+            AccountBalanceDB.objects.filter(account=transaction_instance.account_source,db_date=transaction_instance.date_actual).update(is_audit=True,audit=transaction_instance.amount_actual,balance=transaction_instance.amount_actual,balance_is_dirty=False)
 
         # Provisioning: Ensure the rows exist for the dates we are about to touch
         # We check both the new date and the old date (if it moved)

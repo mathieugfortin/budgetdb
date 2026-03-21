@@ -1,3 +1,5 @@
+/* base.css */
+
 body {
     padding-top: 75px;
 }
@@ -85,10 +87,11 @@ body {
     opacity: 1;
     transform: translateY(0);
 }
-
+/*
 td {
     white-space: nowrap;
-}
+} 
+    */
 /* --- SLIDER --- */
 #input_range {
     height: 4px !important;  

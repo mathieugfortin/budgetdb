@@ -2,6 +2,7 @@
 {% block head_comment %}<!--paystub PDF import template-->{% endblock %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load form_filters %}
 
 {% block headblock %}
     <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/paystub_extract.css' %}">
@@ -58,31 +59,31 @@
                 </div>
             </div>
             <div class="table-responsive">
-            <table class="table table-bordered align-middle" 
-                   style="table-layout: fixed; width: 100%; max-width: 100%; margin-bottom: 0;">
-                <thead class="sticky-top" style="top: 56px; z-index: 1020; background-color: var(--bs-body-bg);">
+            <table class="table table-bordered align-middle">
+                  
+                <!-- <thead class="sticky-top" style="top: 56px; z-index: 1020; background-color: var(--bs-body-bg);"> -->
+                <thead class="thead-sticky"></thead>
                     <tr>
-                        <th style="min-width: 200px;">Line Item</th>
-                        <th style="width: 60px;" class="text-center">Title</th> 
-                        <th style="width: 60px;" class="text-center">Date</th> 
-                        <th style="width: 60px;" class="text-center">Net pay</th> 
-                        <th style="width: 15ch;">Category</th>
-                        <th style="width: 15ch;">Sub-Cat</th>
-                        <th style="width: 15ch;">Destination</th>
-                        <th style="width: 15ch;">Select Values</th>
-                        <th style="width: 11ch;">Type</th>
-                        <th style="width: 60px;" class="text-center">Ignore</th>
+                        <th style="width: auto;">Line Item</th>
+                        <th style="width: 45px;" class="text-center">Title</th> 
+                        <th style="width: 45px;" class="text-center">Date</th> 
+                        <th style="width: 45px;" class="text-center">Net pay</th> 
+                        <th style="width: 110px;">Category</th>
+                        <th style="width: 110px;">Sub-Cat</th>
+                        <th style="width: 110px">Destination</th>
+                        <th style="width: 120px;">Select Values</th>
+                        <th style="width: 110px;">Type</th>
+                        <th style="width: 45px;" class="text-center">Ignore</th>
                     </tr>
                 </thead>                
                 <tbody>
                     {% for form in formset %}
 
                     <tr class="mapping-row {% if form.instance.is_ignored %}line-ignored d-none{% endif %}">   
-                        <td class="text-truncate">{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                        <!-- <td class="text-truncate"> -->
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                            {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
                             <strong>{{ form.instance.line_keyword }}</strong>
-                        {% if form.instance.line_keyword == 'Québec Pension Plan' %}
-                        {{form.instance.line_keyword}}
-                        {% endif %}
                         </td>
                         <td class="text-center no-label">
                             <input type="checkbox" 
@@ -117,15 +118,18 @@
                         </td>
                         <td>
                             <div class="indices-container">
-                                <div class="d-flex flex-column gap-1 align-items-start"> {% for checkbox in form.selected_indices %}
-                                        <label class="btn btn-outline-secondary d-flex align-items-center">
-                                            <div class="form-check m-0 d-flex align-items-center">
-                                                {{ checkbox.tag }}
-                                                <span class="ms-1 fw-bold">
-                                                    {{ checkbox.choice_label }}
-                                                </span>
-                                            </div>
-                                        </label>
+                                <div class="d-flex flex-column gap-1 align-items-start"> 
+                                    {% for checkbox in form.selected_indices %}
+                                        {% if not checkbox.choice_label|has_no_numbers %}
+                                            <label class="btn btn-outline-secondary d-flex align-items-center">
+                                                <div class="form-check m-0 d-flex align-items-center">
+                                                    {{ checkbox.tag }}
+                                                    <span class="ms-1 fw-bold">
+                                                        {{ checkbox.choice_label }}
+                                                    </span>
+                                                </div>
+                                            </label>
+                                        {% endif %}
                                     {% endfor %}
                                 </div>
                             </div>
