@@ -8,6 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict
+from django.db import transaction
 from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
@@ -345,45 +346,55 @@ def import_ofx_view(request):
             return redirect('budgetdb:upload_transactions_OFX')
 
         account = Account.admin_objects.get(id=account_id)
-
+        earliest_date = datetime(2500,1,1).date()
+        latest_date = datetime(1500,1,1).date()
         transactions_to_create = []
-        for idx in to_import_indices:
-            data = import_data[idx]
-            # budgetdb/views/transaction_views.py
-            # Create the instance in memory
-            if data["status"] == "match":
-                matched = Transaction.admin_objects.get(pk=data["existing_id"])
-                matched.fit_id = data['fit_id']
-                matched.comment = f'imported description: {data['description'][:180]}'
-                if matched.account_destination == matched.account_source:
-                    pass
-                    pass
-                matched.save()
-            else:
-                if data['vendor_id']:
-                    description = 'imported'
+        with transaction.atomic():
+            for idx in to_import_indices:
+                data = import_data[idx]
+                # budgetdb/views/transaction_views.py
+                # Create the instance in memory
+                if data["status"] == "match":
+                    matched = Transaction.admin_objects.get(pk=data["existing_id"])
+                    tx_date = matched.date_actual
+                    matched.fit_id = data['fit_id']
+                    matched.comment = f'imported description: {data['description'][:180]}'
+                    if matched.account_destination == matched.account_source:
+                        pass
+                        pass
+                    matched.save()
                 else:
-                    description = data['description'][:200] # Ensure it fits char limit
+                    if data['vendor_id']:
+                        description = 'imported'
+                    else:
+                        description = data['description'][:200] # Ensure it fits char limit
 
-                new_tx = Transaction(
-                    account_source=account,
-                    amount_actual=Decimal(str(data['amount'])),
-                    date_actual=data['date'],
-                    description=description,
-                    currency=account.currency,
-                    fit_id=data['fit_id'],
-                    vendor_id=data['vendor_id'],
-                    comment = f'imported description: {data['description'][:180]}'
-                )
-                transactions_to_create.append(new_tx)
+                    tx_date = datetime.strptime(data['date'], "%Y-%m-%d").date()
+                    
 
-        if transactions_to_create:
-            # bulk_create is fast but skips .save() and .full_clean()
-            new_transactions = Transaction.objects.bulk_create(transactions_to_create)
-            from budgetdb.services import LedgerService
-            LedgerService.sync_transaction_list(new_transactions)
+                    new_tx = Transaction(
+                        account_source=account,
+                        amount_actual=Decimal(str(data['amount'])),
+                        date_actual=tx_date,
+                        description=description,
+                        currency=account.currency,
+                        fit_id=data['fit_id'],
+                        vendor_id=data['vendor_id'],
+                        comment = f'imported description: {data['description'][:180]}'
+                    )
+                    transactions_to_create.append(new_tx)
+                if tx_date > latest_date:
+                    latest_date = tx_date
+                if tx_date < earliest_date:
+                    earliest_date = tx_date
 
-            messages.success(request, f"Successfully imported {len(transactions_to_create)} transactions.")
+            if transactions_to_create:
+                # bulk_create is fast but skips .save() and .full_clean()
+                new_transactions = Transaction.objects.bulk_create(transactions_to_create)
+                from budgetdb.services import LedgerService
+                LedgerService.sync_transaction_list(new_transactions)
+
+                messages.success(request, f"Successfully imported {len(transactions_to_create)} transactions.")
 
         # Clean up session
         del request.session['ofx_import_data']
