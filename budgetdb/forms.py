@@ -1075,6 +1075,7 @@ class MappingRowForm(forms.ModelForm):
             instance.save()
         return instance
 
+
 class PaystubProfileForm(forms.ModelForm):
     class Meta:
         model = PaystubProfile

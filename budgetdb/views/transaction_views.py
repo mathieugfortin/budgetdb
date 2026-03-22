@@ -22,6 +22,7 @@ from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Acco
 from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
+from budgetdb.services import LedgerService
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button
@@ -348,58 +349,90 @@ def import_ofx_view(request):
         account = Account.admin_objects.get(id=account_id)
         earliest_date = datetime(2500,1,1).date()
         latest_date = datetime(1500,1,1).date()
+        show_result=False
         transactions_to_create = []
         with transaction.atomic():
+            # We collect the 'existing_id' from every item in import_data that is a match
+            match_ids = [
+                import_data[idx]["existing_id"] 
+                for idx in to_import_indices 
+                if import_data[idx].get("status") == "match"
+            ]
+            matches_pool = {t.id: t for t in Transaction.admin_objects.filter(id__in=match_ids)}
+
+            # 2. Setup lists for bulk updating
+            updates_standard = []
+            updates_transfer = []
+
             for idx in to_import_indices:
                 data = import_data[idx]
-                # budgetdb/views/transaction_views.py
-                # Create the instance in memory
+
                 if data["status"] == "match":
-                    matched = Transaction.admin_objects.get(pk=data["existing_id"])
-                    tx_date = matched.date_actual
-                    matched.fit_id = data['fit_id']
+                    matched = matches_pool.get(data["existing_id"])
+                    if not matched:
+                        continue
+
                     matched.comment = f'imported description: {data['description'][:180]}'
-                    if matched.account_destination == matched.account_source:
-                        pass
-                        pass
-                    matched.save()
+                    tx_date = matched.date_actual
+                    if data.get('fit_handling') == 'transfer':
+                        if matched.fit_id:
+                            matched.fit_id_transfer = data['fit_id']
+                        else:
+                            matched.fit_id = data['fit_id']
+                        updates_transfer.append(matched)
+                    else:
+                        matched.fit_id = data['fit_id']
+                        updates_standard.append(matched)
                 else:
+                    tx_date = datetime.strptime(data['date'], "%Y-%m-%d").date() 
                     if data['vendor_id']:
                         description = 'imported'
                     else:
                         description = data['description'][:200] # Ensure it fits char limit
-
-                    tx_date = datetime.strptime(data['date'], "%Y-%m-%d").date()
                     
+                    tx_kwargs = {
+                        'account_source': account,
+                        'amount_actual': Decimal(str(data['amount'])),
+                        'date_actual': datetime.strptime(data['date'], "%Y-%m-%d").date(),
+                        'description': description,
+                        'currency': account.currency,
+                        'vendor_id': data['vendor_id'],
+                        'comment': f"imported description: {data['description'][:180]}"
+                    }
+                    if data.get('fit_handling') == 'transfer':
+                        tx_kwargs['fit_id_transfer'] = data['fit_id']
+                    else:
+                        tx_kwargs['fit_id'] = data['fit_id']
 
-                    new_tx = Transaction(
-                        account_source=account,
-                        amount_actual=Decimal(str(data['amount'])),
-                        date_actual=tx_date,
-                        description=description,
-                        currency=account.currency,
-                        fit_id=data['fit_id'],
-                        vendor_id=data['vendor_id'],
-                        comment = f'imported description: {data['description'][:180]}'
-                    )
-                    transactions_to_create.append(new_tx)
+                    transactions_to_create.append(Transaction(**tx_kwargs))
+
                 if tx_date > latest_date:
                     latest_date = tx_date
                 if tx_date < earliest_date:
                     earliest_date = tx_date
 
             if transactions_to_create:
-                # bulk_create is fast but skips .save() and .full_clean()
                 new_transactions = Transaction.objects.bulk_create(transactions_to_create)
-                from budgetdb.services import LedgerService
                 LedgerService.sync_transaction_list(new_transactions)
+                messages.success(request, f"Successfully imported {len(new_transactions)} transactions.")
+                show_result=True
 
-                messages.success(request, f"Successfully imported {len(transactions_to_create)} transactions.")
+            if updates_standard:
+                updated_transactions = Transaction.objects.bulk_update(updates_standard, ['fit_id', 'comment'])
+                LedgerService.sync_transaction_list(updates_standard)
+                messages.success(request, f"Successfully updated {updated_transactions} transactions.")
+                show_result=True
+
+            if updates_transfer:
+                updated_transactions = Transaction.objects.bulk_update(updates_transfer, ['fit_id', 'fit_id_transfer', 'comment'])
+                LedgerService.sync_transaction_list(updates_transfer)
+                messages.success(request, f"Successfully updated {updated_transactions} transfers.")
+                show_result=True
 
         # Clean up session
         del request.session['ofx_import_data']
         del request.session['ofx_account_id']
-        if transactions_to_create:
+        if show_result:
             return redirect('budgetdb:list_account_activity_period', pk=account.pk, date1=earliest_date, date2=latest_date)
         else:
             return redirect('budgetdb:list_account_activity', pk=account.pk)
@@ -418,8 +451,9 @@ def import_ofx_view(request):
         account.save()
         
         request.session['ofx_import_data'] = import_data
+        show_verify_signage_ui = not account.ofx_flip_sign_set
         messages.info(request, "Signs flipped and preference saved.")
-        return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': import_data, 'account': account})
+        return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': import_data, 'account': account, 'show_verify_signage_ui': show_verify_signage_ui})
 
     # --- STEP 2: ACCOUNT IDENTIFICATION (After Mapping Template) ---
     if request.method == 'POST' and 'identify_account' in request.POST:
@@ -435,7 +469,7 @@ def import_ofx_view(request):
         serialized_list = request.session.get('ofx_serialized_list')
         data = analyze_ofx_serialized_data(serialized_list, account)
         # Pass a flag to the template to show the "Verify" UI only if needed
-        show_verify_signage_ui = (account.ofx_flip_sign is None)
+        show_verify_signage_ui = not account.ofx_flip_sign_set
 
         request.session['ofx_import_data'] = data
         request.session['ofx_account_id'] = account.id
@@ -457,7 +491,8 @@ def import_ofx_view(request):
                 data = analyze_ofx_serialized_data(serialized_list, account)
                 request.session['ofx_import_data'] = data
                 request.session['ofx_account_id'] = account.id
-                return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': data, 'account': account})
+                show_verify_signage_ui = not account.ofx_flip_sign_set
+                return render(request, 'budgetdb/transaction_import_preview.html', {'transactions': data, 'account': account, 'show_verify_signage_ui': show_verify_signage_ui})
             else:
                 # Account unknown: Go to mapping
                 request.session['pending_ofx_acct_id'] = ofx_id

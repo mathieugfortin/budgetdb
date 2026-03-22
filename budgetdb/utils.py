@@ -1,10 +1,10 @@
 # from datetime import datetime
 from calendar import HTMLCalendar
+from datetime import datetime, timedelta
 from django.urls import reverse, reverse_lazy
 from ofxparse import OfxParser
-from .models import Transaction, Statement, Vendor, PaystubMapping
+from .models import Transaction, Statement, Vendor, PaystubMapping, Cat2
 from django.db.models import Q
-import datetime
 from dateutil import parser
 import pdfplumber
 import re
@@ -157,43 +157,54 @@ def analyze_ofx_serialized_data(serialized_list, account):
     """
     final_data = []
     matched_ids = []
-    vendor_mappings = Vendor.view_objects.exclude(OFX_name__isnull=True).exclude(OFX_name="")
-
+    vendor_mappings = list(Vendor.view_objects.exclude(OFX_name__isnull=True).exclude(OFX_name=""))
+    transfer_cat = Cat2.objects.get(system_object=True, name='transfer')
+    fuzzy_date_match = 4
+    
     for item in serialized_list:
         status = "new"
         existing_id = None
         matched_vendor_id = None
         existing_desc = None
+        fit_handling = None
+        vendor_name = ""
         
         # 1. Duplicate Check
-        if Transaction.view_objects.filter(fit_id=item['fit_id']).exists():
+        if Transaction.view_objects.filter(
+            Q(fit_id=item['fit_id']) | Q(fit_id_transfer=item['fit_id'])
+        ).exists():
             status = "duplicate"
         else:
-            # 2. Manual Match Check
+            item_date = datetime.strptime(item['date'], "%Y-%m-%d").date()
+            date_range = (
+                item_date - timedelta(days=fuzzy_date_match), 
+                item_date + timedelta(days=fuzzy_date_match)
+            )
+            match_conditions = (
+                Q(account_source=account, amount_actual=item['amount'], fit_id__isnull=True) |
+                Q(account_destination=account, amount_actual=-item['amount'], fit_id__isnull=True) |
+                Q(account_source=account, amount_actual=item['amount'], cat2=transfer_cat) |
+                Q(account_destination=account, amount_actual=item['amount'], cat2=transfer_cat)
+            )
             match = Transaction.admin_objects.filter(
-                account_source=account,
-                date_actual=item['date'], 
-                amount_actual=item['amount'], 
-                fit_id__isnull=True
-            ).exclude(pk__in=matched_ids).first()  #exclude already matched transactions
-            if not match:
-                pass
-                match = Transaction.admin_objects.filter(
-                    account_destination=account,
-                    date_actual=item['date'], 
-                    amount_actual=-item['amount'], 
-                    fit_id__isnull=True
-                ).exclude(pk__in=matched_ids).first()  #exclude already matched transactions
+                match_conditions,
+                date_actual__range=date_range
+            ).exclude(pk__in=matched_ids).first()
+
             if match:
                 status = "match"
                 existing_id = match.id
                 existing_desc = match.description
                 matched_ids.append(match.id) # list of already matched transactions
+                if match.cat2 == transfer_cat and match.fit_id:
+                    fit_handling = 'transfer'
             else:
                 # 3. Vendor Match
+                desc_lower = item['description'].lower()
                 for vendor in vendor_mappings:
-                    if vendor.OFX_name.lower() in item['description'].lower():
+                    if vendor.OFX_name.lower() in desc_lower:
                         matched_vendor_id = vendor.id
+                        vendor_name = vendor.name
                         break
 
         # Merge the analysis back into the item
@@ -202,7 +213,8 @@ def analyze_ofx_serialized_data(serialized_list, account):
             'existing_id': existing_id,
             'vendor_id': matched_vendor_id,
             'existing_desc': existing_desc,
-            'vendor_name': Vendor.objects.get(id=matched_vendor_id).name if matched_vendor_id else ""
+            'fit_handling': fit_handling,
+            'vendor_name': vendor_name
         })
         final_data.append(item)
         

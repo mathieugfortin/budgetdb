@@ -477,6 +477,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
     ofx_org = models.CharField(max_length=50, blank=True, null=True) # <ORG>
     ofx_fid = models.CharField(max_length=50, blank=True, null=True) # <FID>
     ofx_flip_sign = models.BooleanField(default=False, help_text="Check if outflows are positive in OFX")
+    ofx_flip_sign_set = models.BooleanField(default=False)
 
     date_open = models.DateField('date opened', blank=False, null=False, default='2018-01-01')
     date_closed = models.DateField('date closed', blank=True, null=True)
@@ -770,7 +771,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             if closest_audit_record and first_dirty_record.db_date < closest_audit_record.db_date:
                 return False 
             else:
-                real_clean_start = first_dirty_record
+                real_clean_start = first_dirty_record.db_date
 
         if not child_accounts.exists():
             self.build_balances_leaf(real_clean_start, end_date)
@@ -784,7 +785,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         start_date is the first dirty date for that account
         """
         # 1. Find the starting balance (the day before our first dirty record)
-        day_before = start_date - timedelta(days=1)
+        day_before = start_date - relativedelta(days=1)
         starting_balance = AccountBalanceDB.objects.filter(
             account=self, 
             db_date=day_before
@@ -809,7 +810,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             else:
                 # NORMAL: Math continues as usual.
                 current_running_balance += record.delta
-                
+
             record.balance = current_running_balance
             record.balance_is_dirty = False
         
@@ -1345,6 +1346,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     receipt = models.BooleanField('Checked with receipt', default=False)
     balance = models.DecimalField('Balance', decimal_places=2, max_digits=10, blank=True, null=True)
     fit_id = models.CharField(max_length=255, null=True, blank=True)
+    fit_id_transfer = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f'{self.description} - {self.date_actual}'
