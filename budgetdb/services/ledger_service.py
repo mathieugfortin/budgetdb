@@ -134,12 +134,20 @@ class LedgerService:
             audit=False
         ).aggregate(total=Sum('amount_actual'))['total'] or Decimal('0.00')
 
+        audit = Transaction.objects.filter(
+            account_source_id=account_id,
+            date_actual=work_date,
+            is_deleted=False,
+            audit=True
+        ).aggregate(total=Sum('amount_actual'))['total'] or None
+        is_audit = True if audit else False
+
         # Update the delta in the ledger
         # Note: We do NOT update 'balance' here. We leave it dirty.
         AccountBalanceDB.objects.filter(
             account_id=account_id, 
             db_date=work_date
-        ).update(delta=(inflow - outflow))
+        ).update(delta=(inflow - outflow), audit=audit, is_audit=is_audit)
 
     @classmethod
     def mark_tree_dirty(cls, account, work_date):
