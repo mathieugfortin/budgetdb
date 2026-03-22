@@ -38,12 +38,12 @@ class LedgerService:
         # We check both the new date and the old date (if it moved)
         if transaction_instance.account_source:
             transaction_instance.account_source.ensure_records_exist(transaction_instance.date_actual)
-            if not is_new and old_date != transaction_instance.date_actual:
+            if not is_new and old_date and old_date != transaction_instance.date_actual:
                 transaction_instance.account_source.ensure_records_exist(old_date)
         
         if transaction_instance.account_destination:
             transaction_instance.account_destination.ensure_records_exist(transaction_instance.date_actual)
-            if not is_new and old_date != transaction_instance.date_actual:
+            if not is_new and old_date and old_date != transaction_instance.date_actual:
                 transaction_instance.account_destination.ensure_records_exist(old_date)
 
 
