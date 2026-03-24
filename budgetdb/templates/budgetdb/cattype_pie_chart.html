@@ -4,7 +4,11 @@
 {% block title %}Totals by categories{% endblock %}
 
 {% block content %}
-
+<div class="btn-group" >
+    {% for cattype in cattypes  %}
+        <a class="btn btn-outline-info " href="{% url 'budgetdb:cattype_pie' cattype.id %}"> {{cattype.name}} </a>
+    {% endfor %}
+</div>
 
   <div id="pie-container">
     <canvas id="pie-chart"></canvas>

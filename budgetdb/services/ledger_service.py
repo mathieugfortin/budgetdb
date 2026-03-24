@@ -82,6 +82,7 @@ class LedgerService:
         """
         with transaction.atomic():
             #  Identify unique (Account, Date) pairs in the batch
+            # !!!!!we don't have access to the old values here, a modified transaction could leave a ballance
             affected_footprint = set()
             for tx in transaction_list:
                 if tx.account_source_id:

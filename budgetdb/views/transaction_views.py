@@ -374,15 +374,28 @@ def import_ofx_view(request):
 
                     matched.comment = f'imported description: {data['description'][:180]}'
                     tx_date = matched.date_actual
+                    #tx date can be a bit off and still match.  get it back to imported data value
+                    matched_date = datetime.strptime(data['date'], "%Y-%m-%d").date()
+                    #if we change the date, we need the save() handler, can't do bulk update
+                    local_save = False
+                    if matched.date_actual != matched_date:
+                        matched.date_actual = matched_date
+                        local_save=True
                     if data.get('fit_handling') == 'transfer':
                         if matched.fit_id:
                             matched.fit_id_transfer = data['fit_id']
                         else:
                             matched.fit_id = data['fit_id']
-                        updates_transfer.append(matched)
+                        if local_save:
+                            matched.save()
+                        else:
+                            updates_transfer.append(matched)
                     else:
                         matched.fit_id = data['fit_id']
-                        updates_standard.append(matched)
+                        if local_save:
+                            matched.save()
+                        else:
+                            updates_standard.append(matched)
                 else:
                     tx_date = datetime.strptime(data['date'], "%Y-%m-%d").date() 
                     if data['vendor_id']:

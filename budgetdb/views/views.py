@@ -5,9 +5,10 @@ import threading
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Submit
 from crum import get_current_user
-from datetime import datetime,date
+from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-from decimal import *
+#from decimal import *
+from decimal import Decimal
 
 from django.apps import apps
 from django.conf import settings
@@ -17,7 +18,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
@@ -37,6 +38,13 @@ from budgetdb.models import *
 from budgetdb.tables import *
 from budgetdb.tokens import account_activation_token
 from budgetdb.scheduler import run_extend_ledgers
+
+
+
+
+
+
+
 
 # colors stolen from django chart js library
 COLORS = [
@@ -668,6 +676,7 @@ class CatTotalPieChart(TemplateView):
         context = super().get_context_data(**kwargs)
         cat_type_pk = self.kwargs.get('cat_type_pk')
         cattype = CatType.view_objects.get(pk=cat_type_pk)
+        cattypes = CatType.view_objects.all()
 
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
@@ -685,7 +694,7 @@ class CatTotalPieChart(TemplateView):
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
-
+        context['cattypes'] = cattypes
         context['cattype'] = cattype.id
         return context
 
@@ -909,145 +918,152 @@ class MyNotificationLoggedout(TemplateView):
 
 
 def echartOptionTimeline2JSON(request):
-    if request.user.is_authenticated is False:
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
-    title = ''
+
     preference = get_object_or_404(Preference, user=request.user.id)
     begin = preference.slider_start
     end = preference.slider_stop
+    
     accountcategoryID = request.GET.get('ac', None)
     period = request.GET.get('period', None)
+
+    # 1. Date Range Logic
     if period == 'nextmonth':
         begin = date.today()
         end = begin + timedelta(days=40)
-    if accountcategoryID  == 'favorites':
+
+    # 2. Account Filtering
+    if accountcategoryID == 'favorites':
         accounts = preference.favorite_accounts.all()
-    elif accountcategoryID is None or accountcategoryID == 'None':
+        title = 'Favorite Accounts'
+    elif accountcategoryID in [None, 'None', '']:
         accounts = Account.view_objects.all().order_by('account_host', 'name')
-        title = 'All'
+        title = 'All Accounts'
     else:
         try:
             accountcategory = AccountCategory.view_objects.get(pk=accountcategoryID)
+            accounts = Account.view_objects.filter(account_categories=accountcategory.pk).order_by('account_host', 'name')
+            title = accountcategory.name
         except ObjectDoesNotExist:
             raise PermissionDenied
-        title = accountcategory.name
-        accounts = Account.view_objects.filter(account_categories=accountcategory.pk).order_by('account_host', 'name')
 
-
-
-
-    series = []  # lines
-    x_axis = []  # Dates, x axis
-    series_label = []  # series label
-
+    # 3. Prepare X-Axis and find "Today" index
     dates = MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date')
-    index_today = None
-    i = 0
-    for day in dates:
-        x_axis.append(f'{day.db_date}')
-        if day.db_date == date.today():
-            index_today = i
-        i += 1
-    if index_today is not None:
-        vert_line =  {
-                'type': 'line',
-                'silent': 'true',
-                
-                'markLine': {
-                    'symbol': 'circle',
-                    'lineStyle': {
-                        'color': 'rgb(255,0,0)',
-                        'type': 'solid',
-                    },
-                    'data': [
-                    {
-                        'name': 'Today',
-                        'xAxis': date.today(),
-                    }
-                    ]
-                }
-                }
-        series.append(vert_line)
+    x_axis = [f'{day.db_date}' for day in dates]
+    today_str = str(date.today())
 
+    series = []
+    series_label = []
     nb_days = len(x_axis)
-    linetotaldata = [Decimal(0.00)] * nb_days
+    linetotaldata = [Decimal('0.00')] * nb_days
+
+    # 4. Process individual Account Lines
     for account in accounts:
-        if account.can_view() is False:
+        if not account.can_view():
             continue
-        if account.date_closed is not None:
-            if account.date_closed < begin:
-                continue
-        series_label.append(f'{account}')
+        if account.date_closed and account.date_closed < begin:
+            continue
+
+        series_label.append(account.name)
         balances = account.get_balances(begin, end)
+        
         linedata = []
-        i = 0
-        for day in balances:
-            linetotaldata[i] += day.balance
-            linedata.append(day.balance)
-            i += 1
-        linedict = {
-            'name': f'{account}',
+        for i, day in enumerate(balances):
+            # Ensure we don't go out of bounds if balances/dates mismatch
+            if i < nb_days:
+                val = day.balance or Decimal('0.00')
+                linedata.append(val)
+                linetotaldata[i] += val
+
+        series.append({
+            'name': account.name,
             'type': 'line',
-            'smooth': 'true',
-            'areaStyle': {},
-            'symbol': account.currency.symbol,  # doesn't work...
+            'smooth': True,
+            'areaStyle': {'opacity': 0.1}, # Subtle area fill
+            'symbol': 'circle',            # Standard dot
+            'symbolSize': 4,
+            'yAxisIndex': 0,
             'data': linedata,
-        }
-        series.append(linedict)
+            'markLine': {
+                'silent': True,
+                'symbol': 'none',
+                'label': {'show': True, 'position': 'end', 'formatter': 'Today'},
+                'lineStyle': {'color': '#ff4d4f', 'type': 'dashed', 'width': 2},
+                'data': [{'xAxis': today_str}] if today_str in x_axis else []
+            } if len(series) == 0 else None # Only add to the first series to avoid duplicates            
+        })
 
+    series.append({
+        'name': 'GRAND TOTAL',
+        'type': 'line',
+        'smooth': True,
+        'yAxisIndex': 1,
+        'lineStyle': {'width': 3, 'type': 'dashed'},
+        'itemStyle': {'color': '#5470c6'}, # A distinct color
+        'data': linetotaldata,
+        'zIndex': 10 # Keep it on top of other lines
+    })
+    series_label.append('GRAND TOTAL')
 
-
-
-    # datasets.append(linedict)
+    # 6. Final ECharts Option Dictionary
     data = {
         'title': {
-                'text': title
-                },
-        'legend': {
-                'data': series_label,
-                'type': 'scroll',
-                'orient': 'vertical',
-                'right': '10',
-                'top': '20',
-                'bottom': '20',
-            },
-        'grid': {
-            'left': '1%',
-            'right': '2%',
-            'bottom': '2%',
-            'containLabel': 'true'
+            'text': title,
+            'left': 'center',
+            'textStyle': {'fontSize': 16}
         },
-       # 'tooltip': {
-        #    'trigger': 'axis',
-         #   'valueFormatter': '(value) => "$" + value.toFixed(2)'
-            #'formatter': 'callback'
-        #},
-        'dataZoom': [
-            {
-            'type': 'inside',
-            'start': 0,
-            'end': 100,
-            },
-        ],
-        'markLine': {
-            'data': [ 
-                { 'name': 'bang', 
-                'xAxis': '2024-01-28' } 
-            ]
+        'legend': {
+            'data': series_label,
+            # 'type': 'scroll',
+            'type': 'plain',
+            'orient': 'horizontal',
+            'bottom': '0',
+            'left': 'center',
+            'padding': [5, 10],
+            'textStyle': { 'fontSize': 12 },
+        },
+        'grid': {
+            'left': '3%',
+            'right': '4%',
+            'bottom': '20%',
+            'top': '15%',
+            'containLabel': True
         },
         'xAxis': {
-            'boundaryGap': 'false',
+            'type': 'category',
+            'boundaryGap': False,
             'data': x_axis,
-           # 'type': 'time',
+            # Add the vertical "Today" line directly to the Axis
+            'axisPointer': { 'show': True, 'snap': True },
         },
-        'yAxis': {
-            'type': 'value'
-        },
-        'series': series
+        'yAxis': [
+            {
+                'type': 'value',
+                'name': 'Accounts',
+                'position': 'left',
+                'axisLabel': {'formatter': '{value}'}
+            },
+            {
+                'type': 'value',
+                'name': 'Total',
+                'position': 'right',
+                'splitLine': {'show': False}, # Hide grid lines for the 2nd axis to avoid clutter
+                'axisLabel': {'formatter': '{value}'}
+            }
+        ],
+        'series': series,
+        # Special 'Today' marker attached to the first series or as a standalone
+        'markLine': {
+            'silent': True,
+            'symbol': 'none',
+            'label': {'formatter': 'Today', 'position': 'end'},
+            'lineStyle': {'color': 'red', 'type': 'solid', 'width': 2},
+            'data': [{'xAxis': today_str}] if today_str in x_axis else []
+        }
     }
 
     return JsonResponse(data, safe=False)
-
 
 class EChartTimelineView(LoginRequiredMixin, TemplateView):
     # template_name = 'budgetdb/echart_template.html'

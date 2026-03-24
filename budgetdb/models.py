@@ -477,7 +477,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
     ofx_org = models.CharField(max_length=50, blank=True, null=True) # <ORG>
     ofx_fid = models.CharField(max_length=50, blank=True, null=True) # <FID>
     ofx_flip_sign = models.BooleanField(default=False, help_text="Check if outflows are positive in OFX")
-    ofx_flip_sign_set = models.BooleanField(default=False)
+    ofx_flip_sign_set = models.BooleanField(default=False, help_text="don't ask user for flip sign")
 
     date_open = models.DateField('date opened', blank=False, null=False, default='2018-01-01')
     date_closed = models.DateField('date closed', blank=True, null=True)
