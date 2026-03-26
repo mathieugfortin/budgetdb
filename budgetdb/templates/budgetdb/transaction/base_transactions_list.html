@@ -1,3 +1,5 @@
+<!-- base_transaction_list.html-->
+
 {% extends 'budgetdb/base.html' %}
 {% block head_comment %}<!--account_transaction_list template-->{% endblock %}
 {% load static %}
@@ -5,7 +7,7 @@
 
 {% block title %}{{title}} {% endblock %}
 {% block headblock %}
-    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/account_transactions_list.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/base_transactions_list.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -16,26 +18,39 @@
     </div>
     
         <div class="row align-items-center"> 
-            <div class="col-1 text-start">   
-                <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
-                    <span class="material-symbols-outlined">add_circle</span>
-                </button>
-            </div>
-            <div class="col-10 text-center">
-                <h3>{{ account_name }} 
-                <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
-                    <span class="material-symbols-outlined">monitoring</span></a>
-                {% if statements_exist %}
-                <a href="{% url 'budgetdb:list_statement_per_account' pk %}" class="btn btn-info btn-sm"  >
-                    <span class="material-symbols-outlined">cards_stack</span></a>
-                {% endif %}
-                </h3>
-            </div>
-            <div class="col-1 text-end">
-                <button  type="button" title="Create audit for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
-                    <span class="material-symbols-outlined">add_circle</span>
-                </button>
-            </div>
+            {% if filter_type == 'account' %}
+                <div class="col-1 text-start">   
+                    <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
+                        <span class="material-symbols-outlined">add_circle</span>
+                    </button>
+                </div>
+                <div class="col-10 text-center">
+                    <h3>{{ account_name }} 
+                    <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
+                        <span class="material-symbols-outlined">monitoring</span></a>
+                    {% if statements_exist %}
+                    <a href="{% url 'budgetdb:list_statement_per_account' pk %}" class="btn btn-info btn-sm"  >
+                        <span class="material-symbols-outlined">cards_stack</span></a>
+                    {% endif %}
+                    </h3>
+                </div>
+                <div class="col-1 text-end">
+                    <button  type="button" title="Create audit for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
+                        <span class="material-symbols-outlined">add_circle</span>
+                    </button>
+                </div>
+            {% else %}
+                <div class="col-1 text-start">
+                    <a href="javascript:history.back()" class="btn btn-link btn-sm text-decoration-none text-secondary">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                    </a>
+                </div>
+                <div class="col-10 text-center">
+                    <h3 class="mb-0">{{ title }}</h3>
+                    <small class="text-muted">{{ begin }} to {{ end }}</small>
+                </div>
+                <div class="col-1"></div>
+            {% endif %}
         </div>
     
         {% if filter %}
@@ -68,6 +83,9 @@
             const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
             const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
             const allCat1s = {{ cat1_json|safe }};
+            const currentPk = "{{ pk|default:'' }}";
+            const filterType = "{{ filter_type }}";
+
             // HELPER FUNCTION TO HIDE SELECT2 AND SHOW SPAN
             function hideSelect2($select) {
                 const $wrapper = $select.closest('.cat1-wrapper, .cat2-wrapper');
@@ -169,9 +187,10 @@
                     const $badge = $('#save-check-cat1' + txId);
                     $badge.addClass('show');
                     setTimeout(() => $badge.removeClass('show'), 1500);
-                    // reset it cat2
+                    
                     const $cat2Wrapper = $select.closest('tr').find('.cat2-wrapper');
-                    $cat2Wrapper.find('.cat-display').text('---------'); // Reset the text
+                    const $cat2Display = $cat2Wrapper.find('.cat-display');
+                    $cat2Wrapper.text('---------');                  // Reset the text
                     $cat2Wrapper.data('cat2-id', '');                // Clear the ID data
                     $cat2Wrapper.attr('data-cat2-id', '');           // Clear the ID attribute
                     // 2. Trigger the  CSS Pulse

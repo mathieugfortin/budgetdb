@@ -1,3 +1,4 @@
+<!-- cattype_bar_chart.html-->
 {% extends "budgetdb/base.html" %}
 {% load static %}
 
@@ -25,7 +26,7 @@
     bar_container.style.width = "800px";
     bar_container.style.height = "800px";
 
-    $.get('{% url "budgetdb:cat1_barchart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}', function(config) {
+    $.get('{% url "budgetdb:cattype_by_cat1_monthly_totals_json" %}?begin={{ begin }}&end={{ end }}&cattype={{ cattype }}', function(config) {
         myChart = new Chart(ctx, config);
         myConfig = config;
     });
@@ -43,7 +44,7 @@
         newDiv.append(newCanvas);
         document.body.append(newDiv);
         var newCtx = newCanvas.getContext("2d");
-        $.get('{% url "budgetdb:cat2_barchart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}&cat1=' + cat1_index, function(subConfig) {
+        $.get('{% url "budgetdb:cattype_by_cat2_monthly_totals_json" %}?begin={{ begin }}&end={{ end }}&cattype={{ cattype }}&cat1=' + cat1_index, function(subConfig) {
             myNewChart = new Chart(newCtx, subConfig);
         });
     }

@@ -17,7 +17,7 @@ from django.utils.dateparse import parse_date
 from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
 from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data, PaystubEngine
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
-from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
+from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable, BaseTransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
 from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
@@ -794,6 +794,123 @@ class TransactionListView(LoginRequiredMixin, ListView):
         qs = Transaction.view_objects.filter(date_actual__gt=begin, date_actual__lte=end).order_by('date_actual', 'audit')
         return qs
 
+
+class BaseTransactionListView(UserPassesTestMixin, MyListView):
+    model = Transaction
+    table_class = BaseTransactionListTable
+    template_name = 'budgetdb/transaction/base_transactions_list.html'
+    
+    # State variables
+    filter_type = 'account'
+    pk = None
+    begin = None
+    end = None
+    statement = None
+    context_obj = None
+    statement_pk = None
+    title = ""
+
+    def test_func(self):
+        self.filter_type = self.kwargs.get('filter_type', 'account')
+        model_map = {
+                'account': Account,
+                'cat1': Cat1,
+                'cat2': Cat2
+            }
+        view_object = get_object_or_404(model_map[self.filter_type], pk=self.kwargs.get('pk'), is_deleted=False)
+        return view_object.can_view()
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
+    def get_queryset(self):
+        #self.filter_type = self.kwargs.get('filter_type', 'account')
+        
+        self.pk = self.kwargs.get('pk')
+        date1 = self.kwargs.get('date1')
+        date2 = self.kwargs.get('date2')
+        statement_pk = self.kwargs.get('statement_pk')
+
+        # Set Default Dates from Preferences
+        preference = Preference.objects.get(user=self.request.user.id)
+        self.begin = preference.slider_start
+        self.end = preference.slider_stop
+
+        if self.filter_type == 'account':
+            self.context_obj = get_object_or_404(Account, pk=self.pk)
+            if not self.context_obj.can_view():
+                raise PermissionDenied
+            #  set statement conditions
+            if statement_pk:
+                statement = get_object_or_404(Statement, id=statement_pk)
+                self.statement_pk = statement.pk
+                self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
+                self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
+                #extend for late transactions
+                if last_obj := Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last():
+                    last_date = last_obj.date_actual
+                    self.end = max(self.end,last_date)
+            # Child Account logic (Logic from your original view)
+            child_accounts = Account.view_objects.filter(account_parent_id=self.pk)
+            accounts = child_accounts | Account.view_objects.filter(pk=self.pk)
+            filter_q = Q(account_source__in=accounts) | Q(account_destination__in=accounts)
+            self.title = self.context_obj.name
+
+        elif self.filter_type == 'cat2':
+            self.context_obj = get_object_or_404(Cat2, pk=self.pk)
+            if not self.context_obj.can_view():
+                raise PermissionDenied
+            filter_q = Q(cat2=self.context_obj)
+            self.title = f"{self.context_obj.cat1.name} - {self.context_obj.name}"
+
+        elif self.filter_type == 'cat1':
+            self.context_obj = get_object_or_404(Cat1, pk=self.pk)
+            if not self.context_obj.can_view():
+                raise PermissionDenied
+            filter_q = Q(cat1=self.context_obj)
+            self.title = self.context_obj.name            
+            
+        # Date Overload from URL 
+        if date1 and date2:
+            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
+            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
+
+        return Transaction.view_objects.filter(
+            filter_q, 
+            date_actual__gte=self.begin, 
+            date_actual__lte=self.end
+        )
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Map the existing template variables so your old templates don't break
+        context['title'] = self.title
+        context['begin'] = self.begin.strftime("%Y-%m-%d") if hasattr(self.begin, 'strftime') else self.begin
+        context['end'] = self.end.strftime("%Y-%m-%d") if hasattr(self.end, 'strftime') else self.end
+        context['year'] = self.begin.year if self.begin else None
+        context['filter_type'] = self.filter_type
+        context['filter_pk'] = self.pk
+        
+        # If it's an account, keep the old context names for compatibility
+        if self.filter_type == 'account' and self.context_obj:
+            context['pk'] = self.context_obj.pk
+            context['account_name'] = self.context_obj
+            context['account_id'] = self.context_obj.id
+            context['account_currency_symbol'] = self.context_obj.currency.symbol
+            
+        context['cat1_json'] = list(Cat1.admin_objects.values('id', 'name'))
+        return context
+
+
+    def get_table_kwargs(self):
+       return {
+           'filter_type': self.filter_type,
+           'filter_pk': self.pk,
+           'begin': self.begin,
+           'end': self.end,
+           'request': self.request,
+           'statement': self.statement_pk,
+       }        
 
 ###################################################################################################################
 # checks

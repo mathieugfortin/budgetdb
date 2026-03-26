@@ -9,7 +9,7 @@ from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, Validat
 from django.core.mail import EmailMessage
 from django.db import models, transaction
 from django.db.models import Sum, Q, Window, F
-from django.db.models.functions import Cast, Coalesce, ExtractMonth, ExtractYear, RowNumber
+from django.db.models.functions import Cast, Coalesce, ExtractMonth, ExtractYear, RowNumber, TruncMonth
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -1101,14 +1101,14 @@ class CatType(BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_cattype')
 
     def get_month_total(self, targetdate):
+        # improvement: how do we deal with account currencies ?
         start = date(targetdate.year,targetdate.month,1)
         end = date(targetdate.year,targetdate.month+1,1)
         cat1s = Cat1.view_objects.filter(cattype=self)
         cat2s = Cat2.view_objects.filter(cattype=self)
         accounts = Account.admin_objects.all()
-        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts)
-        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts)
-        # zbrocoli not dealing with account currencies
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end)
+ 
         cat1onlytransact = transactions.filter(cat1__in=cat1s,cat2__isnull=True) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
         cat2transact = transactions.filter(cat2__in=cat2s) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
         type_transactions = cat1onlytransact | cat2transact
@@ -1117,24 +1117,85 @@ class CatType(BaseSoftDelete, UserPermissions):
         
         return total
 
-    def get_cat1_totals(self, start, end):
-        cat1s = Cat1.view_objects.filter(cattype=self)
-        accounts = Account.view_objects.all()
-        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts,cat1__in=cat1s)
-        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts,cat1__in=cat1s)
-        # zbrocoli not dealing with account currencies
-        cat1s_sums = transactions.values('cat1_id').annotate(Sum('amount_actual'))
+    def get_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,cat2__in=cat2s)
+        cat1s_sums = (transactions
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
         return cat1s_sums
 
-    def get_cat1_monthly_totals(self, start, end):
-        cat1s = Cat1.view_objects.filter(cattype=self)
-        accounts = Account.view_objects.all()
-        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts,cat1__in=cat1s)
-        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts,cat1__in=cat1s)
-        # zbrocoli not dealing with account currencies
-        transactions = transactions.annotate(month=ExtractMonth('date_actual'),year=ExtractYear('date_actual'))
-        cat1s_sums = transactions.values('cat1_id','month','year').annotate(Sum('amount_actual'))
+    def get_monthly_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(
+            date_actual__gte=start, 
+            date_actual__lt=end,
+            cat2__in=cat2s
+        ).annotate(month=TruncMonth('date_actual'))
+        cat1s_sums = (transactions
+            .values('month') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
         return cat1s_sums
+
+    def get_cat1_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,cat2__in=cat2s)
+        cat1s_sums = (transactions
+            .values('cat1_id', 'cat1__name') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat1s_sums        
+
+    def get_cat1_monthly_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(
+            date_actual__gte=start, 
+            date_actual__lt=end,
+            cat2__in=cat2s
+        ).annotate(month=TruncMonth('date_actual'))
+        cat1s_sums = (transactions
+            .values('cat1_id', 'cat1__name', 'month') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat1s_sums
+
+    def get_cat2_totals(self, cat1, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self, cat1=cat1)
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,cat2__in=cat2s, cat1=cat1)
+        cat2s_sums = (transactions
+            .values('cat2_id', 'cat2__name') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat2s_sums
+
+    def get_cat2_monthly_totals(self, cat1, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self, cat1=cat1)
+        transactions = Transaction.view_objects.filter(
+            date_actual__gte=start, 
+            date_actual__lt=end,
+            cat1=cat1,
+            cat2__in=cat2s
+        ).annotate(month=TruncMonth('date_actual'))
+        cat2s_sums = (transactions
+            .values('cat2_id', 'cat2__name', 'month') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat2s_sums
+
+
 
 
 class Cat1(BaseSoftDelete, UserPermissions):

@@ -1,0 +1,194 @@
+<!--cattype_barchart.html-->
+{% extends "budgetdb/base.html" %}
+{% load static %}
+{% block headblock %}
+ <!--   <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/bar_chart.css' %}"> -->
+{% endblock %}
+
+{% block content %}
+<div id="chart-controls" class="d-flex justify-content-between align-items-center mb-4 bg-dark p-2 rounded border border-secondary">
+    <div class="btn-group shadow-sm">
+        {% for ct in cattypes %}
+            <a class="btn btn-sm btn-outline-info px-3" href="{% url 'budgetdb:cattype_bar' ct.id %}">
+                {{ ct.name }}
+            </a>
+        {% endfor %}
+    </div>
+    
+    <button id="back-button" class="btn btn-sm btn-secondary d-none" onclick="loadCat1Chart()">
+        <i class="bi bi-arrow-left"></i> Back to Categories
+    </button>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-9 col-md-8">
+        <div class="card bg-dark border-secondary shadow">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-3">
+                <h5 id="chart-main-title" class="mb-0">Category Totals</h5>
+                <span id="date-range-display" class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border">
+                    {{ begin }} to {{ end }}
+                </span>
+            </div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div id="monthly-bar-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-4">
+        <div class="card bg-dark border-secondary shadow h-100">
+            <div class="card-header border-secondary text-center bg-transparent py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <button class="btn btn-xs btn-outline-secondary border-0" onclick="changeYear(-1)">«</button>
+                    <h5 class="mb-0 text-info fw-bold" 
+                        id="current-year-display" 
+                        style="cursor: pointer;" 
+                        title="Show full year"
+                        onclick="selectFullYear()">
+                        {{ year }}
+                    </h5>
+                    <button class="btn btn-xs btn-outline-secondary border-0" onclick="changeYear(1)">»</button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for m_num, m_name in months %}
+                    <div class="col-6">
+                        <button class="btn btn-sm btn-outline-primary w-100 month-btn py-2" 
+                                data-month="{{ m_num }}" 
+                                onclick="selectMonth({{ m_num }}, this)">
+                            {{ m_name|truncatechars:4 }}
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card-footer border-secondary bg-transparent p-3">
+                <button class="btn btn-info w-100 fw-bold shadow-sm" onclick="selectFullYear(this)">
+                    Full Year
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js" integrity="sha384-BQKzmHvQLMCAnL3UtDBA1Al5tFjsCz1wrMlIUA1wkzo14DYkRWjywW+p9pCj0cwd" crossorigin="anonymous"></script>
+
+<script type="text/javascript">
+// 1. Correct Global Variables from Django Template
+let currentBegin = "{{ begin }}"; 
+let currentEnd = "{{ end }}";
+let viewYear = {{ year }};
+const catTypeId = "{{ cattype }}"; // Ensure this matches the ID in your HTML
+
+// 2. Helper to get theme
+function getTheme() {
+    return document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
+}
+
+// 3. The Main Load Function
+function loadMonthlyBarChart() {
+    const chartDom = document.getElementById('monthly-bar-chart');
+    if (!chartDom) return; // Guard clause
+
+    // Dispose old instance to prevent the "getAttribute" error on re-init
+    let myChart = echarts.getInstanceByDom(chartDom);
+    if (myChart) {
+        myChart.dispose();
+    }
+    myChart = echarts.init(chartDom, getTheme());
+    
+    myChart.showLoading({ text: 'Loading...', color: '#0dcaf0' });
+
+    // Use the global variables instead of passing arguments
+    const url = `{% url "budgetdb:cattype_by_cat1_monthly_totals_json" %}?cattype=${catTypeId}&begin=${currentBegin}&end=${currentEnd}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            myChart.hideLoading();
+            
+            // If Django returned errors (Form validation failed)
+            if (data.errors) {
+                console.error("Form Errors:", data.errors);
+                return;
+            }
+
+            const option = {
+                title: { text: data.title, left: 'center', textStyle: { color: getTheme() === 'dark' ? '#fff' : '#333' } },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                legend: { bottom: '0', textStyle: { color: getTheme() === 'dark' ? '#ccc' : '#333' } },
+                grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: data.months,
+                    axisLabel: { color: getTheme() === 'dark' ? '#aaa' : '#333' }
+                },
+                yAxis: { 
+                    type: 'value',
+                    axisLabel: { color: getTheme() === 'dark' ? '#aaa' : '#333' },
+                    splitLine: { lineStyle: { color: getTheme() === 'dark' ? '#444' : '#eee' } }
+                },
+                series: data.series 
+            };
+
+            myChart.setOption(option);
+        })
+        .catch(error => console.error('Fetch Error:', error));
+        
+    window.addEventListener('resize', () => myChart.resize());
+}
+
+    function selectFullYear() {
+        // 1. Calculate the boundary dates for the current viewYear
+        const start = `${viewYear}-01-01`;
+        const end = `${viewYear}-12-31`;
+
+        // 2. UI Polish: Remove 'active' state from all specific month buttons
+        document.querySelectorAll('.month-btn').forEach(btn => {
+            btn.classList.remove('active', 'btn-primary');
+            btn.classList.add('btn-outline-primary');
+        });
+
+        // 3. Trigger the AJAX refresh
+        updateDates(start, end);
+    }
+
+    function updateDates(start, end) {
+        currentBegin = start;
+        currentEnd = end;
+        const display = document.getElementById('date-range-display');
+        if (display) { display.innerText = `${start} to ${end}`; }
+        loadMonthlyBarChart(); 
+    }
+
+    function changeYear(delta) {
+        viewYear += delta;
+        document.getElementById('current-year-display').innerText = viewYear;
+        selectFullYear();
+    }
+
+    function selectMonth(month) {
+        // Format: YYYY-MM-DD
+        let start = `${viewYear}-${String(month).padStart(2, '0')}-01`;
+        // Find last day of month
+        let lastDay = new Date(viewYear, month, 0).getDate();
+        let end = `${viewYear}-${String(month).padStart(2, '0')}-${lastDay}`;
+        updateDates(start, end);
+    }
+
+    // Initial Call on Page Load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadMonthlyBarChart();
+    }); 
+
+
+</script>
+{% endblock %}

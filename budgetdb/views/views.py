@@ -1,6 +1,7 @@
 
 import json
 import threading
+import calendar
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Submit
@@ -28,7 +29,8 @@ from django.urls import reverse, reverse_lazy
 from django.utils.encoding import force_bytes, force_str
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django.views.generic.base import RedirectView
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
+from budgetdb.decorators import login_required_ajax
 from django_tables2 import SingleTableView  
 from rest_framework import serializers
 
@@ -40,636 +42,28 @@ from budgetdb.tokens import account_activation_token
 from budgetdb.scheduler import run_extend_ledgers
 
 
-
-
-
-
-
-
-# colors stolen from django chart js library
-COLORS = [
-    (202, 201, 197),  # Light gray
-    (171, 9, 0),  # Red
-    (166, 78, 46),  # Light orange
-    (255, 190, 67),  # Yellow
-    (163, 191, 63),  # Light green
-    (122, 159, 191),  # Light blue
-    (140, 5, 84),  # Pink
-    (166, 133, 93),  # Light brown
-    (75, 64, 191),  # Red blue
-    (237, 124, 60),  # orange
-]
-
-
-def next_color(color_list=COLORS):
-    step = 0
-    while True:
-        for color in color_list:
-            yield list(map(lambda base: (base + step) % 256, color))
-        step += 197
-
-
-@require_POST
-def PreferenceSetIntervalJSON(request):
-    slider_start = request.POST.get("begin_interval", None)
-    slider_stop = request.POST.get("end_interval", None)
-    preference = Preference.objects.get(user=request.user.id)
-    if slider_start:
-        preference.slider_start = datetime.strptime(slider_start, "%Y-%m-%d")
-    if slider_stop:
-        preference.slider_stop = datetime.strptime(slider_stop, "%Y-%m-%d")
-    preference.save()
-    return HttpResponse(status=200)
-
-
-def TransactionVerifyToggleJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    transaction_ID = request.POST.get("transaction_id", None)
-    if transaction_ID:
-        transaction = get_object_or_404(Transaction, pk=transaction_ID)
-    else:
-        return HttpResponse(status=404)
-    if transaction.can_edit() is False:
-        return HttpResponse(status=401)
-    transaction.verified = not transaction.verified
-    transaction.save()
-    return HttpResponse(status=200)
-
-
-def TransactionReceiptToggleJSON(request):
-    if request.user.is_authenticated is False:
-        # return JsonResponse({}, status=401)
-        return JsonResponse({'error': 'Not Logged In'}, status=401)
-    transaction_ID = request.POST.get("transaction_id", None)
-    if transaction_ID:
-        transaction = get_object_or_404(Transaction, pk=transaction_ID)
-    else:
-        return HttpResponse(status=404)
-    if transaction.can_edit() is False:
-        return HttpResponse(status=401)
-    transaction.receipt = not transaction.receipt
-    transaction.save()
-    return HttpResponse(status=200)
-
-@require_POST
-def update_transaction_categoryJSON(request):
-    tx_id = request.POST.get('transaction_id')
-    cat_level = request.POST.get('cat_level')
-    cat_id = request.POST.get('category_id') or None
+def get_majority_year(start_date, end_date):
+    # If same year, return it immediately
+    if start_date.year == end_date.year:
+        return start_date.year
     
-    tx = Transaction.objects.get(id=tx_id)
-    
-    if cat_level == '1':
-        tx.cat1_id = cat_id
-        tx.cat2_id = None # Reset child if parent changes
-    else:
-        tx.cat2_id = cat_id
+    year_counts = {}
+
+    for year in range(start_date.year, end_date.year + 1):
+        # Determine the start of the interval within this year
+        year_start = max(start_date, date(year, 1, 1))
+        # Determine the end of the interval within this year
+        year_end = min(end_date, date(year, 12, 31))
         
-    tx.save()
-    return JsonResponse({'status': 'success'})
+        # Calculate days (inclusive)
+        days = (year_end - year_start).days + 1
+        year_counts[year] = days
 
+    # Return the year with the maximum day count
+    return max(year_counts, key=year_counts.get)
 
-def get_cat2_optionsJSON(request):
-    cat1_id = request.GET.get('cat1_id')
-    # Filter Cat2 models that have cat1 as a parent
-    options = Cat2.admin_objects.filter(cat1=cat1_id).values('id', 'name')
-    return JsonResponse({'options': list(options)})    
 
-
-def PreferenceGetJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    preference = Preference.objects.get(user=request.user.id)
-    
-    if (preference.timeline_start is None or preference.timeline_stop is None):
-        transactions = Transaction.view_objects.all().order_by("date_actual")
-        preference.timeline_start = preference.timeline_start or transactions.first().date_actual
-        preference.timeline_stop = preference.timeline_stop or transactions.last().date_actual
-        preference.save()
-
-    data = {
-        'slider_start': preference.slider_start,
-        'slider_stop': preference.slider_stop,
-        'timeline_start': preference.timeline_start,
-        'timeline_stop': preference.timeline_stop,
-        # 'begin_data': transactions.first().date_actual,
-        # 'end_data': transactions.last().date_actual,
-    }
-
-    return JsonResponse(data, safe=False)
-
-@login_required
-@require_POST
-def update_theme_preference(request):
-    theme = request.POST.get('theme')
-    if theme in ['light', 'dark']:
-
-        get_current_user().preference_set.update(theme=theme)
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error'}, status=400)
-
-def GetAccountViewListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    queryset = Account.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
-
-
-def GetAccountDetailedViewListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-
-    preference = Preference.objects.get(user=request.user.id)
-    queryset = Account.view_objects.all()
-    queryset = queryset.annotate(
-        favorite=Case(
-            When(favorites=preference.id, then=Value(True)),
-            default=Value(False),
-        )
-    )
-    queryset = queryset.order_by("-favorite", "account_host", "name")
-
-    array = []
-    for entry in queryset:
-        namestring = ""
-        if entry.favorite:
-            namestring = namestring + "☆ "
-        namestring = namestring + entry.account_host.name
-        if entry.owner != get_current_user():
-            namestring = namestring + " - " + entry.owner.first_name.capitalize()
-        namestring = namestring + " - " + entry.name
-        array.append([{"pk": entry.pk}, {"name": namestring}])
-
-    return JsonResponse(array, safe=False)
-
-
-def GetAccountCatViewListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    queryset = AccountCategory.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
-
-
-def GetAccountHostViewListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    queryset = AccountHost.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
-
-
-def GetVendorListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    queryset = Vendor.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
-
-
-def GetCat1ListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    queryset = Cat1.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
-
-
-def GetCatTypeListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    queryset = CatType.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
-
-
-def GetCat1TotalPieChartData(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    begin = request.GET.get('begin', None)
-    end = request.GET.get('end', None)
-    cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.view_objects.get(pk=cat_type_pk)
-    colors = next_color()
-    color_list = []
-
-    labels = []  # categories
-    data = []  # totals
-    indexes = []  # cat1_ids
-
-
-    cat1s = Cat1.view_objects.all()
-    accounts = Account.admin_objects.all()
-    transactions = Transaction.view_objects.filter(date_actual__gte=begin, date_actual__lt=end,account_destination__in=accounts)
-    transactions = transactions | Transaction.view_objects.filter(date_actual__gte=begin, date_actual__lt=end,account_source__in=accounts)
-    # zbrocoli not dealing with account currencies
-    cat1s_sums = cattype.get_cat1_totals(begin,end)
-
-
-    for cat in cat1s_sums:
-        cat1_pk=cat.get('cat1_id')
-        cat1 = Cat1.objects.get(pk=cat1_pk)
-        labels.append(cat1.name)
-        data.append(cat.get('amount_actual__sum'))
-        indexes.append(cat1_pk)
-        color = next(colors)
-        color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
-
-    data = {
-        'type': 'doughnut',
-        'options': {'responsive': True},
-        'data': {
-            'datasets': [{
-                    'data': data,
-                    'indexes': indexes,
-                    'backgroundColor': color_list,
-                    'label': cattype.name
-            }],
-            'labels': labels
-        },
-    }
-
-    return JsonResponse(data, safe=False)
-
-
-def GetCat2TotalPieChartData(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    begin = request.GET.get('begin', None)
-    end = request.GET.get('end', None)
-    cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.view_objects.get(pk=cat_type_pk)
-    cat1_pk = request.GET.get('cat1', None)
-    cat1 = Cat1.view_objects.get(pk=cat1_pk)
-    colors = next_color()
-    color_list = []
-    labels = []  # categories
-    data = []  # totals
-
-    cat2sums = CatSums()
-    cat_totals = cat2sums.build_cat2_totals_array(begin, end)
-
-    for cat in cat_totals:
-        if cat.cattype_id == cattype.id and cat.cat1 == cat1:
-            labels.append(cat.cat2.name)
-            data.append(cat.total)
-            color = next(colors)
-            color_list.append(f"rgba({color[0]}, {color[1]}, {color[2]}, 1)")
-
-    data = {
-        'type': 'doughnut',
-        'options': {'responsive': True},
-        'data': {
-            'datasets': [{
-                    'data': data,
-                    'backgroundColor': color_list,
-                    'label': f'{cattype.name} - {cat1.name}'
-            }],
-            'labels': labels
-        },
-    }
-
-    return JsonResponse(data, safe=False)
-
-
-def GetCat1TotalBarChartData(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    beginstr = request.GET.get('begin', None)
-    endstr = request.GET.get('end', None)
-    cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.view_objects.get(pk=cat_type_pk)
-
-    if endstr is not None and endstr != 'None':
-        end = datetime.strptime(endstr, "%Y-%m-%d").date()
-
-    if beginstr is not None and beginstr != 'None':
-        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-
-
-    cat1s_sums = cattype.get_cat1_monthly_totals(begin,end)
-
-    labels = []  # months
-    datasets = []
-    colors = next_color()
-    indexdict = {}
-
-    i = date(begin.year, begin.month, 1)
-    nbmonths = 0
-    while i <= end:
-        labels.append(i.strftime("%B"))
-        indexdict[f'{i.strftime("%Y-%m")}'] = nbmonths
-        i = i + relativedelta(months=1)
-        nbmonths += 1
-
-    for cat in cat1s_sums:
-        data = [None] * nbmonths
-        cat1sums = CatSums()
-        #cat_totals = cat1sums.build_monthly_cat1_totals_array(beginstr, endstr, cat.id)
-        transactions = Transaction.objects.filter(date_actual__gte=begin,date_actual__lte=end,is_deleted=False,cat1__in=cats)
-        cat1_totals = transactions.values('cat1').annotate(Sum('amount_actual'))
-        color = next(colors)
-        empty = True
-        for total in cat1_totals:
-            if total.cattype_id == cattype.id:
-                empty = False
-                index = indexdict[f'{total.year}-{total.month:02d}']
-                data[index] = total.total
-        if empty is False:
-            dataset = {
-                'label': cat.name,
-                'data': data,
-                'index': cat.id,
-                'borderColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-                'backgroundColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
-            }
-            datasets.append(dataset)
-
-    bardata = {
-        'type': 'bar',
-        'data': {
-            'labels': labels,
-            'datasets': datasets
-        }
-    }
-    return JsonResponse(bardata, safe=False)
-
-
-def GetCat2TotalBarChartData(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    beginstr = request.GET.get('begin', None)
-    endstr = request.GET.get('end', None)
-    cat_type_pk = request.GET.get('ct', None)
-    cattype = CatType.view_objects.get(pk=cat_type_pk)
-    cat1_pk = request.GET.get('cat1', None)
-    cat1 = Cat1.view_objects.get(pk=cat1_pk)
-
-    cats = Cat2.view_objects.filter(cat1=cat1)
-
-    if endstr is not None and endstr != 'None':
-        end = datetime.strptime(endstr, "%Y-%m-%d").date()
-
-    if beginstr is not None and beginstr != 'None':
-        begin = datetime.strptime(beginstr, "%Y-%m-%d").date()
-
-    labels = []  # months
-    datasets = []
-    colors = next_color()
-    indexdict = {}
-
-    i = date(begin.year, begin.month, 1)
-    nbmonths = 0
-    while i <= end:
-        labels.append(i.strftime("%B"))
-        indexdict[f'{i.strftime("%Y-%m")}'] = nbmonths
-        i = i + relativedelta(months=1)
-        nbmonths += 1
-
-    for cat in cats:
-        data = [None] * nbmonths
-        cat2sums = CatSums()
-        cat_totals = cat2sums.build_monthly_cat2_totals_array(beginstr, endstr, cat.id)
-        color = next(colors)
-        empty = True
-        for total in cat_totals:
-            if total.cattype_id == cattype.id:
-                empty = False
-                index = indexdict[f'{total.year}-{total.month:02d}']
-                data[index] = total.total
-        if empty is False:
-            dataset = {
-                'label': cat.name,
-                'data': data,
-                'borderColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-                'backgroundColor': f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
-            }
-            datasets.append(dataset)
-
-    bardata = {
-        'type': 'bar',
-        'data': {
-            'labels': labels,
-            'datasets': datasets
-        },
-        'options': {
-            'scales': {
-                'yAxes': [{
-                    'ticks': {
-                        'beginAtZero': True
-                    }
-                }]
-            }
-        }
-    }
-
-    return JsonResponse(bardata, safe=False)
-
-
-def load_cat2(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    cat1_id = request.GET.get('cat1')
-    cat2s = Cat2.admin_objects.filter(cat1=cat1_id).order_by('name')
-    return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
-
-
-def GetCat2ListJSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    cat1_id = request.GET.get('cat1')
-    queryset = Cat2.view_objects.filter(cat1_id=cat1_id).order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
-
-
-class TemplateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Template
-        fields = ('vendor',
-                  'description',
-                  'account_source',
-                  'account_destination',
-                  'amount_planned',
-                  'currency',
-                  'amount_planned_foreign_currency',
-                  'ismanual',
-                  'budget_only',
-                  'cat1',
-                  'cat2',
-                  )
-
-
-def get_template(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    vendor_id = request.GET.get('vendor_id')
-    template = get_object_or_404(Template, vendor=vendor_id)
-    response = TemplateSerializer(instance=template)
-    return JsonResponse(response.data, safe=False)
-
-
-def ledger_status_view(request):
-    if request.method == "POST":
-        # Check for the trigger in JSON body or POST params
-        # (Since it's a modal, we'll likely send a simple POST)
-        thread = threading.Thread(target=run_extend_ledgers)
-        thread.start()
-        return JsonResponse({
-            'status': 'Running',
-            'message': 'Ledger extension started.'
-        })
-
-    # For a GET request (when opening the modal)
-    context = {
-        'last_run': cache.get('ledger_task_last_run'),
-        'status': cache.get('ledger_task_status', 'Idle'),
-    }
-    return JsonResponse(context)
-
-def load_cat2_unit_price(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    cat2_id = request.GET.get('cat2')
-    if cat2_id != '' and cat2_id is not None:
-        unitprice = Cat2.admin_objects.get(id=cat2_id).unit_price
-        return JsonResponse({"unitprice": unitprice}, safe=False)
-    else:
-        return JsonResponse({"unitprice": False}, safe=False)
-
-
-def load_account_unit_price(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    account_id = request.GET.get('account')
-    if account_id != '' and account_id is not None:
-        unitprice = Account.admin_objects.get(id=account_id).unit_price
-        return JsonResponse({"unitprice": unitprice}, safe=False)
-    else:
-        return JsonResponse({"unitprice": False}, safe=False)
-
-
-def load_cat2_stock(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    cat2_id = request.GET.get('cat2')
-    if cat2_id != '' and cat2_id is not None:
-        unitprice = Cat2.admin_objects.get(id=cat2_id).unit_price
-        return JsonResponse({"unitprice": unitprice}, safe=False)
-    else:
-        return JsonResponse({"unitprice": False}, safe=False)
-
-
-def timeline2JSON(request):
-    if request.user.is_authenticated is False:
-        return JsonResponse({}, status=401)
-    accountcategoryID = request.GET.get('ac', None)
-
-    if accountcategoryID is None or accountcategoryID == 'None':
-        accounts = Account.view_objects.all().order_by('account_host', 'name')
-    else:
-        accounts = Account.view_objects.filter(account_categories=accountcategoryID).order_by('account_host', 'name')
-
-    preference = get_object_or_404(Preference, user=request.user.id)
-    begin = preference.slider_start
-    end = preference.slider_stop
-
-    colors = next_color()
-
-    datasets = []  # lines
-    labels = []  # Dates
-
-    dates = MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date')
-    index_today = None
-    i = 0
-    for day in dates:
-        labels.append(f'{day}')
-        if day.db_date == date.today():
-            index_today = i
-        i += 1
-
-    nb_days = len(labels)
-    linetotaldata = [Decimal(0.00)] * nb_days
-    for account in accounts:
-        if account.can_view() is False:
-            continue
-        if account.date_closed is not None:
-            if account.date_closed < begin:
-                continue
-        color = next(colors)
-        balances = account.get_balances(begin, end)
-        linedata = []
-        i = 0
-        for day in balances:
-            linetotaldata[i] += day.balance
-            linedata.append(day.balance)
-            i += 1
-        linedict = {
-            "backgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 0.5)",
-            "borderColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-            "pointBackgroundColor": f"rgba({color[0]}, {color[1]}, {color[2]}, 1)",
-            "pointBorderColor": "#fff",
-            'data': linedata,
-            'label': f'{account.account_host} - {account.name}',
-            'name': account.name,
-            'index': account.id,
-            'cubicInterpolationMode': 'monotone',
-        }
-        datasets.append(linedict)
-
-    linedict = {
-        "backgroundColor": f"rgba(0,0,0, 0.5)",
-        "borderColor": f"rgba(0,0,0, 1)",
-        "pointBackgroundColor": f"rgba(0,0,0, 1)",
-        "pointBorderColor": "#fff",
-        'data': linetotaldata,
-        'label': 'TOTAL',
-        'name': 'TOTAL',
-        'index': None,
-        'cubicInterpolationMode': 'monotone',
-    }
-    # datasets.append(linedict)
-
-    data = {
-        'datasets': datasets,
-        'labels': labels,
-        'index_today': index_today
-    }
-
-    return JsonResponse(data, safe=False)
-
-
-class CatTotalPieChart(TemplateView):
+class CatTypeTotalPieChart(TemplateView):
     template_name = 'budgetdb/cattype_pie_chart.html'
 
     def get_context_data(self, **kwargs):
@@ -685,27 +79,31 @@ class CatTotalPieChart(TemplateView):
         if end is None or end == 'None':
             end = preference.slider_stop
         else:
-            end = datetime.strptime(end, "%Y-%m-%d")
+            end = datetime.date.today()
 
         if begin is None or begin == 'None':
             begin = preference.slider_start
         else:
-            begin = datetime.strptime(begin, "%Y-%m-%d")
+            begin = datetime.date.today()
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
         context['cattypes'] = cattypes
         context['cattype'] = cattype.id
+        context['year'] = get_majority_year(begin, end)
+        context['months'] =  [(i, name) for i, name in enumerate(calendar.month_name) if i != 0]
         return context
 
 
-class CatTotalBarChart(TemplateView):
-    template_name = 'budgetdb/cattype_bar_chart.html'
+class CatTypeTotalBarChart(TemplateView):
+    template_name = 'budgetdb/cattype_barchart.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cat_type_pk = self.kwargs.get('cat_type_pk')
         cattype = CatType.view_objects.get(pk=cat_type_pk)
+        cattypes = CatType.view_objects.all()
+
         begin = self.request.GET.get('begin', None)
         end = self.request.GET.get('end', None)
         preference = Preference.objects.get(user=self.request.user.id)
@@ -713,40 +111,20 @@ class CatTotalBarChart(TemplateView):
         if end is None or end == 'None':
             end = preference.slider_stop
         else:
-            end = datetime.strptime(end, "%Y-%m-%d")
+            end = datetime.date.today()
 
         if begin is None or begin == 'None':
             begin = preference.slider_start
         else:
-            begin = datetime.strptime(begin, "%Y-%m-%d")
+            begin = datetime.date.today()
 
         context['begin'] = begin.strftime("%Y-%m-%d")
         context['end'] = end.strftime("%Y-%m-%d")
-
+        context['cattypes'] = cattypes
         context['cattype'] = cattype.id
-        return context
-
-
-class timeline2(TemplateView):
-    template_name = 'budgetdb/timeline2.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        accountcategoryID = self.request.GET.get('ac', None)
-
-        if accountcategoryID is not None:
-            accountcategory = get_object_or_404(AccountCategory, pk=accountcategoryID)
-            if not accountcategory.can_view():
-                raise PermissionDenied
-            context['accountcategory'] = accountcategory
-        else:
-            context['accountcategory'] = None
-
-        accountcategories = AccountCategory.view_objects.all()
-        context['accountcategories'] = accountcategories
-
-        context['ac'] = accountcategoryID
+        context['year'] = get_majority_year(begin, end)
+        context['months'] =  [(i, name) for i, name in enumerate(calendar.month_name) if i != 0]
+        
         return context
 
 
@@ -930,8 +308,8 @@ def echartOptionTimeline2JSON(request):
 
     # 1. Date Range Logic
     if period == 'nextmonth':
-        begin = date.today()
-        end = begin + timedelta(days=40)
+        begin = date.today() - timedelta(days=5)
+        end = begin + timedelta(days=30)
 
     # 2. Account Filtering
     if accountcategoryID == 'favorites':
@@ -1744,8 +1122,8 @@ class IndexView(LoginRequiredMixin, TemplateView):
 
 class AccountTransactionListView(UserPassesTestMixin, MyListView):
     model = Account
-    table_class = AccountActivityListTable
-    template_name = 'budgetdb/account/account_transactions_list.html'
+    table_class = BaseTransactionListTable
+    template_name = 'budgetdb/transaction/base_transactions_list.html'
     begin = None
     end = None
     year = None

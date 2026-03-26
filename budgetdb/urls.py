@@ -50,10 +50,6 @@ urlpatterns = [
          name='timeline_chart'),
     path('chart/echartOptionTimelineJSON', views.echartOptionTimeline2JSON, name='timeline_option_json'),
 
-    # chart JS
-    # path('timeline2/', views.timeline2.as_view(), name='timeline_chart_old'),
-    # path('timeline2JSON', views.timeline2JSON, name='timeline2_chart_json_old'),
-
     path('dashboard/', views.DashboardView.as_view(), name='home'),
 
     path('health/jobs/extend_ledger/', views.ledger_status_view,
@@ -136,17 +132,13 @@ urlpatterns = [
     path('ajax/check-account-unit-price/', views.load_account_unit_price,
          name='ajax_check_account_unit_price'),
 
-    # Account Transactions List View
-    # path('account/listactivityOLD/<int:pk>/', views.AccountTransactionListViewOLD.as_view(),
-    #   name='list_account_activity2'),
-    path('account/listactivity/<int:pk>/', views.AccountTransactionListView.as_view(),
-         name='list_account_activity'),
-    path('account/listactivity/<int:pk>/<int:statement_pk>/', views.AccountTransactionListView.as_view(),
-         name='list_account_activity_statement'),         
-    path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.AccountTransactionListView.as_view(),
-         name='list_account_activity_period'),
-    #path('transaction/update_modal/<int:accountpk>/<int:pk>/', views.TransactionModalUpdate.as_view(),
-     #    name='account_listview_update_transaction_modal'),   # WHY THE ACCOUNT PK???
+    path('account/listactivity/<int:pk>/', views.BaseTransactionListView.as_view(), 
+        name='list_account_activity'),
+    path('account/listactivity/<int:pk>/<int:statement_pk>/', views.BaseTransactionListView.as_view(),
+        name='list_account_activity_statement'),
+    path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(), 
+        name='list_account_activity_period'),
+
     path('transaction/update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
     path('transaction/add_audit_modal/<int:accountpk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
@@ -160,7 +152,7 @@ urlpatterns = [
 
     ##########################################################################################################
     # AccountCategory
-    path('accountcat/ListJSON', views.GetAccountCatViewListJSON, name='accountcat_view_list_json'),
+    path('accountcat/ListJSON', views.GetAccountCatListJSON, name='accountcat_view_list_json'),
     path('accountcat/<int:pk>/', views.AccountCatDetailView.as_view(),
          name='details_accountcategory'),
     path('accountcat/update/<int:pk>/', views.AccountCatUpdateView.as_view(),
@@ -203,17 +195,12 @@ urlpatterns = [
          name='generate_budgetedevent_transactions'),
     path('budgetedEvent/createfromt/<int:transaction_id>/', views.BudgetedEventCreateFromTransaction.as_view(),
          name='create_budgetedevent_from_t'),
-    # path('budgetedEvent/create/submit/', views.BudgetedEventSubmit,
-    #      name='submit_be'),
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
          name='update_be'),
 
     ##########################################################################################################
     # Cat1
-    path('cat1/PieChartJSON', views.GetCat1TotalPieChartData,
-        name='cat1_piechart_json'),
-    path('cat1/BarChartJSON', views.GetCat1TotalBarChartData,
-        name='cat1_barchart_json'),
+
     path('cat1/ListJSON', views.GetCat1ListJSON,
         name='cat1_list_json'),
     path('cat1/', views.Cat1ListView.as_view(),
@@ -227,10 +214,7 @@ urlpatterns = [
 
     ##########################################################################################################
     # Cat2
-    path('cat2/PieChartJSON', views.GetCat2TotalPieChartData,
-        name='cat2_piechart_json'),
-    path('cat2/BarChartJSON', views.GetCat2TotalBarChartData,
-        name='cat2_barchart_json'),
+
     path('cat2/ListJSON', views.GetCat2ListJSON,
         name='cat2_list_json'),
     path('cat2/', views.Cat2ListView.as_view(),
@@ -248,9 +232,18 @@ urlpatterns = [
 
     ##########################################################################################################
     # CatType
-    path('cattype/ListJSON', views.GetCatTypeListJSON, name='cattype_list_json'),
-    path('cattype/pie-chart/<int:cat_type_pk>', views.CatTotalPieChart.as_view(), name='cattype_pie'),
-    path('cattype/bar-chart/<int:cat_type_pk>', views.CatTotalBarChart.as_view(), name='cattype_bar'),
+
+
+    path('cattype/ListJSON', views.GetCatTypeListJSON, 
+        name='cattype_list_json'),
+    path('cattype/cat1/totalsJSON', views.GetCatTypeByCat1sTotalsJSON,
+        name='cattype_by_cat1_totals_json'),
+    path('cattype/cat1/MonthlyTotalsJSON', views.GetCatTypeByCat1sMonthlyTotalsJSON,
+        name='cattype_by_cat1_monthly_totals_json'),
+    path('cattype/cat2/TotalsJSON', views.GetCatTypeByCat2sTotalsJSON,
+        name='cattype_by_cat2_totals_json'),
+    path('cattype/cat2/MonthlyTotalsJSON', views.GetCatTypeByCat2sMonthlyTotalsJSON,
+        name='cattype_by_cat2_monthly_totals_json'),
 
     path('cattype/', views.CatTypeListView.as_view(),
          name='list_cattype'),
@@ -262,6 +255,10 @@ urlpatterns = [
          name='create_cattype'),
     path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),
          name='update_cattype'),
+    path('cattype/pie-chart/<int:cat_type_pk>', views.CatTypeTotalPieChart.as_view(), 
+        name='cattype_pie'),
+    path('cattype/bar-chart/<int:cat_type_pk>', views.CatTypeTotalBarChart.as_view(), 
+        name='cattype_bar'),
 
     ##########################################################################################################
     # PayStubs
@@ -305,11 +302,14 @@ urlpatterns = [
          name='details_template'),
     path('template/update/<int:pk>/', views.TemplateUpdateView.as_view(),
          name='update_template'),
-    path('ajax/get-template/', views.get_template,
+    path('template/ajax/get-template/', views.get_template,
          name='ajax_get_template'),
 
     ##########################################################################################################
     # Transaction
+    
+    path('transactions/<str:filter_type>/<int:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(),
+        name='transaction_list_view'),
     path('transaction/ListManualJSON', views.load_manual_transactionsJSON, 
         name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,

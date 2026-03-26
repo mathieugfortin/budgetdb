@@ -10,9 +10,11 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.dateparse import parse_date
-from .models import User, Preference, Invitation
-from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
-from .models import BudgetedEvent, Transaction, JoinedTransactions, PaystubMapping, PaystubProfile
+
+from budgetdb.models import User, Preference, Invitation
+from budgetdb.models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
+from budgetdb.models import BudgetedEvent, Transaction, JoinedTransactions, PaystubMapping, PaystubProfile
+
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
 from crispy_forms.bootstrap import AppendedText, PrependedText, StrictButton
