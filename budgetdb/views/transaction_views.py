@@ -19,7 +19,7 @@ from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data,
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable, BaseTransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
-from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile
+from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile, Statement
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
 from budgetdb.services import LedgerService
@@ -898,7 +898,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
             context['account_id'] = self.context_obj.id
             context['account_currency_symbol'] = self.context_obj.currency.symbol
             
-        context['cat1_json'] = list(Cat1.admin_objects.values('id', 'name'))
+        context['cat1s_json'] = list(Cat1.admin_objects.values('id', 'name'))
         return context
 
 

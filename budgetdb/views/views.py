@@ -438,6 +438,9 @@ def echartOptionTimeline2JSON(request):
             'label': {'formatter': 'Today', 'position': 'end'},
             'lineStyle': {'color': 'red', 'type': 'solid', 'width': 2},
             'data': [{'xAxis': today_str}] if today_str in x_axis else []
+        },
+        "custom_metadata": {
+            "total_series_count": len(series)
         }
     }
 

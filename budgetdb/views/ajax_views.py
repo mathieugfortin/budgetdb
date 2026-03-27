@@ -115,40 +115,44 @@ def update_transaction_categoryJSON(request):
         return JsonResponse({'error': 'Missing data'}, status=400)
 
     transaction = get_object_or_404(Transaction.view_objects, pk=tx_id)
-    tx = transaction.can_edit()
-    if not tx:
+    if not transaction.can_edit():
         return JsonResponse({'error': "permission problems"}, status=403)
     
     if cat_level == '1':
-        if Cat1.admin_objects.filter(id=cat_id).exists():
-            tx.cat1_id = cat_id
-            tx.cat2_id = None # Reset child if parent changes
-            tx.save()
+        if cat_id is None:
+            transaction.cat1 = None
+            transaction.cat2 = None # Reset child if parent changes
+            transaction.save()
+            return JsonResponse({'status': 'success', 'message': 'Category updated'})
+        elif Cat1.admin_objects.filter(id=cat_id).exists():
+            transaction.cat1_id = cat_id
+            transaction.cat2 = None # Reset child if parent changes
+            transaction.save()
             return JsonResponse({'status': 'success', 'message': 'Category updated'})
     else:
         if Cat2.admin_objects.filter(id=cat_id).exists():
-            tx.cat2_id = cat_id
-            tx.save()
+            transaction.cat2_id = cat_id
+            transaction.save()
             return JsonResponse({'status': 'success', 'message': 'Category updated'})
-        elif cat_id=="":
-            tx.cat2 = None
-            tx.save()
+        elif cat_id is None:
+            transaction.cat2 = None
+            transaction.save()
             return JsonResponse({'status': 'success', 'message': 'Category updated'})
         
     return JsonResponse({'error': 'data error'}, status=500)
 
 @login_required_ajax
 @require_GET
-def get_cat2_optionsJSON(request):
-    # NOT SAFE
+def GetCat2AdminListJSON(request):
+    # NOT SAFE, sanitize cat1_id input
     cat1_id = request.GET.get('cat1_id')
     # Filter Cat2 models that have cat1 as a parent
-    options = Cat2.admin_objects.filter(cat1=cat1_id).values('id', 'name')
-    return JsonResponse({'options': list(options)})    
+    cat2s = Cat2.admin_objects.filter(cat1=cat1_id).values('id', 'name')
+    return JsonResponse({'cat2s': list(cat2s)})    
 
 @login_required_ajax
 @require_GET
-def PreferenceGetJSON(request):
+def GetPreferenceJSON(request):
     preference = Preference.objects.get(user=request.user.id)
     
     if preference.timeline_start is None or preference.timeline_stop is None:
@@ -456,18 +460,6 @@ def load_cat2(request):
     cat1_id = request.GET.get('cat1')
     cat2s = Cat2.admin_objects.filter(cat1=cat1_id).order_by('name')
     return render(request, 'budgetdb/subcategory_dropdown_list_options.html', {'cat2s': cat2s})
-
-@login_required_ajax
-@require_GET
-def GetCat2ListJSON(request):
-    cat1_id = request.GET.get('cat1')
-    queryset = Cat2.view_objects.filter(cat1_id=cat1_id).order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
 
 @login_required_ajax
 @require_GET

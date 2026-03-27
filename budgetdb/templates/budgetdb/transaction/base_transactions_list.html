@@ -1,4 +1,4 @@
-<!-- base_transaction_list.html-->
+<!-- base_transactions_list.html-->
 
 {% extends 'budgetdb/base.html' %}
 {% block head_comment %}<!--account_transaction_list template-->{% endblock %}
@@ -16,342 +16,75 @@
             <div class="modal-content"></div>
         </div>
     </div>
-    
-        <div class="row align-items-center"> 
-            {% if filter_type == 'account' %}
-                <div class="col-1 text-start">   
-                    <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
-                        <span class="material-symbols-outlined">add_circle</span>
-                    </button>
-                </div>
-                <div class="col-10 text-center">
-                    <h3>{{ account_name }} 
-                    <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
-                        <span class="material-symbols-outlined">monitoring</span></a>
-                    {% if statements_exist %}
-                    <a href="{% url 'budgetdb:list_statement_per_account' pk %}" class="btn btn-info btn-sm"  >
-                        <span class="material-symbols-outlined">cards_stack</span></a>
-                    {% endif %}
-                    </h3>
-                </div>
-                <div class="col-1 text-end">
-                    <button  type="button" title="Create audit for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
-                        <span class="material-symbols-outlined">add_circle</span>
-                    </button>
-                </div>
-            {% else %}
-                <div class="col-1 text-start">
-                    <a href="javascript:history.back()" class="btn btn-link btn-sm text-decoration-none text-secondary">
-                        <span class="material-symbols-outlined">arrow_back</span>
-                    </a>
-                </div>
-                <div class="col-10 text-center">
-                    <h3 class="mb-0">{{ title }}</h3>
-                    <small class="text-muted">{{ begin }} to {{ end }}</small>
-                </div>
-                <div class="col-1"></div>
-            {% endif %}
-        </div>
-    
-        {% if filter %}
-        <div class="row mt-2">
-            <div class="col-10 offset-2 text-center">
-                <form action="" method="get" class="d-flex justify-content-center align-items-center gap-2">
-                    {{ filter.form.as_p }}
-                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                </form>
-            </div>
-        </div>
-        {% endif %}
 
-        <div class="row mt-4">
-            <div class="col-12">
-                {% load render_table from django_tables2 %}
-                {% render_table table %}
+    <div class="row align-items-center"> 
+        {% if filter_type == 'account' %}
+            <div class="col-1 text-start">   
+                <button  type="button" title="Create another transaction for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:create_transaction_from_date_account_modal' pk %}" >
+                    <span class="material-symbols-outlined">add_circle</span>
+                </button>
             </div>
+            <div class="col-10 text-center">
+                <h3>{{ account_name }} 
+                <a href="{% url 'budgetdb:year_report_account' pk year %}" class="btn btn-info btn-sm"  >
+                    <span class="material-symbols-outlined">monitoring</span></a>
+                {% if statements_exist %}
+                <a href="{% url 'budgetdb:list_statement_per_account' pk %}" class="btn btn-info btn-sm"  >
+                    <span class="material-symbols-outlined">cards_stack</span></a>
+                {% endif %}
+                </h3>
+            </div>
+            <div class="col-1 text-end">
+                <button  type="button" title="Create audit for today" class="update-transaction btn btn-link btn-sm" data-form-url="{% url 'budgetdb:list_account_activity_create_audit_from_account' pk %}" >
+                    <span class="material-symbols-outlined">add_circle</span>
+                </button>
+            </div>
+        {% else %}
+            <div class="col-1 text-start">
+                <a href="javascript:history.back()" class="btn btn-link btn-sm text-decoration-none text-secondary">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </a>
+            </div>
+            <div class="col-10 text-center">
+                <h3 class="mb-0">{{ title }}</h3>
+                <small class="text-muted">{{ begin }} to {{ end }}</small>
+            </div>
+            <div class="col-1"></div>
+        {% endif %}
+    </div>
+
+    {% if filter %}
+    <div class="row mt-2">
+        <div class="col-10 offset-2 text-center">
+            <form action="" method="get" class="d-flex justify-content-center align-items-center gap-2">
+                {{ filter.form.as_p }}
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+            </form>
         </div>
-    
+    </div>
+    {% endif %}
+
+    <div class="row mt-4">
+        <div class="col-12">
+            {% load render_table from django_tables2 %}
+            {% render_table table %}
+        </div>
+    </div>
+
+    {{ cat1s_json|json_script:"cat1-data" }}
+
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <div id="tx-config" 
+        data-url-update-transaction-category="{% url 'budgetdb:update_transaction_category' %}"
+        data-url-toggle-receipt="{% url 'budgetdb:togglereceipttransaction_json' %}"
+        data-url-toggle-verify="{% url 'budgetdb:toggleverifytransaction_json' %}"
+        data-url-get-cat2-list="{% url 'budgetdb:cat2_admin_list_json' %}">
+    </div>
  
 {% endblock %}
 
-{% block script %}
-    {% include "budgetdb/js/js_flip_accounts.html" %}
-    <script type="text/javascript">
-    (function($) {
-        $(function() {
-            // 1. DATA INITIALIZATION
-            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-            const allCat1s = {{ cat1_json|safe }};
-            const currentPk = "{{ pk|default:'' }}";
-            const filterType = "{{ filter_type }}";
-
-            // HELPER FUNCTION TO HIDE SELECT2 AND SHOW SPAN
-            function hideSelect2($select) {
-                const $wrapper = $select.closest('.cat1-wrapper, .cat2-wrapper');
-                const $container = $wrapper.find('.cat1-select-container, .cat2-select-container');
-                const $span = $wrapper.find('.cat-display');
-
-                $container.addClass('d-none');
-                $span.removeClass('d-none');
-                
-                // Destroy select2 to keep the DOM clean
-                if ($select.data('select2')) {
-                    $select.select2('destroy');
-                }
-            }
-            // 2. CAT1 SWAPPER (Click to Edit)
-            $(document).on('click', '.cat1-wrapper .cat-display', function() {
-                const $span = $(this);
-                const $wrapper = $span.closest('.cat1-wrapper');
-                const $container = $wrapper.find('.cat1-select-container');
-                const txId = $wrapper.data('txid');
-                const currentId = $wrapper.data('cat1-id');
-
-                let selectHtml = `<select class="cat-select cat1-select form-select form-select-sm" data-txid="${txId}">`;
-                selectHtml += `<option value="">---------</option>`;
-                allCat1s.forEach(cat => {
-                    const selected = (cat.id == currentId) ? 'selected' : '';
-                    selectHtml += `<option value="${cat.id}" ${selected}>${cat.name}</option>`;
-                });
-                selectHtml += `</select>`;
-
-                $container.html(selectHtml).removeClass('d-none');
-                $span.addClass('d-none');
-
-                const $newSelect = $container.find('select');
-                $newSelect.select2({ width: '100%', minimumResultsForSearch: 10 });
-                $newSelect.select2('open');
-
-                // Hide when closed (clicked away or selected)
-                $newSelect.on('select2:close', function() {
-                    hideSelect2($(this));
-                });
-            });
-
-            // 2.5 delete handling
-            $(document).on("click", ".show-delete-confirm", function () {
-                const $normal = $("#normal-actions");
-                const $delete = $("#delete-section");
-
-                $normal.slideUp(200, function () {
-                    $delete.hide().removeClass("d-none").slideDown(250);
-                });
-            });
-
-            // Cancel delete
-            $(document).on("click", ".cancel-delete", function () {
-                const $normal = $("#normal-actions");
-                const $delete = $("#delete-section");
-
-                $delete.slideUp(200, function () {
-                    $delete.addClass("d-none");
-                    $normal.slideDown(250);
-                });
-            });
-
-            $(document).on("click", ".confirm-delete", function () {
-
-                const $form = $(this).closest("form");
-
-                // Remove any existing delete input
-                $form.find("input[name='delete']").remove();
-
-                // Add hidden delete input
-                $("<input>")
-                    .attr("type", "hidden")
-                    .attr("name", "delete")
-                    .val("true")
-                    .appendTo($form);
-            });
-
-            // 3. AJAX SAVING (Cat1)
-            $(document).on('change', '.cat1-select', function() {
-                const $select = $(this);
-                const txId = $select.data('txid');
-                const cat1Id = $select.val();
-                const $wrapper = $select.closest('.cat1-wrapper');
-
-                const selectedText = $select.find("option:selected").text();
-                $wrapper.find('.cat-display').text(selectedText);
-                $wrapper.data('cat1-id', cat1Id);
-                $wrapper.attr('data-cat1-id', cat1Id); // Critical for Cat2 to "see" the update
-
-                $.post('{% url "budgetdb:update_transaction_category" %}', {
-                    'transaction_id': txId,
-                    'cat_level': 1,
-                    'category_id': cat1Id,
-                    'csrfmiddlewaretoken': '{{ csrf_token }}'
-                })
-                .done(function() {
-                    const $badge = $('#save-check-cat1' + txId);
-                    $badge.addClass('show');
-                    setTimeout(() => $badge.removeClass('show'), 1500);
-                    
-                    const $cat2Wrapper = $select.closest('tr').find('.cat2-wrapper');
-                    const $cat2Display = $cat2Wrapper.find('.cat-display');
-                    $cat2Wrapper.text('---------');                  // Reset the text
-                    $cat2Wrapper.data('cat2-id', '');                // Clear the ID data
-                    $cat2Wrapper.attr('data-cat2-id', '');           // Clear the ID attribute
-                    // 2. Trigger the  CSS Pulse
-                    $cat2Display.addClass('pulse-warning');
-                    setTimeout(() => {
-                        $cat2Display.removeClass('pulse-warning');
-                    }, 1500);
-                })
-                .fail(() => alert("Error saving Cat1!"));
-            });
-
-            // 4. CAT2 SWAPPER (Select2 Auto-Open)
-            $(document).on('click', '.cat2-wrapper .cat-display', function() {
-                const $span = $(this);
-                const $wrapper = $span.closest('.cat2-wrapper');
-                const $container = $wrapper.find('.cat2-select-container');
-                const txId = $wrapper.data('txid');
-                const currentCat2Id = $wrapper.data('cat2-id');
-                
-                // Find the Cat1 wrapper in the same row
-                const $cat1Wrapper = $span.closest('tr').find(`.cat1-wrapper[data-txid="${txId}"]`);
-                const cat1Id = $cat1Wrapper.attr('data-cat1-id') || $cat1Wrapper.data('cat1-id');
-
-                if (!cat1Id || cat1Id === "") {
-                    alert("Please select a Category (Cat1) first.");
-                    return;
-                }
-
-                $.getJSON('{% url "budgetdb:get_cat2_options" %}', { 'cat1_id': cat1Id })
-                    .done(function(data) {
-                        let selectHtml = `<select class="cat-select cat2-select form-select form-select-sm" data-txid="${txId}">`;
-                        selectHtml += `<option value="">---------</option>`;
-                        $.each(data.options, function(i, item) {
-                            const selected = (item.id == currentCat2Id) ? 'selected' : '';
-                            selectHtml += `<option value="${item.id}" ${selected}>${item.name}</option>`;
-                        });
-                        selectHtml += `</select>`;
-
-                        $container.html(selectHtml).removeClass('d-none');
-                        $span.addClass('d-none');
-                        const $newSelect = $container.find('select');
-                        $newSelect.select2({ width: '100%', minimumResultsForSearch: 10 });
-                        $newSelect.select2('open');
-
-                        $newSelect.on('select2:close', function() {
-                            hideSelect2($(this));
-                        });
-                    });
-            });
-
-            // 5. AJAX SAVING (Cat2)
-            $(document).on('change', '.cat2-select', function() {
-                const $select = $(this);
-                const txId = $select.data('txid');
-                const cat2Id = $select.val();
-                const $wrapper = $select.closest('.cat2-wrapper');
-
-                const selectedText = $select.find("option:selected").text();
-                $wrapper.find('.cat-display').text(selectedText);
-                $wrapper.data('cat2-id', cat2Id);
-
-                $.post('{% url "budgetdb:update_transaction_category" %}', {
-                    'transaction_id': txId,
-                    'cat_level': 2,
-                    'category_id': cat2Id,
-                    'csrfmiddlewaretoken': '{{ csrf_token }}'
-                })
-                .done(function() {
-                    const $badge = $('#save-check-cat2' + txId);
-                    $badge.addClass('show');
-                    setTimeout(() => $badge.removeClass('show'), 1500);
-                })
-                .fail(() => alert("Error saving Cat2!"));
-            });
-
-            // 6. BLUR LOGIC (Switch back to text when clicking away)
-            $(document).on('blur', '.cat-select', function() {
-                const $select = $(this);
-                const $container = $select.closest('.cat1-select-container, .cat2-select-container');
-                const $wrapper = $select.closest('.cat1-wrapper, .cat2-wrapper');
-                
-                $container.addClass('d-none');
-                $wrapper.find('.cat-display').removeClass('d-none');
-            });
-
-
-            // 7. SELECT2 LOGIC
-            
-            // A. Primary Edit/Update buttons (on the main table)
-            $(".update-transaction").each(function () {
-                $(this).modalForm({ formURL: $(this).data("form-url"), modalID: "#modal" });
-            });
-
-            // C. Initialization logic when the modal finishes opening
-            $(document).on("shown.bs.modal", "#modal", function() {
-                const $modal = $(this);
-
-
-                // Initialize Select2 inside the modal
-                $modal.find("select").each(function() {
-                    if (!$(this).hasClass('select2-hidden-accessible')) {
-                        $(this).select2({ 
-                            dropdownParent: $modal, 
-                            width: '100%', 
-                            allowClear: true 
-                        });
-                    }
-                });
-
-                // Fix Accessibility and Focus
-                $modal.removeAttr('aria-hidden');
-                setTimeout(() => {
-                    const $amountField = $('#id_amount_actual');
-                    if ($amountField.length) $amountField.focus();
-                }, 300);
-            });
-            
-            // 8. AUTO-SCROLL & NOTIFICATION (Using Query Parameters)
-            const urlParams = new URLSearchParams(window.location.search);
-            const updatedId = urlParams.get('updated_id');
-
-            if (updatedId) {
-                const $targetRow = $('#T' + updatedId);
-                
-                if ($targetRow.length) {
-                    // 1. Smooth Scroll to center
-                    $targetRow[0].scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center' 
-                    });
-
-                    // 2. Add the "Updated!" Badge (The Floating Version)
-                    const $firstCell = $targetRow.find('td:first');
-                    $firstCell.css('position', 'relative'); 
-                    const savedBadge = $('<span class="badge bg-success floating-badge animate__animated animate__fadeIn">Updated!</span>');
-                    $firstCell.append(savedBadge);
-
-                    // 3. Highlight the row
-                    $targetRow.addClass('table-success');
-
-                    // 4. Cleanup and "Clean" the URL
-                    setTimeout(() => {
-                        $targetRow.removeClass('table-success');
-                        savedBadge.fadeOut(400, function() { $(this).remove(); });
-                        
-                        const params = new URLSearchParams(window.location.search);
-                        
-                        // 2. Remove ONLY the updated_id
-                        params.delete('updated_id');
-                        
-                        // 3. Reconstruct the URL: Path + remaining params (like sort)
-                        const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-                        
-                        // 4. Update the address bar without losing your sort!
-                        window.history.replaceState(null, '', newRelativePathQuery);
-                    }, 3000);
-                }
-            }
-        });
-    })(jQuery); 
-    </script>
-    {% include "budgetdb/js/js_toggle_receipt_verify.html" %}
-
+{% block script %}                      
+    <script src="{% static 'budgetdb/js/base_transactions_list.js' %}"></script>
+    <script src="{% static 'budgetdb/js/toggle_receipt_verify.js' %}"></script>
 {% endblock %}

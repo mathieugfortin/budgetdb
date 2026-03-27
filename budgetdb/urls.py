@@ -215,10 +215,10 @@ urlpatterns = [
     ##########################################################################################################
     # Cat2
 
-    path('cat2/ListJSON', views.GetCat2ListJSON,
-        name='cat2_list_json'),
+    path('cat2/ListAdminJSON', views.GetCat2AdminListJSON,
+         name='cat2_admin_list_json'),
     path('cat2/', views.Cat2ListView.as_view(),
-         name='list_cat2'),
+         name='cat2_list_view'),
     path('cat2/<int:pk>/', views.Cat2DetailView.as_view(),
          name='details_cat2'),
     path('cat2/add/<int:cat1_id>', views.Cat2CreateView.as_view(),
@@ -271,7 +271,7 @@ urlpatterns = [
          name='update_preferences'),
     path('preferences/update-theme/', views.update_theme_preference,
          name='update_theme_preference'),
-    path('preference/getJSON', views.PreferenceGetJSON,
+    path('preference/getJSON', views.GetPreferenceJSON,
          name='preferences_json'),
     path('preference/setIntervalJSON', views.PreferenceSetIntervalJSON,
          name='setinterval_json'),
@@ -318,8 +318,7 @@ urlpatterns = [
          name='togglereceipttransaction_json'),
     path('transaction/updatecatJSON', views.update_transaction_categoryJSON,
          name='update_transaction_category'),
-    path('transaction/getcat2sJSON', views.get_cat2_optionsJSON,
-         name='get_cat2_options'),
+
     path('transaction/save/<int:pk>/', views.saveTransaction,
          name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),

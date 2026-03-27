@@ -1,6 +1,6 @@
 <div class="d-flex align-items-center justify-content-end gap-3">
     {% if record.statement %}
-        {% if view.statement == record.statement.id %}
+        {% if view.statement_pk == record.statement.id %}
             <a href="{% url 'budgetdb:details_statement' record.statement.id %}" 
                class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-sm py-0 px-2" style="font-size: 0.8rem;">
                 <span class="material-symbols-outlined" style="font-size: 14px;">description</span>

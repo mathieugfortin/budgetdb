@@ -4,46 +4,43 @@
 {% block title %}{{title}}{% endblock %}
 {% block content %}
 <div class="container-fluid px-md-5"> 
-<div class="row row-cols-1 row-cols-md-2 ">
-    <div class="col">
-        <div class="card">
-            <div class="card-body"  style="height:300px;" > 
-                <h5 class="card-title">This Month's Balance</h5>
-                <div id="chart1" style="height:300px;"></div>
+    <div class="row row-cols-1 row-cols-md-2 ">
+        <div class="col">
+            <div class="card">
+                <div class="card-body"  style="height:300px;" > 
+                    <h5 class="card-title">This Month's Balance</h5>
+                    <div id="chart1" style="height:300px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Favorite Accounts</h5>
+                    <div id="chart2" style="height:300px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Manual Transactions Reminder</h5>
+                    <div id="chart3">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-body" style="width: 600px;height:400px;">
+                    <h5 class="card-title">next chart</h5>
+                    <div id="chart4" style="width: 90%;height:90%;">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Favorite Accounts</h5>
-          <div id="chart2" style="height:300px;"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="card">
-        
-        <div class="card-body">
-          <h5 class="card-title">Manual Transactions Reminder</h5>
-          <div id="chart3">
-            
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="card">
-        
-        <div class="card-body" style="width: 600px;height:400px;">
-          <h5 class="card-title">next chart</h5>
-            <div id="chart4" style="width: 90%;height:90%;">
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
+</div>
 {% endblock %}
 
 {% block script %}
@@ -68,7 +65,6 @@
         $(document).ready(function() {
             // Manually trigger as many as you want!
             initTimelineChart('chart2', '{% url "budgetdb:timeline_option_json" %}?ac=favorites&period=nextmonth');
-          
         });
     </script>
     <script>

@@ -20,7 +20,7 @@
         <span class="badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle fw-normal">
             {{ record.amount_actual_foreign_currency }} {{ record.currency.name_short }}
         </span>
-    {% elsif record.account_destination and record.account_destination.currency.id != record.currency.id}
+    {% elif record.account_destination and record.account_destination.currency.id != record.currency.id %} 
         <span class="badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle fw-normal">
             {{ record.amount_actual_foreign_currency }} {{ record.currency.name_short }}
         </span>
