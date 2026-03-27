@@ -242,8 +242,7 @@ urlpatterns = [
         name='cattype_by_cat1_monthly_totals_json'),
     path('cattype/cat2/TotalsJSON', views.GetCatTypeByCat2sTotalsJSON,
         name='cattype_by_cat2_totals_json'),
-    path('cattype/cat2/MonthlyTotalsJSON', views.GetCatTypeByCat2sMonthlyTotalsJSON,
-        name='cattype_by_cat2_monthly_totals_json'),
+
 
     path('cattype/', views.CatTypeListView.as_view(),
          name='list_cattype'),

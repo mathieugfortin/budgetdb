@@ -906,83 +906,6 @@ class AccountCategory(MyMeta, BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_accountcategory')
 
 
-class CatSums(models.Model):
-    cat1 = models.ForeignKey("Cat1", on_delete=models.DO_NOTHING)
-    cattype = models.ForeignKey("CatType", on_delete=models.DO_NOTHING)
-    cat2 = models.ForeignKey("Cat2", on_delete=models.DO_NOTHING)
-    month = models.IntegerField("month", blank=True)
-    total = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
-                                blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'budgetdb_cattotals'
-
-    def build_cat2_totals_array(self, start_date, end_date):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT " \
-                f"row_number() OVER () as id, " \
-                f"t.cat1_id, " \
-                f"t.cat2_id, " \
-                f"c2.cattype_id AS cattype_id, " \
-                f"sum(t.amount_actual) AS total " \
-                f"FROM budgetdb.budgetdb_transaction t " \
-                f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
-                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
-                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
-                f'AND t.cat1_id IS NOT Null ' \
-                f"GROUP BY t.cat1_id, c2.cattype_id, t.cat2_id "  \
-                f"ORDER BY c1.name "
-
-        print(sqlst)
-        cat1_totals = CatSums.objects.raw(sqlst)
-
-        return cat1_totals
-
-    def build_monthly_cat1_totals_array(self, start_date, end_date, cat_id):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT " \
-                f"row_number() OVER () as id, " \
-                f"t.cat1_id, " \
-                f"year(t.date_actual) AS year, " \
-                f"month(t.date_actual) AS month, " \
-                f"c2.cattype_id AS cattype_id, " \
-                f"sum(t.amount_actual) AS total " \
-                f"FROM budgetdb.budgetdb_transaction t " \
-                f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
-                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
-                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
-                f"AND t.cat1_id = '{cat_id}' " \
-                f"GROUP BY t.cat1_id, c2.cattype_id, month(t.date_actual) "  \
-                f"ORDER BY c1.name, t.date_actual "
-
-        print(sqlst)
-        cat1_totals = CatSums.objects.raw(sqlst)
-
-        return cat1_totals
-
-    def build_monthly_cat2_totals_array(self, start_date, end_date, cat_id):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT " \
-                f"row_number() OVER () as id, " \
-                f"t.cat2_id, " \
-                f"year(t.date_actual) AS year, " \
-                f"month(t.date_actual) AS month, " \
-                f"c2.cattype_id AS cattype_id, " \
-                f"sum(t.amount_actual) AS total " \
-                f"FROM budgetdb.budgetdb_transaction t " \
-                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
-                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
-                f"AND t.cat2_id = '{cat_id}' " \
-                f"GROUP BY t.cat2_id, c2.cattype_id, month(t.date_actual), year(t.date_actual) "  \
-                f"ORDER BY c2.name, t.date_actual "
-
-        print(sqlst)
-        cat1_totals = CatSums.objects.raw(sqlst)
-
-        return cat1_totals
-
-
 class MyCalendar(models.Model):
     class Meta:
         verbose_name = 'Calendar'
@@ -1002,20 +925,6 @@ class MyCalendar(models.Model):
 
     def __str__(self):
         return f'{self.db_date.year}-{self.db_date.month}-{self.db_date.day}'
-
-    def build_year_month_array(self, start_date, end_date):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT distinct " \
-                f"row_number() OVER () as id, " \
-                f"c.year,c.month " \
-                f"FROM budgetdb.budgetdb_mycalendar c " \
-                f"WHERE c.db_date BETWEEN '{start_date}' AND '{end_date}' " \
-                f"ORDER BY c.year, c.month "
-
-        print(sqlst)
-        dates_array = MyCalendar.objects.raw(sqlst)
-
-        return dates_array
 
 
 class CatBudget(BaseSoftDelete, UserPermissions):
