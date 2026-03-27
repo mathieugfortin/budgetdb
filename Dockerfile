@@ -54,7 +54,7 @@ EXPOSE 8005
 RUN mkdir -p /app/logs/gunicorn && chmod -R 755 /app/logs
 
 # Define environment variable
-NV DJANGO_SETTINGS_MODULE=web_budget.settings
+ENV DJANGO_SETTINGS_MODULE=web_budget.settings
 
 
 # Run app.py when the container launches
