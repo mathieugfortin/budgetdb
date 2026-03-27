@@ -9,7 +9,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" integrity="sha384-KZO2FRYNmIHerhfYMjCIUaJeGBRXP7CN24SiNSG+wdDzgwvxWbl16wMVtWiJTcMt" crossorigin="anonymous">
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css" integrity="sha384-PSZaVsyG9jDu8hFaSJev5s/9poIJlX7cuxSGdqCgXRHpo2DzIaZAyCd2rG/DJJmV" crossorigin="anonymous">        
-        <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/style.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/base.css' %}">
         <link rel="shortcut icon" href="{% static 'budgetdb/favicon.ico' %}"/>
 
         <style>
@@ -41,6 +41,7 @@
         </div>
 
         {% include "budgetdb/_instructions_modal.html" %}
+        {% include "budgetdb/_system_board_modal.html" %}
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
             integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
@@ -72,10 +73,13 @@
                     preferences: "{% url 'budgetdb:preferences_json' %}",
                     set_interval: "{% url 'budgetdb:setinterval_json' %}",
                     update_theme_preference: "{% url 'budgetdb:update_theme_preference' %}",
+                    trigger_extend_ledger: "{% url 'budgetdb:trigger_extend_ledger' %}",
+                    cat2_ajax_load: "{% url 'budgetdb:ajax_load_cat2' %}",
                 }
             };
         </script>
         <script src="{% static 'budgetdb/js/base.js' %}"></script>
+        
 
         {% block script %}
         {% endblock %}

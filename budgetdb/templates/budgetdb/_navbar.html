@@ -18,7 +18,7 @@
                         <a class="dropdown-item" href="{% url 'budgetdb:list_account_simple' %}">Accounts</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_accountcategory' %}">Account Categories</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_cat1' %}">Categories</a>                        
-                        <a class="dropdown-item" href="{% url 'budgetdb:list_cat2' %}">Subcategories</a>                        
+                        <a class="dropdown-item" href="{% url 'budgetdb:cat2_list_view' %}">Subcategories</a>                        
                         <a class="dropdown-item" href="{% url 'budgetdb:list_cattype' %}">Category Type</a>                        
                         <a class="dropdown-item" href="{% url 'budgetdb:list_vendor' %}">Vendors</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_be' %}">Recurring Events</a>
@@ -35,7 +35,7 @@
                         <a class="dropdown-item" href="{% url 'budgetdb:create_transaction' %}">* Create transaction *</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_transaction2' %}">All transaction</a>     
                         <a class="dropdown-item" href="{% url 'budgetdb:upload_transactions_OFX' %}">Import ODX file</a>     
-                        <a class="dropdown-item" href="{% url 'budgetdb:upload_paystub_PDF' %}">Import PDF paystub</a>                             
+                        <a class="dropdown-item" href="{% url 'budgetdb:upload_paystub_PDF' %}">Import paystub PDF</a>                             
 <!--                        <a class="dropdown-item" href="{% url 'budgetdb:calendar_transaction' %}">Calendar</a>           removed, need to think about permissions       -->
                     </div>
                 </li>
@@ -104,6 +104,9 @@
                         {{ user.get_short_name }}
                     </a>
                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" >
+                        {% if user.is_superuser %}
+                        <a class="dropdown-item " href="#" onclick="openHealth('tab-recurring')">System board</a>
+                        {% endif %}
                         <a class="dropdown-item" href="{% url 'budgetdb:update_preferences' %}">Preference</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:list_invitation' %}">Sharing</a>
                         <a class="dropdown-item" href="{% url 'budgetdb:password_update' %}">Change Password</a>

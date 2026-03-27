@@ -16,7 +16,11 @@
     </button>
 
     {# 3. Foreign Currency Pill #}
-    {% if record.currency.id != account_currency_id %}
+    {% if record.account_source and record.account_source.currency.id != record.currency.id %}
+        <span class="badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle fw-normal">
+            {{ record.amount_actual_foreign_currency }} {{ record.currency.name_short }}
+        </span>
+    {% elif record.account_destination and record.account_destination.currency.id != record.currency.id %} 
         <span class="badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle fw-normal">
             {{ record.amount_actual_foreign_currency }} {{ record.currency.name_short }}
         </span>

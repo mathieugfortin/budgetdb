@@ -1,3 +1,4 @@
+# /config/gunicorn/prod.conf.py
 # Django WSGI application path in pattern MODULE_NAME:VARIABLE_NAME
 wsgi_app = "web_budget.wsgi:application"
 # The granularity of Error log outputs

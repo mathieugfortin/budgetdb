@@ -1,16 +1,15 @@
-To start a new session:
-
-
 Project Context: I'm working on a Django project called budgetdb.
 
 Tech Stack: Django 6.0, Bootstrap 5, Crispy Forms, and django-tables2. I'm using i18n_patterns with an en-ca prefix.
-
+Database: MariaDB
 Key Architecture:
 
 Namespace: My app uses app_name = 'budgetdb'.
 
 Auth: I'm using the built-in django.contrib.auth.urls but overriding templates in templates/registration/.
 
-I have classes for AccountHost (like a bank), Account, AccountCategory (group account for metrics), CatType (group categories for metrics), Cat1, Cat2 (subcategory, dependant on cat1), Vendor, Transaction, BudgetedEvent (recurring pattern, creates transactions), Statement, JoinedTransactions (join transaction or budgeted events for things that always are together like a paystub with one gross earning, one federal tax, one insurance...)
+I have classes for AccountHost (like a bank), Account, AccountCategory (group account for metrics), CatType (group categories for metrics), Cat1, Cat2 (subcategory, dependant on cat1), Vendor, Transaction, BudgetedEvent (recurring pattern, creates transactions), Statement, JoinedTransactions (join transaction or budgeted events for things that always are together like a paystub with one gross earning, one federal tax, one insurance...), PaystubProfile to configure a paystub import and PaystubMapping to map each of the paystub line, AccountBalanceDB, one object per account per day to improve display performance
 
-Current Task: [Describe what you want to work on next]
+Context: I was trained as a software engineer 30 years ago but I haven't coded professionally in at least 25.  I have a good mind for it but I do this for fun and coding practice.
+
+Current Task:

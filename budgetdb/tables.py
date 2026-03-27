@@ -133,7 +133,7 @@ SHOW_DESKTOP_ONLY = {
 }
 
 
-class AccountActivityListTable(tables.Table):
+class BaseTransactionListTable(tables.Table):
     addtransaction = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_addtransaction.html",
         orderable=False, 
@@ -180,7 +180,7 @@ class AccountActivityListTable(tables.Table):
         attrs=SHOW_DESKTOP_ONLY,
         orderable=False,
         empty_values=()
-    )
+    )   
     receipt = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_receipt.html",
         verbose_name='Receipt',
@@ -197,7 +197,6 @@ class AccountActivityListTable(tables.Table):
 
     view_account_id = None
     account = None
-    account_currency_symbol = ''
     previous_date = None
     previous_balance = None
     previous_amount = None
@@ -216,24 +215,41 @@ class AccountActivityListTable(tables.Table):
             "class": lambda record: set_class_transaction(record)
         }
     
-    def __init__(self, *args, **kwargs):  
-        view_account_id = kwargs.pop('account_view') 
-        self.account = Account.view_objects.get(pk=view_account_id)
-        self.begin = kwargs.pop('begin') 
-        self.end = kwargs.pop('end') 
-        self.account_currency_symbol = self.account.currency.symbol
-        self.balances = self.account.get_balances(self.begin, self.end)
+    def __init__(self, *args, **kwargs): 
+        self.filter_type = kwargs.pop('filter_type', 'account')
+        self.filter_pk = kwargs.pop('filter_pk', None)
+        self.begin = kwargs.pop('begin', None)
+        self.end = kwargs.pop('end', None)
+        self.statement = kwargs.pop('statement', None)
         self.request = kwargs.pop("request", None)
-        self.statement = kwargs.pop('statement')
-        self.all_cat1s = list(Cat1.admin_objects.all())
-        #############################################################################################################
-        # Logic: Only show balance if we are sorted by date (descending or ascending)
-        # self.order_by is a tuple, e.g., ('-date_actual',)
+
+        self.context_object = None
+        if self.filter_pk:
+            model_map = {
+                'account': Account,
+                'cat1': Cat1,
+                'cat2': Cat2
+            }
+            # Use view_objects/admin_objects as per your architecture
+            self.context_object = model_map[self.filter_type].view_objects.get(pk=self.filter_pk) 
+
+        # Guard Account-specific logic
+        if self.filter_type == 'account':
+            self.account = self.context_object
+            self.balances = self.account.get_balances(self.begin, self.end)
+        else:
+            self.account = None
+            self.balances = None
         
-        # is_date_sorted = any('date_actual' in s for s in self.order_by)
-        # if not is_date_sorted:
-          #   self.columns.hide('mybalance')
+
+        self.all_cat1s = list(Cat1.admin_objects.all())
+        
         super().__init__(*args, **kwargs)
+        if self.filter_type != 'account':
+            self.columns.hide('mybalance')
+            self.columns.hide('addaudit')
+            self.columns.hide('statement')
+            self.columns.hide('addtransaction')
 
     def render_date_actual(self, value):
         # strftime("%Y-%m-%d")
@@ -243,16 +259,18 @@ class AccountActivityListTable(tables.Table):
         if record.audit:
             return mark_safe("")
         if not (record.budget_only is True and record.date_actual <= date.today()):
-            if record.account_source == self.account:
+            if self.account and value != 0 and record.account_source == self.account:
                 value = value * -1
         else:
-            return mark_safe("")         
+            return mark_safe("")   
+        currency=record.account_source.currency if record.account_source else record.account_destination.currency
         return format_html('{amount}{symbol}',
-            amount=value,
-            symbol=self.account_currency_symbol)
+                    amount=value,
+                    symbol=currency.symbol
+                )
 
     def render_mybalance(self, value, record):
-        if record.audit:
+        if not self.account or not self.balances or record.audit:
             return mark_safe("")
         if self.order_by[0] == '-date_actual':
             balance = self.balances.get(db_date=record.date_actual).balance
@@ -270,17 +288,16 @@ class AccountActivityListTable(tables.Table):
                 self.previous_balance = balance
                 self.previous_source = record.account_source
             self.linebalance = balance
+            currency=record.account_source.currency if record.account_source else record.account_destination.currency
             return format_html('{amount}{symbol}',
                     amount=balance,
-                    symbol=self.account_currency_symbol) 
-        else:
-            pass
+                    symbol=currency.symbol) 
 
     def render_addaudit(self, value, record):
         if record.audit:
             return format_html('{amount}{symbol}',
                                 amount=record.amount_actual,
-                                symbol=self.account_currency_symbol)        
+                                symbol=record.account_source.currency.symbol)        
 
         balance_str = get_balance_token(self.linebalance)
         reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",

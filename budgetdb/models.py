@@ -1,23 +1,24 @@
+from crum import get_current_user
 from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
 
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser, BaseUserManager 
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, ValidationError
 from django.core.mail import EmailMessage
-from django.db import models
-from django.db.models import Sum, Q
-from django.db.models.functions import Cast, Coalesce, ExtractMonth, ExtractYear
+from django.db import models, transaction
+from django.db.models import Sum, Q, Window, F
+from django.db.models.functions import Cast, Coalesce, ExtractMonth, ExtractYear, RowNumber, TruncMonth
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.translation import gettext_lazy as _
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.urls import reverse
-from django.conf import settings
-from django.contrib.auth.models import AbstractUser, BaseUserManager #, Group
-from crum import get_current_user
-from django.template.loader import render_to_string
+
 from .tokens import account_activation_token
-from django.core.exceptions import ValidationError
+
 
 class MyMeta(models.Model):
     class Meta:
@@ -112,8 +113,9 @@ class BaseManager(models.Manager):
     def apply_permission_filters(self, qs, user):
         is_owner = Q(owner=user)
         is_admin = Q(users_admin=user)
+        is_system = Q(system_object=True)
         # Default permission logic (shared by both)
-        return qs.filter(is_owner | is_admin).distinct()
+        return qs.filter(is_system | is_owner | is_admin).distinct()
 
 
 class AdminManager(BaseManager):
@@ -220,11 +222,11 @@ class UserPermissions(ClassOwner):
     system_object = models.BooleanField(default=False)
 
     def can_edit(self):
-        if self.system_object:
-            return False
         user = get_current_user()
         if self.owner == user:
             return True
+        if self.system_object:
+            return False
         if user is None:
             return False
         if self.users_admin.filter(pk=user.pk).exists():
@@ -356,86 +358,34 @@ class Invitation(MyMeta, BaseSoftDelete, ClassOwner):
 
 
 class AccountBalanceDB(models.Model):
-    db_date = models.DateField(blank=True)
-    account = models.ForeignKey("Account", on_delete=models.CASCADE, blank=True, null=True)
-    audit = models.DecimalField(
-        'audited amount',
-        decimal_places=2,
-        max_digits=10,
-        blank=True,
-        null=True,
-        )
-    delta = models.DecimalField(
-        'relative change for the day',
-        decimal_places=2,
-        max_digits=10,
-        blank=False,
-        null=False,
-        default=Decimal('0.00'),
-        )
-    balance = models.DecimalField(
-        'balance for the day',
-        decimal_places=2,
-        max_digits=10,
-        blank=False,
-        null=False,
-        default=Decimal('0.00'),
-        )
-    balance_is_dirty = models.BooleanField('If there is a new transaction for this day, the balance is not reliable', default=False)
+    class Meta:
+        # This makes the "Filter by account AND date" lightning fast
+        unique_together = ('account', 'db_date') 
+        indexes = [
+            models.Index(fields=['account', 'db_date']),
+        ]
+    db_date = models.DateField() 
+    account = models.ForeignKey("Account", on_delete=models.CASCADE, related_name="balances", blank=True, null=True)
+    
+    # Inputs
+    audit = models.DecimalField('audited amount', decimal_places=2, max_digits=15, blank=True, null=True)
     is_audit = models.BooleanField('override of the account balance', default=False)
+    
+    # Calculated Fields
+    delta = models.DecimalField('relative change', decimal_places=2, max_digits=15, default=Decimal('0.00'), blank=False, null=False,)
+    balance = models.DecimalField('balance for the day', decimal_places=2, max_digits=15, default=Decimal('0.00'), blank=False, null=False,)
+    
+    # State Flags
+    balance_is_dirty = models.BooleanField('If there is a new transaction for this day, the balance is not reliable', default=False)
 
     def __str__(self):
-        return self.account.name + " - " + self.db_date.strftime("%Y-%m-%d")
+        return f'{self.account.name} - {self.db_date.strftime("%Y-%m-%d")} - {self.balance}'
 
     def save(self, *args, **kwargs):
-        # Ensure db_date is a date object for math
-        if isinstance(self.db_date, str):
-            self.db_date = datetime.strptime(self.db_date, '%Y-%m-%d').date()
-
-        if self.balance_is_dirty:
-            if self.account.account_parent:
-                AccountBalanceDB.objects.filter(
-                    account=self.account.account_parent, 
-                    db_date=self.db_date
-                ).update(balance_is_dirty=True)
-
-        if self.is_audit:
-            target_date = self.db_date - timedelta(days=1)
-            try:
-                # previous = AccountBalanceDB.objects.get(account=self.account, db_date=target_date).balance
-
-
-                # Use .filter().first() to avoid DoesNotExist exceptions
-                prev_record = AccountBalanceDB.objects.filter(
-                    account=self.account, 
-                    db_date=self.db_date - timedelta(days=1)
-                ).first()
-                previous_bal = prev_record.balance if prev_record else Decimal('0.00')
-            except ObjectDoesNotExist:
-                previous_bal = Decimal('0.00')
-            # If audit is set, delta is the gap between audit and yesterday
-            if self.audit is not None:
-                self.delta = self.audit - previous_bal
-                self.balance = self.audit
-
-        super(AccountBalanceDB, self).save(*args, **kwargs)
-    
-    def set_delta_and_dirty(self):
-        self.balance_is_dirty = True
-        audit = Transaction.objects.filter(account_source=self.account,date_actual=self.db_date, is_deleted=False, audit=True).first()
-        if audit is not None:
-            previous = AccountBalanceDB.objects.get(account=self.account, db_date=self.db_date - timedelta(days=1))
-            self.audit = audit.amount_actual
+        if self.is_audit and self.audit is not None:
             self.balance = self.audit
-            self.is_audit = True
-            self.delta = self.audit - previous.balance
-        else:
-            self.audit = None
-            self.is_audit = False
-            sum_destination = Transaction.objects.filter(account_destination=self.account,date_actual=self.db_date, is_deleted=False, audit=False).aggregate(Sum('amount_actual'))
-            sum_source = Transaction.objects.filter(account_source=self.account,date_actual=self.db_date, is_deleted=False, audit=False).aggregate(Sum('amount_actual'))
-            self.delta = (sum_destination.get('amount_actual__sum') or Decimal('0.00')) - (sum_source.get('amount_actual__sum') or Decimal('0.00'))
-        self.save()
+            
+        super().save(*args, **kwargs)
 
 
 class AccountHost(BaseSoftDelete, UserPermissions):
@@ -516,10 +466,18 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         verbose_name_plural = 'Accounts'
         ordering = ['account_host__name', 'name']
 
+    SUM_CHILDREN = 'SUM'
+    PARENT_OVERRIDE = 'OVR'
+    CALC_CHOICES = [
+        (SUM_CHILDREN, 'Strict Sum of Children'),
+        (PARENT_OVERRIDE, 'Parent Audit Overrides (Hybrid)'),
+    ]
+    calc_mode = models.CharField(max_length=3, choices=CALC_CHOICES, default=SUM_CHILDREN)
     ofx_acct_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bank's ACCTID from OFX")  # <ACCTID>
     ofx_org = models.CharField(max_length=50, blank=True, null=True) # <ORG>
     ofx_fid = models.CharField(max_length=50, blank=True, null=True) # <FID>
     ofx_flip_sign = models.BooleanField(default=False, help_text="Check if outflows are positive in OFX")
+    ofx_flip_sign_set = models.BooleanField(default=False, help_text="don't ask user for flip sign")
 
     date_open = models.DateField('date opened', blank=False, null=False, default='2018-01-01')
     date_closed = models.DateField('date closed', blank=True, null=True)
@@ -559,62 +517,57 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             return f"{self.account_host.name} - {self.name}"
         return f"{self.account_host.name} - ({self.owner.name}) - {self.name}"
 
-    def new_balances(self, begin, end):
-        # Ensure begin is a date object, not a string
-        if isinstance(begin, str):
-            begin = datetime.strptime(begin, '%Y-%m-%d').date()
-        # Ensure end is a date object
-        if isinstance(end, str):
-            end = datetime.strptime(end, '%Y-%m-%d').date()
+    @property
+    def implied_unit_price(self):
+        if self.unit_price and self.total_units > 0:
+            return self.latest_balance / self.total_units
+        return None
 
-        existing_objects = AccountBalanceDB.objects.filter(account=self)
-        balances_to_create = []
-        
-        if existing_objects.exists():
-            last_object = existing_objects.latest('db_date')
-            date_cursor = last_object.db_date
-            if date_cursor > end:
-                return()
-            new_balance=last_object.balance
-            new_balance_is_dirty=True
-        else:
-            date_cursor = begin - timedelta(days=1)
-            balances_to_create.append(
-                AccountBalanceDB(
+    def ensure_records_exist(self, target_date):
+        """Checks if records exist up to target_date; creates them if not."""
+        last_record = self.balances.order_by('db_date').last()
+        start_from = last_record.db_date + timedelta(days=1) if last_record else self.date_open
+
+        if start_from <= target_date:
+            new_rows = []        
+            if not last_record:
+                new_rows.append(AccountBalanceDB(
                     account=self,
-                    db_date=date_cursor,
-                    audit=Decimal('0.00'),
+                    db_date=self.date_open - timedelta(days=1),
                     balance=Decimal('0.00'),
+                    audit=Decimal('0.00'),
                     is_audit=True,
-                    balance_is_dirty=False
-                )
-            )
-            new_balance=Decimal('0.00')
-            new_balance_is_dirty=False
+                    balance_is_dirty=False 
+                ))
+            else:
+                current_date = last_record.db_date + timedelta(days=1) 
 
-        date_cursor = date_cursor + timedelta(days=1)
-        while date_cursor <= end:
-            balances_to_create.append(
-                AccountBalanceDB(
+            while current_date <= target_date:
+                new_rows.append(AccountBalanceDB(
                     account=self,
-                    db_date=date_cursor,
-                    balance=new_balance,
-                    is_audit=False,
-                    balance_is_dirty=new_balance_is_dirty
-                )
-            )
-            date_cursor = date_cursor + timedelta(days=1)
-        if balances_to_create:
-            AccountBalanceDB.objects.bulk_create(balances_to_create)
-        if new_balance_is_dirty and self.account_parent is not None:
-            AccountBalanceDB.objects.filter(account=self.account_parent,db_date__range=(begin, end)).update(balance_is_dirty=True)
+                    db_date=current_date,
+                    balance_is_dirty=True # New rows are always dirty until first calculation
+                ))
+                current_date += timedelta(days=1)
 
-    def check_balances(self, end):
-        # verify if balances exist up to a given date.  create them if thy do not exist
-        last_balance = AccountBalanceDB.objects.filter(account=self).latest('db_date')
-        last_date = last_balance.db_date
-        if end > last_date:
-            self.new_balances(last_date,end)
+            if new_rows:
+                AccountBalanceDB.objects.bulk_create(new_rows)
+
+    def get_balances(self, start_date, end_date):
+        self.ensure_records_exist(end_date)
+        # Use an atomic block to prevent partial 'Clean' states
+        with transaction.atomic():
+            self.tree_balances_needed_cleaning(start_date, end_date)
+        return AccountBalanceDB.objects.filter(
+            account=self,
+            db_date__gte=start_date,
+            db_date__lte=end_date
+        ).order_by('db_date')
+
+    def get_balance(self, date):
+        self.ensure_records_exist(date)
+        self.tree_balances_needed_cleaning(date,date)
+        return AccountBalanceDB.objects.get(account=self, db_date=date)
 
     def save(self, *args, **kwargs):
         # Convert string dates to date objects if necessary
@@ -625,86 +578,18 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
         if self._state.adding is True:
             super(Account, self).save(*args, **kwargs)            
-            #new account, need to create balances and set first one
-            if self.date_closed is None:
-                end_generate = date.today() + relativedelta(years=3)
-            else:
-                end_generate = self.date_closed
-            self.new_balances(self.date_open,end_generate)
-            
         else:
             # Safely get old values; default to current values if _loaded_values is missing
             loaded = getattr(self, '_loaded_values', {})
-            old_date_open = loaded.get('date_open', self.date_open)
             old_date_closed = loaded.get('date_closed', self.date_closed)
 
-            super(Account, self).save(*args, **kwargs)
-            if self.date_open < old_date_open:
-                #add earlier balances and add an audit just before the old date_open to keep the balances
-                new_audit_date = old_date_open - timedelta(days=1)
-                self.new_balances(self.date_open,new_audit_date)
-                new_audit = AccountBalanceDB.objects.get(account=self.account,db_date=new_audit_date)
-                new_audit.audit = self.get_balance(old_date_open) 
-                new_audit.is_audit=True
-                new_audit.delta = new_audit.audit
-                new_audit.save()
-            elif self.date_open > old_date_open:
-                #remove unused balances and add an audit just before the new date_open
-                new_audit_date = self.date_open - timedelta(days=1)
-                new_audit = AccountBalanceDB.objects.get(account=self.account,db_date=new_audit_date)
-                new_audit = self.get_balance(self.date_open)
-                new_audit.is_audit=True
-                new_audit.delta = new_audit.audit
-                new_audit.save()
-                unused_balances = AccountBalanceDB.objects.filter(account=self.account,db_date__lt=self.new_audit_date).delete()
-            if self.date_closed != None and self.date_closed > old_date_closed:
-                #add later balances
-                self.new_balances(old_date_closed,self.date_closed)
-                new_dirty = AccountBalanceDB.objects.get(account=self.account,db_date=new_audit_date)
-                new_audit.balance_is_dirty=True
-                new_audit.save()
-            elif self.date_closed != None and self.date_closed < old_date_closed:
+            super(Account, self).save(*args, **kwargs)            
+            if self.date_closed != None and self.date_closed < old_date_closed:
                 #remove unused balances 
-                unused_balances = AccountBalanceDB.objects.filter(account=self.account,db_date__gt=self.date_closed).delete()
+                AccountBalanceDB.objects.filter(account=self.account,db_date__gt=self.date_closed).delete()
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_account_simple')
-
-    def balance_by_EOD(self, dateCheck):
-
-        audit_today = Transaction.view_objects.filter(account_source_id=self.pk, date_actual=dateCheck, audit=True).order_by('-date_actual')[:1]
-        if audit_today.count() == 1:
-            return audit_today.first().amount_actual
-
-        balance = Decimal(0.00)
-
-        childrens = self.account_children.all()
-        if childrens.count() > 0:
-            for children in childrens:
-                balance += children.balance_by_EOD(dateCheck)
-            return balance
-
-        closestAudit = Transaction.view_objects.filter(account_source_id=self.pk, date_actual__lte=dateCheck, audit=True).order_by('-date_actual')[:1]
-        if closestAudit.count() == 0:
-            balance = Decimal(0.00)
-            events = Transaction.view_objects.filter(date_actual__lte=dateCheck)
-        else:
-            balance = Decimal(closestAudit.first().amount_actual)
-            events = Transaction.view_objects.filter(date_actual__gt=closestAudit.first().date_actual, date_actual__lte=dateCheck)
-
-        events = events.filter(account_source_id=self.pk) | events.filter(account_destination_id=self.pk)
-
-        for event in events:
-            amount = Decimal(0.00)
-            if event.audit is True:
-                balance = event.amount_actual
-            elif not (event.budget_only is True and event.date_actual <= date.today()):
-                if event.account_destination_id == self.pk:
-                    balance += event.amount_actual
-                if event.account_source_id == self.pk:
-                    balance -= event.amount_actual
-
-        return balance
 
     def build_yearly_report_unit(self, year):
         start_date = date(year, 1, 1)
@@ -719,7 +604,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         if account_list.first() is None:
             # if it's a account without children, return a report with 12 months + total
             account_report = []
-            balance_beginning = self.balance_by_EOD(previous_day)
+            balance_beginning = self.get_balance(previous_day)
             report_account_year = AccountReport(isaccountparent=False)
             for month in range(12):
                 report_current_month = self.build_report(year, month+1, balance_beginning)
@@ -767,7 +652,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             start_date = date(year, month, 1)
             end_date = start_date + relativedelta(day=+31)
 
-        balance_end = self.balance_by_EOD(end_date)
+        balance_end = self.get_balance(end_date)
         transactions = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False,)
         deposits = transactions.filter(account_destination=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
         withdrawals = transactions.filter(account_source=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
@@ -801,15 +686,15 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         childrens = self.account_children.filter(is_deleted=False)
         account_list = Account.objects.filter(id=self.pk, is_deleted=False) | childrens
         events = events.filter(account_destination__in=account_list) | events.filter(account_source__in=account_list)
-        # balance = Decimal(Account.view_objects.get(id=self.pk).balance_by_EOD(start_date))
-        balance = Decimal(self.balance_by_EOD(start_date))
+        # balance = Decimal(Account.view_objects.get(id=self.pk).get_balance(start_date))
+        balance = Decimal(self.get_balance(start_date))
         for event in events:
             amount = Decimal(0.00)
             event.account_view_id = self.pk
             if event.audit is True:
                 balance = event.amount_actual
                 if childrens.count() > 0:
-                    total_with_children = Decimal(self.balance_by_EOD(event.date_actual))
+                    total_with_children = Decimal(self.get_balance(event.date_actual))
                     event.calc_amount = str(event.amount_actual) + "$"
                     event.audit_amount = str(total_with_children) + "$"
                 else:
@@ -844,7 +729,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
         if first_dirty is not None:
             self.build_balances_leaf(first_dirty.db_date, end_date)
-            # that function needs to dirty end_date+1 if it modifies balances ########################
             return True
         else:
             return False
@@ -854,116 +738,157 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         # return False if the balances were not dirty and were not modified
         # return True if the balances were dirty and were modified
 
-        if end_date is None:
-            end_date = start_date
+        child_accounts = Account.objects.filter(account_parent=self, is_deleted=False)
 
-        if end_date < self.date_open:
-            return False
+        # did *anything* in the subtree change?
+        for child in child_accounts:
+            child.tree_balances_needed_cleaning(start_date, end_date)
 
-        if self.date_closed is not None and start_date > self.date_closed:
-            return False
+        # is this account itself dirty?  If a child was dirty, child update will have dirtied the parent.
+        first_dirty_record = self.balances.filter(
+            balance_is_dirty=True,
+            db_date__lte=start_date
+        ).order_by('-db_date').first()
 
-        if self.date_closed is not None and end_date > self.date_closed :
-            end_date = self.date_closed
+        first_dirty_record_in_period = self.balances.filter(
+            balance_is_dirty=True,
+            db_date__gte=start_date,
+            db_date__lte=end_date
+        ).order_by('db_date').first()
 
-        if start_date < self.date_open:
-            start_date = self.date_open
-
-
-        children_needed_cleaning = False
-        if self.id >= 500:
-            None
-        closest_parent_audit = AccountBalanceDB.objects.filter(account=self, db_date__lte=start_date, is_audit=True).order_by('-db_date').first()
-        first_parent_dirty = AccountBalanceDB.objects.filter(account=self, db_date__gte=closest_parent_audit.db_date, db_date__lte=end_date,balance_is_dirty=True).order_by('db_date').first()
-        if first_parent_dirty is not None:
-            start_date = first_parent_dirty.db_date
-        childaccounts = Account.view_objects.filter(account_parent_id=self.pk, is_deleted=False)
-        if (childaccounts.count() > 0):
-            # this is a parent, clean child accounts
-            for child in childaccounts:
-                # call recursively, a child could have childrens
-                if child.tree_balances_needed_cleaning(start_date, end_date) is True:
-                    children_needed_cleaning = True
-        else:
-            # This is a leaf, clean it
-            if self.leaf_balances_needed_cleaning(start_date, end_date) is True:
-                return True
-            else:
-                return False
-
-        if children_needed_cleaning is True or first_parent_dirty is not None:
-            self.build_balances_tree(start_date, end_date)
-            return True
-
-    def build_balances_leaf(self, first_dirty_date, end_date):    
-        last_clean_date = first_dirty_date - timedelta(days=1)
-        if self.id >= 500:
-            None
-        last_clean_balance = AccountBalanceDB.objects.get(account=self, db_date=last_clean_date)
-        previous_day_balance = last_clean_balance.balance
-        balances = AccountBalanceDB.objects.filter(account=self, db_date__gte=first_dirty_date, db_date__lte=end_date).order_by('db_date')
-        for balance in balances:
-            if balance.is_audit or (balance.audit is not None and balance.audit != Decimal('0.0')):
-                balance.balance = balance.audit
-                balance.is_audit = True
-                balance.delta = balance.audit - previous_day_balance
-            else:
-                balance.balance = previous_day_balance + balance.delta
-            balance.balance_is_dirty = False
-            previous_day_balance = balance.balance
-            balance.save()
-        # we updated balances, the next day is now dirty
-        new_dirty_date = end_date + timedelta(days=1)
-        new_dirty_day = AccountBalanceDB.objects.get(account=self, db_date=new_dirty_date)
-        if new_dirty_day.is_audit is False:
-            new_dirty_day.balance_is_dirty = True
-            new_dirty_day.save()
-
-    def build_balances_tree(self, first_dirty_date, end_date):
-        last_clean_date = first_dirty_date - timedelta(days=1)
-        try:
-            last_clean_day = AccountBalanceDB.objects.get(account=self, db_date=last_clean_date)
-            previous_day = last_clean_day.balance
-        except ObjectDoesNotExist:
-            previous_day = Decimal('0.00')
-        days = AccountBalanceDB.objects.filter(account=self, db_date__gte=first_dirty_date, db_date__lte=end_date).order_by('db_date')
+        # everything is clean, nothing to do
+        if not first_dirty_record and not first_dirty_record_in_period:
+            return False 
         
+        closest_audit_record = self.balances.filter(
+            is_audit=True,
+            db_date__lte=start_date
+        ).order_by('-db_date').first()
 
-        childaccounts = Account.view_objects.filter(account_parent_id=self.pk, is_deleted=False)        
-        childrens_delta = AccountBalanceDB.objects.filter(account__in=childaccounts, db_date__gte=first_dirty_date, db_date__lte=end_date).values('db_date').annotate(Sum('delta'))
-        for day in days:
-            if day.is_audit or day.audit is not None:
-                day.balance = day.audit
-                day.is_audit = True
-                day.delta = day.audit - previous_day
+        real_clean_start = start_date
+        if not first_dirty_record_in_period:
+            # if interval is clean and there is an audit blocking the dirty propagation to start_date, nothing to do
+            if closest_audit_record and first_dirty_record.db_date < closest_audit_record.db_date:
+                return False 
             else:
-                day.balance = (previous_day 
-                                + day.delta 
-                                + childrens_delta.get(db_date=day.db_date).get('delta__sum')
-                                )
-            day.balance_is_dirty = False
-            previous_day = day.balance
-            day.save()
+                real_clean_start = first_dirty_record.db_date
 
-        # we updated balances, the next day is now dirty
-        new_dirty_date = end_date + timedelta(days=1)
-        new_dirty_day = AccountBalanceDB.objects.get(account=self, db_date=new_dirty_date)
-        if new_dirty_day.is_audit is False:
-            new_dirty_day.balance_is_dirty = True
-            new_dirty_day.save()
+        if not child_accounts.exists():
+            self.build_balances_leaf(real_clean_start, end_date)
+            
+        return True
 
-    def get_balances(self, start_date, end_date):
-        self.tree_balances_needed_cleaning(start_date, end_date)
-        return AccountBalanceDB.objects.filter(account=self, db_date__gte=start_date, db_date__lte=end_date).order_by('db_date')
+    def build_balances_leaf(self, start_date, end_date):
+        """
+        Recalculates running balances for a range.
+        Uses a 'Firewall' (the last clean balance) as the starting point.
+        start_date is the first dirty date for that account
+        """
+        # 1. Find the starting balance (the day before our first dirty record)
+        day_before = start_date - relativedelta(days=1)
+        starting_balance = AccountBalanceDB.objects.filter(
+            account=self, 
+            db_date=day_before
+        ).values_list('balance', flat=True).first() or Decimal('0.00')
 
-    def get_balance(self, date):
-        self.tree_balances_needed_cleaning(date,date)
-        return AccountBalanceDB.objects.get(account=self, db_date=date)
+        # 2. Get all records that need cleaning
+        to_clean = AccountBalanceDB.objects.filter(
+            account=self, 
+            db_date__gte=start_date, 
+            db_date__lte=end_date
+        ).order_by('db_date')
 
-    def force_deltas(self):
-        balances = AccountBalanceDB.objects.filter(account=self)
-        for balance in balances:
-            balance.set_delta_and_dirty()
+        # 3. Perform the Running Total
+        # Note: SQL Window function could be used here but a single loop that saves at the end is fine.
+        current_running_balance = starting_balance
+        
+        for record in to_clean:
+            if record.is_audit:
+                # FIREWALL: The audit is the new truth. 
+                # We ignore the previous math and the current delta.
+                current_running_balance = record.audit
+            else:
+                # NORMAL: Math continues as usual.
+                current_running_balance += record.delta
+
+            record.balance = current_running_balance
+            record.balance_is_dirty = False
+        
+        # 4. Bulk update the results back to the DB in one go
+        AccountBalanceDB.objects.bulk_update(to_clean, ['balance', 'balance_is_dirty'])
+
+    def build_balances_tree(self, start_date, end_date, calc_mode=None):
+        if not calc_mode:
+            calc_mode=self.calc_mode
+
+        day_before_start = start_date - timedelta(days=1)
+        # Get the sum of all children, grouped by date, in a single SQL hit
+        child_data = AccountBalanceDB.objects.filter(
+            account__account_parent=self,
+            db_date__gte=day_before_start,
+            db_date__lte=end_date
+        ).values('db_date').annotate(
+            day_balance=Sum('balance'),
+            day_delta=Sum('delta'),
+            day_audit=Sum('audit'),
+            day_audit_count=Sum('audit')
+        ).order_by('db_date')
+
+        totals_map = {
+            item['db_date']: {
+                'balance': item['day_balance'] or Decimal('0.00'),
+                'delta': item['day_delta'] or Decimal('0.00'),
+                'audit': item['day_audit'],
+                'audit_count': item['day_audit_count'],
+            } for item in child_data
+        }
+        data = totals_map.get(p_record.db_date, {'balance': 0, 'delta': 0, 'audit': 0, 'audit_count':0})
+        
+        # 3. Fetch the parent records we need to update
+        parent_records = AccountBalanceDB.objects.filter(
+            account=self,
+            db_date__gte=day_before_start,
+            db_date__lte=end_date
+        .order_by('db_date'))
+        
+        day_before_record = all_records.filter(db_date=day_before_start).first()
+        parent_records = all_records.exclude(db_date=day_before_start)
+
+        parent_audit=False
+        running_balance=Decimal('0.00')
+
+        if calc_mode == Account.PARENT_OVERRIDE:
+            #check if there is a running parent audit
+            before_data = totals_map.get(day_before_start, {'balance': Decimal('0.00')})
+            if day_before_record.balance != before_data['balance']:
+                parent_audit=True
+                running_balance=day_before_record.balance
+
+            # 4. Map the data in the parent
+            for p_record in parent_records:
+                
+                if parent_audit and data['audit_count'] > 0:
+                    parent_audit = False
+                if parent_audit:
+                    running_balance = running_balance + data['delta']
+                    p_record.balance = running_balance
+                else:    
+                    p_record.balance = data['balance']
+                if p_record.is_audit:
+                    parent_audit=True
+                    p_record.balance = p_record.audit
+                    running_balance =  p_record.audit
+                
+                p_record.delta = data['delta']                
+                p_record.balance_is_dirty = False
+        else:
+            for p_record in parent_records:
+                p_record.balance = data['balance']
+                p_record.delta = data['delta'] 
+                p_record.balance_is_dirty = False
+
+        # 5. Bulk save back to the database
+        AccountBalanceDB.objects.bulk_update(parent_records, ['balance', 'balance_is_dirty', 'delta'])
 
 
 class AccountCategory(MyMeta, BaseSoftDelete, UserPermissions):
@@ -981,92 +906,15 @@ class AccountCategory(MyMeta, BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_accountcategory')
 
 
-class CatSums(models.Model):
-    cat1 = models.ForeignKey("Cat1", on_delete=models.DO_NOTHING)
-    cattype = models.ForeignKey("CatType", on_delete=models.DO_NOTHING)
-    cat2 = models.ForeignKey("Cat2", on_delete=models.DO_NOTHING)
-    month = models.IntegerField("month", blank=True)
-    total = models.DecimalField('balance for the day', decimal_places=2, max_digits=10,
-                                blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'budgetdb_cattotals'
-
-    def build_cat2_totals_array(self, start_date, end_date):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT " \
-                f"row_number() OVER () as id, " \
-                f"t.cat1_id, " \
-                f"t.cat2_id, " \
-                f"c2.cattype_id AS cattype_id, " \
-                f"sum(t.amount_actual) AS total " \
-                f"FROM budgetdb.budgetdb_transaction t " \
-                f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
-                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
-                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
-                f'AND t.cat1_id IS NOT Null ' \
-                f"GROUP BY t.cat1_id, c2.cattype_id, t.cat2_id "  \
-                f"ORDER BY c1.name "
-
-        print(sqlst)
-        cat1_totals = CatSums.objects.raw(sqlst)
-
-        return cat1_totals
-
-    def build_monthly_cat1_totals_array(self, start_date, end_date, cat_id):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT " \
-                f"row_number() OVER () as id, " \
-                f"t.cat1_id, " \
-                f"year(t.date_actual) AS year, " \
-                f"month(t.date_actual) AS month, " \
-                f"c2.cattype_id AS cattype_id, " \
-                f"sum(t.amount_actual) AS total " \
-                f"FROM budgetdb.budgetdb_transaction t " \
-                f"JOIN budgetdb.budgetdb_cat1 c1 ON t.cat1_id = c1.id " \
-                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
-                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
-                f"AND t.cat1_id = '{cat_id}' " \
-                f"GROUP BY t.cat1_id, c2.cattype_id, month(t.date_actual) "  \
-                f"ORDER BY c1.name, t.date_actual "
-
-        print(sqlst)
-        cat1_totals = CatSums.objects.raw(sqlst)
-
-        return cat1_totals
-
-    def build_monthly_cat2_totals_array(self, start_date, end_date, cat_id):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT " \
-                f"row_number() OVER () as id, " \
-                f"t.cat2_id, " \
-                f"year(t.date_actual) AS year, " \
-                f"month(t.date_actual) AS month, " \
-                f"c2.cattype_id AS cattype_id, " \
-                f"sum(t.amount_actual) AS total " \
-                f"FROM budgetdb.budgetdb_transaction t " \
-                f"JOIN budgetdb.budgetdb_cat2 c2 ON t.cat2_id = c2.id " \
-                f"WHERE t.date_actual BETWEEN '{start_date}' AND '{end_date}' " \
-                f"AND t.cat2_id = '{cat_id}' " \
-                f"GROUP BY t.cat2_id, c2.cattype_id, month(t.date_actual), year(t.date_actual) "  \
-                f"ORDER BY c2.name, t.date_actual "
-
-        print(sqlst)
-        cat1_totals = CatSums.objects.raw(sqlst)
-
-        return cat1_totals
-
-
 class MyCalendar(models.Model):
     class Meta:
         verbose_name = 'Calendar'
         verbose_name_plural = 'Calendars'
 
-    db_date = models.DateField('date')  #
+    db_date = models.DateField('date', unique=True)  #
     year = models.IntegerField('year')  #
     month = models.IntegerField('month')  # 1 to 12
-    day = models.IntegerField('year')  # 1 to 31
+    day = models.IntegerField('day')  # 1 to 31
     quarter = models.IntegerField('quarter')  # 1 to 4
     week = models.IntegerField('week')  # 1 to 52/53
     day_name = models.CharField('Day name EN', max_length=9)  # 'Monday'...
@@ -1077,20 +925,6 @@ class MyCalendar(models.Model):
 
     def __str__(self):
         return f'{self.db_date.year}-{self.db_date.month}-{self.db_date.day}'
-
-    def build_year_month_array(self, start_date, end_date):
-        # don't do the sql = thing in prod
-        sqlst = f"SELECT distinct " \
-                f"row_number() OVER () as id, " \
-                f"c.year,c.month " \
-                f"FROM budgetdb.budgetdb_mycalendar c " \
-                f"WHERE c.db_date BETWEEN '{start_date}' AND '{end_date}' " \
-                f"ORDER BY c.year, c.month "
-
-        print(sqlst)
-        dates_array = MyCalendar.objects.raw(sqlst)
-
-        return dates_array
 
 
 class CatBudget(BaseSoftDelete, UserPermissions):
@@ -1176,14 +1010,14 @@ class CatType(BaseSoftDelete, UserPermissions):
         return reverse('budgetdb:list_cattype')
 
     def get_month_total(self, targetdate):
+        # improvement: how do we deal with account currencies ?
         start = date(targetdate.year,targetdate.month,1)
         end = date(targetdate.year,targetdate.month+1,1)
         cat1s = Cat1.view_objects.filter(cattype=self)
         cat2s = Cat2.view_objects.filter(cattype=self)
         accounts = Account.admin_objects.all()
-        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts)
-        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts)
-        # zbrocoli not dealing with account currencies
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end)
+ 
         cat1onlytransact = transactions.filter(cat1__in=cat1s,cat2__isnull=True) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
         cat2transact = transactions.filter(cat2__in=cat2s) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
         type_transactions = cat1onlytransact | cat2transact
@@ -1192,24 +1026,85 @@ class CatType(BaseSoftDelete, UserPermissions):
         
         return total
 
-    def get_cat1_totals(self, start, end):
-        cat1s = Cat1.view_objects.filter(cattype=self)
-        accounts = Account.view_objects.all()
-        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts,cat1__in=cat1s)
-        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts,cat1__in=cat1s)
-        # zbrocoli not dealing with account currencies
-        cat1s_sums = transactions.values('cat1_id').annotate(Sum('amount_actual'))
+    def get_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,cat2__in=cat2s)
+        cat1s_sums = (transactions
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
         return cat1s_sums
 
-    def get_cat1_monthly_totals(self, start, end):
-        cat1s = Cat1.view_objects.filter(cattype=self)
-        accounts = Account.view_objects.all()
-        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_destination__in=accounts,cat1__in=cat1s)
-        transactions = transactions | Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,account_source__in=accounts,cat1__in=cat1s)
-        # zbrocoli not dealing with account currencies
-        transactions = transactions.annotate(month=ExtractMonth('date_actual'),year=ExtractYear('date_actual'))
-        cat1s_sums = transactions.values('cat1_id','month','year').annotate(Sum('amount_actual'))
+    def get_monthly_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(
+            date_actual__gte=start, 
+            date_actual__lt=end,
+            cat2__in=cat2s
+        ).annotate(month=TruncMonth('date_actual'))
+        cat1s_sums = (transactions
+            .values('month') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
         return cat1s_sums
+
+    def get_cat1_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,cat2__in=cat2s)
+        cat1s_sums = (transactions
+            .values('cat1_id', 'cat1__name') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat1s_sums        
+
+    def get_cat1_monthly_totals(self, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        transactions = Transaction.view_objects.filter(
+            date_actual__gte=start, 
+            date_actual__lt=end,
+            cat2__in=cat2s
+        ).annotate(month=TruncMonth('date_actual'))
+        cat1s_sums = (transactions
+            .values('cat1_id', 'cat1__name', 'month') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat1s_sums
+
+    def get_cat2_totals(self, cat1, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self, cat1=cat1)
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,cat2__in=cat2s, cat1=cat1)
+        cat2s_sums = (transactions
+            .values('cat2_id', 'cat2__name') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat2s_sums
+
+    def get_cat2_monthly_totals(self, cat1, start, end):
+        # improvement: how do we deal with account currencies ?
+        cat2s = Cat2.view_objects.filter(cattype=self, cat1=cat1)
+        transactions = Transaction.view_objects.filter(
+            date_actual__gte=start, 
+            date_actual__lt=end,
+            cat1=cat1,
+            cat2__in=cat2s
+        ).annotate(month=TruncMonth('date_actual'))
+        cat2s_sums = (transactions
+            .values('cat2_id', 'cat2__name', 'month') # Use the relationship path
+            .annotate(total=Sum('amount_actual'))
+            .order_by('-total')
+        )
+        return cat2s_sums
+
+
 
 
 class Cat1(BaseSoftDelete, UserPermissions):
@@ -1421,6 +1316,7 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     receipt = models.BooleanField('Checked with receipt', default=False)
     balance = models.DecimalField('Balance', decimal_places=2, max_digits=10, blank=True, null=True)
     fit_id = models.CharField(max_length=255, null=True, blank=True)
+    fit_id_transfer = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f'{self.description} - {self.date_actual}'
@@ -1472,47 +1368,28 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
 
     def save(self, *args, **kwargs):
         self.full_clean()
-        if self.can_edit() is True:
-            if self.audit is True:
-                if Transaction.objects.filter(date_actual=self.date_actual,account_source=self.account_source,audit=True,is_deleted=False).exclude(pk=self.pk).count() > 0:
-                    # don't save an audit if there is already one on the same day on the same account
+        if self.can_edit():
+            # don't save an audit if there is already one on the same day on the same account
+            if self.audit:
+                existing_audits = Transaction.objects.filter(
+                    date_actual=self.date_actual,
+                    account_source=self.account_source,
+                    audit=True,
+                    is_deleted=False
+                ).exclude(pk=self.pk)
+                if existing_audits.exists():
                     return
-            super(Transaction, self).save(*args, **kwargs)
-            
-            dirties = None
-            if hasattr(self,'_loaded_values') is False:
-                old_source = None
-                old_destination = None
-                old_date = self.date_actual
-            else:
-                old_source = self._loaded_values.get('account_source_id')
-                old_destination = self._loaded_values.get('account_destination_id')
-                old_date = self._loaded_values.get('date_actual')
-            
-            if old_date != self.date_actual:
-                #If the date changed, get the old accounts, old date
-                account_filter = [old_destination,
-                                  old_source,
-                                  ]
-                dirties = AccountBalanceDB.objects.filter(account__in=account_filter, db_date=old_date)
-                # and new accounts, new date
-                account_filter = [self.account_source,
-                                  self.account_destination
-                                  ]
-                dirties = dirties | AccountBalanceDB.objects.filter(account__in=account_filter, db_date=self.date_actual)
-            else:
-                #same date, old and new for the same date
-                account_filter = [old_destination,
-                                  old_source]
-                if self.account_source:
-                    account_filter.append(self.account_source.id)
-                if self.account_destination:
-                    account_filter.append(self.account_destination.id)
 
-                dirties = AccountBalanceDB.objects.filter(account_id__in=account_filter, db_date=self.date_actual)
+            # Capture the "old" state before we save
+            is_new = self.pk is None
+            old_date = getattr(self, '_loaded_values', {}).get('date_actual')
+            old_src = getattr(self, '_loaded_values', {}).get('account_source_id')
+            old_dest = getattr(self, '_loaded_values', {}).get('account_destination_id')
 
-            for dirty in dirties:
-                dirty.set_delta_and_dirty()
+            super().save(*args, **kwargs)
+            # 3. Trigger the Sync
+            from budgetdb.services import LedgerService
+            LedgerService.sync_transaction(self, is_new, old_date, old_src, old_dest)
 
     def soft_delete(self):
         super().soft_delete()

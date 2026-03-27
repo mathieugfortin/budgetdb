@@ -152,10 +152,10 @@ class TransactionCategoryAJAXTests(BudgetBaseTestCase):
         self.assertEqual(self.tx.cat1, self.cat1_b)
         self.assertIsNone(self.tx.cat2, "Cat2 should be reset when Cat1 changes")
 
-    def test_get_cat2_options_filtering(self):
+    def test_cat2_admin_list_json_filtering(self):
         """API should only return Cat2 objects belonging to the selected Cat1."""
         with impersonate(self.user_a):
-            url = reverse('budgetdb:get_cat2_options')
+            url = reverse('budgetdb:cat2_admin_list_json')
             response = self.client.get(url, {'cat1_id': self.cat1_a.id})
         
         self.assertEqual(response.status_code, 200)

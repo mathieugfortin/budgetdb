@@ -18,7 +18,7 @@ from django.views.generic import ListView, CreateView, UpdateView, View, DetailV
 from budgetdb.utils import PaystubEngine
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
 from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
-from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile
+from budgetdb.models import JoinedTransactions, PaystubMapping, PaystubProfile
 from budgetdb.forms import PaystubUploadForm, MappingRowForm, BaseMappingFormSet
 
 
@@ -49,6 +49,9 @@ def process_mapping_line(mapping, profile, pay_date, tokens, engine, commit=Fals
          
     ## when mapping.is_net_pay=True, special case on transfer
     ## what happens if there is more than one value indexed for the net_pay line???
+
+    category = mapping.category.name if mapping.category else "No Category"
+
     if mapping.is_net_pay:
         existing_tx = Transaction.admin_objects.filter(
             date_actual=pay_date,
@@ -56,23 +59,28 @@ def process_mapping_line(mapping, profile, pay_date, tokens, engine, commit=Fals
             #account_destination=profile.checking_account,
             cat2=Cat2.objects.get(name='transfer',system_object=True)
         ).first()
+        cat2 = Cat2.objects.get(name='transfer',system_object=True)
+        category = cat2.name
         if existing_tx:
             target_destination_account = existing_tx.account_destination or profile.checking_account
-            target_source_account = profile.pay_account
+        else:
+            pass
+            target_destination_account = profile.checking_account
+        target_source_account = profile.pay_account
     else:    
-        
         # 3. Look for a collision in the DB
         # We match on Date, Category (Cat2), and Account
+        cat2=mapping.category
         existing_tx = Transaction.objects.filter(
             #Q(account_source=target_destination_account) | Q(account_destination=target_destination_account),
             account_source=target_source_account,
             date_actual=pay_date,
-            cat2=mapping.category
+            cat2=cat2
         ).first()
 
     action = {
         'mapping_id': mapping.id,
-        'category': mapping.category.name if mapping.category else "No Category",
+        'category': category,
         'destination_account': target_destination_account,
         'source_account': target_source_account,
         'val': final_amount,
@@ -124,6 +132,7 @@ def process_mapping_line(mapping, profile, pay_date, tokens, engine, commit=Fals
             # Update existing
             existing_tx.amount_actual = Decimal(format(final_amount, ".2f"))
             existing_tx.comment = f"Updated via: {mapping.line_keyword}"
+            existing_tx.receipt=True
             existing_tx.save() # Triggers your overloaded save()
             tx = existing_tx
         else:
@@ -133,13 +142,19 @@ def process_mapping_line(mapping, profile, pay_date, tokens, engine, commit=Fals
             elif target_destination_account:
                 currency=target_destination_account.currency
 
+            
+            cat1=None
+            if cat2:
+                cat1=cat2.cat1
+
             tx = Transaction.objects.create(
                 date_actual=pay_date,
                 amount_actual=Decimal(format(final_amount, ".2f")),
                 account_source=target_source_account,
                 account_destination=target_destination_account,
-                cat1=mapping.category.cat1,
-                cat2=mapping.category,
+                cat1=cat1,
+                cat2=cat2,
+                receipt=True,
                 currency=currency,
                 comment=f"Created via: {mapping.line_keyword}",
                 description=mapping.line_keyword
@@ -173,8 +188,7 @@ def commit_paystub(request):
             # Nothing was found in the recap, create a fresh one
             joined_tx = JoinedTransactions.objects.create(
                 name=f"Paystub - {pay_date}",
-                date=pay_date,
-                user=request.user
+                owner=request.user
             )
 
         # 3. Process the lines using our shared helper

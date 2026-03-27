@@ -1,3 +1,22 @@
+// static 'budgetdb/js/base.js'
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+
 /**
  * UI Helper Functions
  */
@@ -28,6 +47,107 @@ function addA(baseURL, pk, label, attachTo) {
  */
 function openHelp(tabId) {
     const el = document.getElementById('instructionsModal');
+    if (!el) return;
+    
+    const modal = new bootstrap.Modal(el);
+    if (tabId) {
+        const targetTab = document.querySelector(`a[href="#${tabId}"]`);
+        if (targetTab) new bootstrap.Tab(targetTab).show();
+    }
+    modal.show();
+}
+
+
+function triggerManualExtension() {
+    const config = window.DjangoConfig;
+    const btn = document.getElementById('btn-sync');
+    const progressBar = document.getElementById('sync-progress');
+    const statusBadge = document.getElementById('status-badge');
+    
+    // Get token from the hidden input Django creates
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    btn.disabled = true;
+    progressBar.classList.remove('d-none');
+    statusBadge.classList.replace('bg-primary', 'bg-warning');
+
+    fetch(config.urls.trigger_extend_ledger, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('ledger-status-text').innerText = data.status;
+        startStatusPoller(config.urls.trigger_extend_ledger);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        progressBar.classList.add('d-none');
+    });
+}
+
+function startStatusPoller(url) {
+    const interval = setInterval(() => {
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('ledger-status-text').innerText = data.status;
+                if (data.last_run) {
+                    document.getElementById('ledger-last-run').innerText = data.last_run;
+                }
+                
+                if (data.status !== 'Running') {
+                    clearInterval(interval);
+                    document.getElementById('btn-sync').disabled = false;
+                    document.getElementById('sync-progress').classList.add('d-none');
+                    document.getElementById('status-badge').classList.replace('bg-warning', 'bg-success');
+                }
+            });
+    }, 2000);
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const healthModal = document.getElementById('systemHealthModal');
+    
+    healthModal.addEventListener('shown.bs.modal', function () {
+        // Initial load of data when modal opens
+        refreshLedgerStatus();
+    });
+});
+
+function refreshLedgerStatus() {
+    const config = window.DjangoConfig;
+    const statusText = document.getElementById('ledger-status-text');
+    const lastRun = document.getElementById('ledger-last-run');
+    const statusBadge = document.getElementById('status-badge');
+
+    fetch(config.urls.trigger_extend_ledger)
+        .then(res => res.json())
+        .then(data => {
+            statusText.innerText = data.status;
+            lastRun.innerText = data.last_run || 'Never';
+            
+            // Update badge color based on status
+            if (data.status === 'Running') {
+                statusBadge.classList.replace('bg-primary', 'bg-warning');
+                document.getElementById('sync-progress').classList.remove('d-none');
+                startStatusPoller(); // Start polling if it's already running
+            } else if (data.status === 'Idle') {
+                statusBadge.classList.replace('bg-primary', 'bg-success');
+                statusBadge.classList.replace('bg-warning', 'bg-success');
+            }
+        })
+        .catch(err => {
+            statusText.innerText = "Offline";
+            statusBadge.classList.replace('bg-primary', 'bg-danger');
+        });
+}
+
+function openHealth(tabId) {
+    const el = document.getElementById('systemHealthModal');
     if (!el) return;
     
     const modal = new bootstrap.Modal(el);
@@ -151,6 +271,29 @@ $(document).ready(function() {
             // 2. Fetch the dates to initialize the slider
             $.getJSON(config.urls.preferences, (res) => {
                 
+
+                // Add keyboard support to handles
+                const handles = sliderElement.querySelectorAll('.noUi-handle');
+
+                handles.forEach((handle, index) => {
+                    handle.setAttribute('tabindex', '0'); // Make it focusable
+                    
+                    handle.addEventListener('keydown', function (e) {
+                        const value = Number(sliderElement.noUiSlider.get()[index]);
+                        const day = 24 * 60 * 60 * 1000; // Your step size
+
+                        switch (e.which) {
+                            case 37: // Left Arrow
+                                sliderElement.noUiSlider.setHandle(index, value - day, true);
+                                break;
+                            case 39: // Right Arrow
+                                sliderElement.noUiSlider.setHandle(index, value + day, true);
+                                break;
+                        }
+                    });
+                });
+
+
                 // 3. Create the slider
                 noUiSlider.create(sliderElement, {
                     range: {
@@ -160,6 +303,7 @@ $(document).ready(function() {
                     step: 24 * 60 * 60 * 1000, // 1 day
                     start: [new Date(res.slider_start).getTime(), new Date(res.slider_stop).getTime()],
                     connect: true,
+                    behaviour: 'tap', // Allows clicking the bar to move the handle
                     tooltips: [true, true],
                     format: {
                         to: value => tsToDate(value), // Your existing date formatter
@@ -178,18 +322,18 @@ $(document).ready(function() {
                 });
 
                 sliderElement.noUiSlider.on('update', function (values, handle) {
-                    const tooltips = sliderElement.querySelectorAll('.noUi-tooltip');
-                    if (tooltips.length < 2) return;
-
-                    // Get the horizontal position (%) of both handles
+                    const sliderWidth = sliderElement.offsetWidth;
+                    // Get the positions (0 to 100) of both handles
                     const positions = sliderElement.noUiSlider.getPositions();
-                    const distance = Math.abs(positions[0] - positions[1]);
+                    const distancePx = Math.abs(positions[0] - positions[1]) * (sliderWidth / 100);
+                    const thresholdPx = 80; 
+                    const isOverlapping = distancePx < thresholdPx;
 
-                    // If handles are within 15% of the total bar width, trigger the offset
-                    // This is much smoother than pixel-counting tooltips
-                    const isOverlapping = distance < 18; 
-
-                    sliderElement.classList.toggle('tooltips-overlapping', isOverlapping);
+                    if (isOverlapping) {
+                        sliderElement.classList.add('tooltips-overlapping');
+                    } else {
+                        sliderElement.classList.remove('tooltips-overlapping');
+                    }
                 });
             });
         }
@@ -219,6 +363,12 @@ $(document).ready(function() {
     if (window.location.href.includes("recurring")) {
         document.querySelectorAll('.nav-link[onclick*="openHelp"]').forEach(btn => {
             btn.setAttribute('onclick', "openHelp('tab-recurring')");
+        });
+    }
+    // 4. Auto-detect Health Context
+    if (window.location.href.includes("recurring")) {
+        document.querySelectorAll('.nav-link[onclick*="openHealth"]').forEach(btn => {
+            btn.setAttribute('onclick', "openHealth('tab-recurring')");
         });
     }
 });

@@ -1,5 +1,5 @@
+<!-- _transaction_list_render_verified.html -->
 {% if record.audit is False %}
-
     <div class="d-flex align-items-center">
         <div style="width: 24px; text-align: center;" class="me-1">
             {% if record.fit_id %}
@@ -8,7 +8,6 @@
                 </span>
             {% endif %}
         </div>
-
         <div style="width: 24px; text-align: center;">
             {% if record.statement.verified_lock is True %}
                 <span class="material-symbols-outlined" 

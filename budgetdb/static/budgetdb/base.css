@@ -1,3 +1,5 @@
+/* base.css */
+
 body {
     padding-top: 75px;
 }
@@ -85,30 +87,25 @@ body {
     opacity: 1;
     transform: translateY(0);
 }
-
+/*
 td {
     white-space: nowrap;
-}
-
-/* --- 1. SLIDER CONTAINER & TRACK --- */
+} 
+    */
+/* --- SLIDER --- */
 #input_range {
-    height: 4px !important;  /* Thin, modern track */
-    margin-top: 24px;        /* Center vertically in navbar */
+    height: 4px !important;  
+    margin-top: 24px;        
     margin-bottom: 6px;
     border: none;
     background: var(--bs-gray-300);
     min-width: 200px;
 }
-
-[data-bs-theme="dark"] #input_range {
-    background: var(--bs-gray-800);
-}
-
 .noUi-connect {
     background: var(--bs-primary);
 }
 
-/* --- 2. THE HANDLES --- */
+/* --- THE HANDLES --- */
 .noUi-handle {
     width: 16px !important;
     height: 16px !important;
@@ -121,38 +118,51 @@ td {
     cursor: grab;
     transition: transform 0.1s ease, background-color 0.1s ease;
 }
-
 /* Dark Mode Handle Override */
 [data-bs-theme="dark"] .noUi-handle {
     background: var(--bs-gray-900) !important;
     border-color: var(--bs-info) !important;
 }
-
-/* Hover/Active states */
-.noUi-handle:active { cursor: grabbing; }
-.noUi-active .noUi-handle {
-    transform: scale(0.85);
-    background: var(--bs-primary) !important;
-}
-
 /* Remove internal handle decorations (the three dots) */
 .noUi-handle:before, .noUi-handle:after {
     display: none !important;
 }
+[data-bs-theme="dark"] #input_range {
+    background: var(--bs-gray-800);
+}
 
-/* --- 3. THE TOOLTIPS (DATES) --- */
 .noUi-tooltip {
-    display: block;
-    position: absolute;
-    border: none !important;
-    background: transparent !important;
-    color: var(--bs-body-color);
-    font-size: 0.75rem;
-    font-weight: 600;
-    bottom: 135% !important;
-    padding: 0 !important;
-    white-space: nowrap;
-    
-    /* Center logic */
+    bottom: 130%;
     left: 50%;
     transform: translateX(-50%);
+    transition: transform 0.2s ease-in-out, opacity 0.2s;
+    font-size: 0.85rem;
+    color: var(--bs-body-color);
+    font-weight: 600;
+    
+    padding: 2px 6px;
+    white-space: nowrap;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* 3. When handles are close: Shift the upper handle tooltip to the RIGHT */
+.tooltips-overlapping .noUi-handle-upper .noUi-tooltip {
+    transform: translate(0%, 0) !important;
+}
+.tooltips-overlapping .noUi-handle-lower .noUi-tooltip {
+    transform: translate(-100%, 0) !important;
+}
+
+/* Increase the "invisible" touch area of the handles */
+.noUi-handle::before,
+.noUi-handle::after {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    right: -15px;
+    bottom: -15px;
+    background: transparent; /* Makes the clickable area much larger */
+}

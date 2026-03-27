@@ -1,86 +1,275 @@
+<!--cattype_pie_chart.html-->
 {% extends "budgetdb/base.html" %}
 {% load static %}
-
-{% block title %}Totals by categories{% endblock %}
+{% block headblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'budgetdb/pie_chart.css' %}">
+{% endblock %}
 
 {% block content %}
+<div id="chart-controls" class="d-flex justify-content-between align-items-center mb-4 bg-dark p-2 rounded border border-secondary">
+    <div class="btn-group shadow-sm">
+        {% for ct in cattypes %}
+            <a class="btn btn-sm btn-outline-info px-3" href="{% url 'budgetdb:cattype_pie' ct.id %}">
+                {{ ct.name }}
+            </a>
+        {% endfor %}
+    </div>
+    
+    <button id="back-button" class="btn btn-sm btn-secondary d-none" onclick="loadCat1Chart()">
+        <i class="bi bi-arrow-left"></i> Back to Categories
+    </button>
+</div>
 
+<div class="row g-4">
+    <div class="col-lg-9 col-md-8">
+        <div class="card bg-dark border-secondary shadow">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-3">
+                <h5 id="chart-main-title" class="mb-0">Category Totals</h5>
+                <span id="date-range-display" class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border">
+                    {{ begin }} to {{ end }}
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div id="main-chart" style="width: 100%; height: 600px;"></div>
+            </div>
+        </div>
+    </div>
 
-  <div id="pie-container">
-    <canvas id="pie-chart"></canvas>
-  </div>
+    <div class="col-lg-3 col-md-4">
+        <div class="card bg-dark border-secondary shadow h-100">
+            <div class="card-header border-secondary text-center bg-transparent py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <button class="btn btn-xs btn-outline-secondary border-0" onclick="changeYear(-1)">«</button>
+                    <h5 class="mb-0 text-info fw-bold" 
+                        id="current-year-display" 
+                        style="cursor: pointer;" 
+                        title="Show full year"
+                        onclick="selectFullYear()">
+                        {{ year }}
+                    </h5>
+                    <button class="btn btn-xs btn-outline-secondary border-0" onclick="changeYear(1)">»</button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for m_num, m_name in months %}
+                    <div class="col-6">
+                        <button class="btn btn-sm btn-outline-primary w-100 month-btn py-2" 
+                                data-month="{{ m_num }}" 
+                                onclick="selectMonth({{ m_num }})">
+                            {{ m_name|truncatechars:4 }}
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card-footer border-secondary bg-transparent p-3">
+                <button class="btn btn-info w-100 fw-bold shadow-sm" onclick="selectFullYear()">
+                    Full Year
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block script %}
-<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js" integrity="sha384-BQKzmHvQLMCAnL3UtDBA1Al5tFjsCz1wrMlIUA1wkzo14DYkRWjywW+p9pCj0cwd" crossorigin="anonymous"></script>
 
 <script type="text/javascript">
+    var currentLevel = 'cat1'; // Track if we are at Cat1 or Cat2 level
+    let currentBegin = "{{ begin }}"; 
+    let currentEnd = "{{ end }}";
+    let viewYear = {{ year }};
+    const catTypeId = "{{ cattype }}";
+    let cat1Data = [];
 
-    var pie_canvas = document.getElementById("pie-chart");
-    var ctx = pie_canvas.getContext("2d");
-    var myChart;
-    var pie_container = document.getElementById("pie-container");
+    // Detect Bootstrap theme
+    function getTheme() {
+        return document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
+    }
+    
+    // Initialize chart with the current theme
+    var myChart = echarts.init(document.getElementById('main-chart'), getTheme(), { renderer: 'canvas' });
 
-    pie_container.style.width = "800px";
-    pie_container.style.height = "800px";
+    // Global loading settings to match Bootstrap themes
+    const loadingOptions = {
+        text: 'loading',
+        color: '#0dcaf0', // bootstrap info color
+        textColor: getTheme() === 'dark' ? '#fff' : '#000',
+        maskColor: 'rgba(0, 0, 0, 0)', // TRANSPARENT background to stop the flash
+        zlevel: 0
+    };
 
-    $.get('{% url "budgetdb:cat1_piechart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}', function(config) {
-        myChart = new Chart(ctx, config);
+    // Listen for theme changes toggle
+    const observer = new MutationObserver(() => {
+        myChart.dispose();
+        myChart = echarts.init(document.getElementById('main-chart'), getTheme());
+        loadCat1Chart(); 
     });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
 
-    function add_subcontainer(cat1_index) {
-        var newDiv = document.createElement('div');
-        newDiv.style.position = "absolute";
-        newDiv.style.left = "30%";
-        newDiv.style.top = "25%";
-        newDiv.style.height = "50%";
-        newDiv.style.width = "50%";
-        newDiv.id= "subcontainer";
-        var newCanvas = document.createElement('canvas');
-        newCanvas.id="new-pie-chart";
-        newDiv.append(newCanvas);
-        document.body.append(newDiv);
-        var newCtx = newCanvas.getContext("2d");
-        $.get('{% url "budgetdb:cat2_piechart_json" %}?begin={{ begin }}&end={{ end }}&ct={{ cattype }}&cat1=' + cat1_index, function(subConfig) {
-            myNewChart = new Chart(newCtx, subConfig);
+
+    function loadCat1Chart() {
+        currentLevel = 'cat1';
+        myChart.showLoading(loadingOptions);
+        const url = `{% url "budgetdb:cattype_by_cat1_totals_json" %}?begin=${currentBegin}&end=${currentEnd}&cattype=${catTypeId}`;
+
+        $.get(url, function(res) {
+            myChart.hideLoading();
+            cat1Data = res.data; 
+            
+            myChart.setOption({
+                backgroundColor: 'transparent', // Ensure chart doesn't force a background
+                title: { text: res.cattype_name, left: 'center' },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: getTheme() === 'dark' ? '#333' : '#fff',
+                    textStyle: {
+                        color: getTheme() === 'dark' ? '#fff' : '#000'
+                    },
+                    formatter: function(params) {
+                        let val = params.value.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+                        return `<strong>${params.name}</strong><br/>${val} (${params.percent}%)`;
+                    }
+                },
+                series: [{
+                    name: 'Category 1',
+                    type: 'pie',
+                    radius: ['30%', '60%'],
+                    center: ['50%', '50%'], 
+                    data: cat1Data,
+                    avoidLabelOverlap: true,
+                    itemStyle: {
+                        borderRadius: 6,
+                        borderColor: getTheme() === 'dark' ? '#212529' : '#fff',
+                        borderWidth: 2
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        },
+                        label: {
+                            show: true,
+                            fontSize: '16',
+                            fontWeight: 'bold'
+                        }
+                    }
+                }]
+            }, true); // 'true' tells ECharts to clear the previous Cat2 series if it exists
         });
-
     }
 
-    window.addEventListener('click', function(e){
-        if (pie_canvas.contains(e.target)){
-            if (!document.getElementById("new-pie-chart")) {
-                var activePoints = myChart.getElementsAtEvent(event);
-                if (activePoints.length > 0) {
-                    var chartData = activePoints[0]['_chart'].config.data;
-                    var idx = activePoints[0]['_index'];
-                    var cat1_index = chartData.datasets[0].indexes[idx];
-                    add_subcontainer(cat1_index);
-                    
-                }
-            } else {
-                document.getElementById('subcontainer').remove()
-                var activePoints = myChart.getElementsAtEvent(event);
-                if (activePoints.length > 0) {
-                    var chartData = activePoints[0]['_chart'].config.data;
-                    var idx = activePoints[0]['_index'];
-                    var cat1_index = chartData.datasets[0].indexes[idx];
-                    add_subcontainer(cat1_index);
-                }
-            }
-        } else if (!document.getElementById('new-pie-chart').contains(e.target)){
-            document.getElementById('subcontainer').remove();
-        }
-        if (document.getElementById("new-pie-chart")) {
-            pie_container.style.width = "400px";
-            pie_container.style.height = "400px";
-        } else {
-            pie_container.style.width = "800px";
-            pie_container.style.height = "800px";
-
+    function drillDown(cat1Id, cat1Name) {
+        currentLevel = 'cat2';
+        myChart.showLoading(loadingOptions);
+        const url = `{% url "budgetdb:cattype_by_cat2_totals_json" %}?begin=${currentBegin}&end=${currentEnd}&cattype=${catTypeId}&cat1=${cat1Id}`;
+        $.get(url, function(res) {
+            myChart.hideLoading();
+            myChart.setOption({
+                series: [
+                    {
+                        // Update Cat 1 to move left
+                        center: ['25%', '50%'],
+                        radius: ['20%', '35%'],
+                        label: { show: false } // Hide labels to avoid clutter
+                    },
+                    {
+                        // Add Cat 2 to the right
+                        name: 'Category 2',
+                        type: 'pie',
+                        radius: ['35%', '55%'],
+                        center: ['70%', '50%'],
+                        data: res.data,
+                        itemStyle: {
+                            borderRadius: 6,
+                            borderColor: getTheme() === 'dark' ? '#212529' : '#fff',
+                            borderWidth: 2
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            },
+                            label: {
+                                show: true,
+                                fontSize: '16',
+                                fontWeight: 'bold'
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    }
+    //  INSIDE CLICKS
+    myChart.on('click', function(params) {
+        if (params.seriesName === 'Category 1') {
+            drillDown(params.data.cat1_id);
+        } else if (params.seriesName === 'Category 2') {
+            // Construct the dynamic URL for the General View
+            const url = `/en-ca/transactions/cat2/${params.data.cat2_id}/${currentBegin}/${currentEnd}/`;
+            window.location.href = url;
         }
     });
 
-</script>
+    // CLICK OUTSIDE (ZRender event)
+    myChart.getZr().on('click', function(params) {
+        // If the click is on the background (no target) and we are at cat2 level, reset
+        if (!params.target && currentLevel === 'cat2') {
+            loadCat1Chart();
+        }
+    });
 
+    // Initial Load
+    loadCat1Chart();
+
+    // Responsive resize
+    window.addEventListener('resize', myChart.resize);
+
+    function selectFullYear() {
+        // 1. Calculate the boundary dates for the current viewYear
+        const start = `${viewYear}-01-01`;
+        const end = `${viewYear}-12-31`;
+
+        // 2. UI Polish: Remove 'active' state from all specific month buttons
+        document.querySelectorAll('.month-btn').forEach(btn => {
+            btn.classList.remove('active', 'btn-primary');
+            btn.classList.add('btn-outline-primary');
+        });
+
+        // 3. Trigger the AJAX refresh
+        updateDates(start, end);
+    }
+
+    function updateDates(start, end) {
+        currentBegin = start;
+        currentEnd = end;
+        const display = document.getElementById('date-range-display');
+        if (display) { display.innerText = `${start} to ${end}`; }
+        loadCat1Chart(); 
+    }
+
+    function changeYear(delta) {
+        viewYear += delta;
+        document.getElementById('current-year-display').innerText = viewYear;
+        selectFullYear();
+    }
+
+    function selectMonth(month) {
+        // Format: YYYY-MM-DD
+        let start = `${viewYear}-${String(month).padStart(2, '0')}-01`;
+        // Find last day of month
+        let lastDay = new Date(viewYear, month, 0).getDate();
+        let end = `${viewYear}-${String(month).padStart(2, '0')}-${lastDay}`;
+        updateDates(start, end);
+    }
+
+</script>
 {% endblock %}

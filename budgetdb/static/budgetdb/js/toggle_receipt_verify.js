@@ -1,13 +1,18 @@
-<script type="text/javascript">
+// static 'budgetdb/js/toggle_receipt_verify.js'
 (function($) {
+    const config = document.getElementById('tx-config').dataset;
+    const urlToggleReceipt = config.urlToggleReceipt
+    const urlToggleVerify = config.urlToggleVerify
+    const csrftoken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
     window.togglereceiptT = function(transaction_id) {
         var data = {
             'transaction_id': transaction_id, 
-            'csrfmiddlewaretoken': '{{csrf_token}}'
+            'csrfmiddlewaretoken': csrftoken
         };
 
         // Perform the POST request
-        $.post('{% url "budgetdb:togglereceipttransaction_json" %}', data)
+        $.post(urlToggleReceipt, data)
          .done(function(response) {
             // ONLY toggle the classes if the server actually succeeded
             $('#R' + transaction_id).toggleClass('RECEIPT NORECEIPT');
@@ -21,9 +26,9 @@
     window.toggleverifyT = function(transaction_id) {
         var data = {
             'transaction_id': transaction_id, 
-            'csrfmiddlewaretoken': '{{csrf_token}}'
+            'csrfmiddlewaretoken': csrftoken
         };
-        $.post('{% url "budgetdb:toggleverifytransaction_json" %}', data)
+        $.post(urlToggleVerify, data)
          .done(function(response) {
             // ONLY toggle the classes if the server actually succeeded
             $('#V' + transaction_id).toggleClass('VERIFIED UNVERIFIED');
@@ -35,4 +40,3 @@
     };
 
 })(jQuery);
-</script>

@@ -10,9 +10,11 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.dateparse import parse_date
-from .models import User, Preference, Invitation
-from .models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
-from .models import BudgetedEvent, Transaction, JoinedTransactions, PaystubMapping, PaystubProfile
+
+from budgetdb.models import User, Preference, Invitation
+from budgetdb.models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
+from budgetdb.models import BudgetedEvent, Transaction, JoinedTransactions, PaystubMapping, PaystubProfile
+
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
 from crispy_forms.bootstrap import AppendedText, PrependedText, StrictButton
@@ -91,6 +93,8 @@ class AccountForm(forms.ModelForm):
             'date_open',
             'date_closed',
             'is_deleted',
+            'ofx_flip_sign',
+            'ofx_flip_sign_set',
             )
 
     def __init__(self, *args, **kwargs):
@@ -106,37 +110,35 @@ class AccountForm(forms.ModelForm):
         user = get_current_user()
         self.fields['currency'].queryset = Preference.objects.get(user=user).currencies
         self.helper.layout = Layout(
-            Div(
-                Div('name', css_class='form-group col-md-4  '),
-                Div('account_number', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('name', css_class='col-6'),
+                Column('account_number', css_class='col-6'),
             ),
-            Div(
-                Div('date_open', css_class='form-group col-md-4  '),
-                Div('date_closed', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('date_open', css_class='col-6'),
+                Column('date_closed', css_class='col-6'),
             ),
-            Div('comment', css_class='form-group col-md-6  '),
-            Div('currency', css_class='form-group col-md-4  '),
-            Div(
-                Div('account_host', css_class='form-group col-md-4  '),
-                Div('account_parent', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row('comment', css_class='col-12'),
+            Row('currency', css_class='col-4'),
+            Row(
+                Column('account_host', css_class='col-6'),
+                Column('account_parent', css_class='col-6'),
             ),
-            Div(
-                Div('unit_price', css_class='form-group col-md-4  '),
-                Div('TFSA', css_class='form-group col-md-4  '),
-                Div('RRSP', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('unit_price', css_class='col-4'),
+                Column('TFSA', css_class='col-4'),
+                Column('RRSP', css_class='col-4'),
             ),
-            Div(
-                Div('is_deleted', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('ofx_flip_sign', css_class='col-6'),
+                Column('ofx_flip_sign_set', css_class='col-6'),
             ),
-            Div(
-                Div('users_admin', css_class='form-group col-md-4  '),
-                Div('users_view', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('is_deleted', css_class='col-6'),
+            ),
+            Row(
+                Column('users_admin', css_class='col-6'),
+                Column('users_view', css_class='col-6'),
             ),
         )
 
@@ -1075,6 +1077,7 @@ class MappingRowForm(forms.ModelForm):
             instance.save()
         return instance
 
+
 class PaystubProfileForm(forms.ModelForm):
     class Meta:
         model = PaystubProfile
@@ -1191,7 +1194,7 @@ class PreferenceForm(forms.ModelForm):
             new_timeline_stop = self.cleaned_data['timeline_stop']
             accounts = Account.view_objects.all()
             for account in accounts:
-                account.check_balances(new_timeline_stop)
+                account.ensure_records_exist(new_timeline_stop)
         super(PreferenceForm, self).save(commit)
 
 
