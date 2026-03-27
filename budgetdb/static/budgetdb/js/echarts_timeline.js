@@ -8,7 +8,6 @@ function generateTooltipHtml(args, isFiltered, isSmall) {
     let mytooltip = `<strong>${args[0].axisValue}</strong><br />`;
     let subTotal = 0;
     let grandTotalValue = null;
-    debugger
 
     args.forEach(arg => {
         const val = parseFloat(arg.value);
