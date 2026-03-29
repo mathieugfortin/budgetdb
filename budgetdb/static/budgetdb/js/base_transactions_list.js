@@ -26,30 +26,42 @@
         }
         // CAT1 SWAPPER (Click to Edit)
         $(document).on('click', '.cat1-wrapper .cat-display', function() {
-            debugger
             const $span = $(this);
             const $wrapper = $span.closest('.cat1-wrapper');
             const $container = $wrapper.find('.cat1-select-container');
             const txId = $wrapper.data('txid');
             const currentId = $wrapper.data('cat1-id');
 
-            let selectHtml = `<select class="cat-select cat1-select form-select form-select-sm" data-txid="${txId}">`;
-            selectHtml += `<option value="">---------</option>`;
-            allCat1s.forEach(cat => {
-                const selected = (cat.id == currentId) ? 'selected' : '';
-                selectHtml += `<option value="${cat.id}" ${selected}>${cat.name}</option>`;
+            // Create the select element safely
+            const $select = $('<select>', {
+                class: 'cat-select cat1-select form-select form-select-sm',
+                'data-txid': txId
             });
-            selectHtml += `</select>`;
 
-            $container.html(selectHtml).removeClass('d-none');
+            // Add the default option
+            $select.append($('<option>', { value: '', text: '---------' }));
+
+            // Add category options
+            allCat1s.forEach(cat => {
+                const $option = $('<option>', {
+                    value: cat.id,
+                    text: cat.name
+                });
+                if (cat.id == currentId) {
+                    $option.prop('selected', true);
+                }
+                $select.append($option);
+            });
+
+            // Clear and inject the new DOM element
+            $container.empty().append($select).removeClass('d-none');
             $span.addClass('d-none');
 
-            const $newSelect = $container.find('select');
-            $newSelect.select2({ width: '100%', minimumResultsForSearch: 10 });
-            $newSelect.select2('open');
+            // Initialize Select2
+            $select.select2({ width: '100%', minimumResultsForSearch: 10 });
+            $select.select2('open');
 
-            // Hide when closed (clicked away or selected)
-            $newSelect.on('select2:close', function() {
+            $select.on('select2:close', function() {
                 hideSelect2($(this));
             });
         });
@@ -80,11 +92,11 @@
             // Remove any existing delete input
             $form.find("input[name='delete']").remove();
             // Add hidden delete input
-            $("<input>")
-                .attr("type", "hidden")
-                .attr("name", "delete")
-                .val("true")
-                .appendTo($form);
+            $("<input>", {
+                type: "hidden",
+                name: "delete",
+                value: "true"
+            }).appendTo($form);
         });
 
         // 3. AJAX SAVING (Cat1)
@@ -112,7 +124,7 @@
                 
                 const $cat2Wrapper = $select.closest('tr').find('.cat2-wrapper');
                 const $cat2Display = $cat2Wrapper.find('.cat-display');
-                // $cat2Wrapper.text('---------');                  // Reset the text
+                $cat2Display.text('---------');                  // Reset the text
                 // $cat2Wrapper.find('.cat-display').text('---------');
                 $cat2Wrapper.data('cat2-id', '');                // Clear the ID data
                 $cat2Wrapper.attr('data-cat2-id', '');           // Clear the ID attribute
@@ -143,26 +155,40 @@
             }
 
             $.getJSON(config.urlGetCat2List, { 'cat1_id': cat1Id })
+                // 4. CAT2 SWAPPER (Inside .done)
                 .done(function(data) {
-                    let selectHtml = `<select class="cat-select cat2-select form-select form-select-sm" data-txid="${txId}">`;
-                    selectHtml += `<option value="">---------</option>`;
-                    $.each(data.cat2s, function(i, item) {
-                        const selected = (item.id == currentCat2Id) ? 'selected' : '';
-                        selectHtml += `<option value="${item.id}" ${selected}>${item.name}</option>`;
+                    const $select = $('<select>', {
+                        class: 'cat-select cat2-select form-select form-select-sm',
+                        'data-txid': txId
                     });
-                    selectHtml += `</select>`;
 
-                    $container.html(selectHtml).removeClass('d-none');
+                    $select.append($('<option>', { value: '', text: '---------' }));
+
+                    $.each(data.cat2s, function(i, item) {
+                        const $option = $('<option>', {
+                            value: item.id,
+                            text: item.name
+                        });
+                        if (item.id == currentCat2Id) {
+                            $option.prop('selected', true);
+                        }
+                        $select.append($option);
+                    });
+
+                    $container.empty().append($select).removeClass('d-none');
                     $span.addClass('d-none');
-                    const $newSelect = $container.find('select');
-                    $newSelect.select2({ width: '100%', minimumResultsForSearch: 10 });
-                    $newSelect.select2('open');
+                    
+                    $select.select2({ width: '100%', minimumResultsForSearch: 10 });
+                    $select.select2('open');
 
-                    $newSelect.on('select2:close', function() {
+                    $select.on('select2:close', function() {
                         hideSelect2($(this));
                     });
-                });
-        });
+                })
+                .fail(function() {
+                        alert("Error fetching sub-categories.");
+                    });
+            });
 
         // 5. AJAX SAVING (Cat2)
         $(document).on('change', '.cat2-select', function() {

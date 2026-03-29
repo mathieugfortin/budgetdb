@@ -55,11 +55,8 @@ class CustomUserManagerTests(TestCase):
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_superuser)
         # Check that the username field is None as per your model
-        try:
-            self.assertIsNone(user.username)
-        except AttributeError:
-            pass # This confirms the attribute doesn't even exist
-        
+        self.assertIsNone(user.username)
+       
         # Verify password is hashed
         self.assertTrue(user.check_password('foo'))
 

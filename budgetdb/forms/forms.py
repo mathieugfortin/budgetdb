@@ -1261,7 +1261,6 @@ class TransactionFormShort(forms.ModelForm):
                 css_class='row'
             ),
         )
-        pass
 
 
 TransactionFormSet = modelformset_factory(
@@ -1597,7 +1596,6 @@ class TransactionModalForm(BSModalModelForm):
                     </div>
                 """),
             ])
-            pass
 
 
 class TransactionFormFull(forms.ModelForm):

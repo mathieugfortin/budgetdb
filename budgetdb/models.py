@@ -527,9 +527,10 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         """Checks if records exist up to target_date; creates them if not."""
         last_record = self.balances.order_by('db_date').last()
         start_from = last_record.db_date + timedelta(days=1) if last_record else self.date_open
-
+        current_date = start_from
         if start_from <= target_date:
-            new_rows = []        
+            new_rows = [] 
+            # if there are no balances, set the day before account openning at 0       
             if not last_record:
                 new_rows.append(AccountBalanceDB(
                     account=self,
@@ -539,8 +540,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                     is_audit=True,
                     balance_is_dirty=False 
                 ))
-            else:
-                current_date = last_record.db_date + timedelta(days=1) 
 
             while current_date <= target_date:
                 new_rows.append(AccountBalanceDB(
@@ -554,7 +553,6 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 AccountBalanceDB.objects.bulk_create(new_rows)
 
     def get_balances(self, start_date, end_date):
-        self.ensure_records_exist(end_date)
         # Use an atomic block to prevent partial 'Clean' states
         with transaction.atomic():
             self.tree_balances_needed_cleaning(start_date, end_date)
@@ -565,8 +563,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         ).order_by('db_date')
 
     def get_balance(self, date):
-        self.ensure_records_exist(date)
-        self.tree_balances_needed_cleaning(date,date)
+        with transaction.atomic():
+            self.tree_balances_needed_cleaning(date,date)
         return AccountBalanceDB.objects.get(account=self, db_date=date)
 
     def save(self, *args, **kwargs):
@@ -737,55 +735,36 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         # after this is run, the interval start_date, end_date is clean
         # return False if the balances were not dirty and were not modified
         # return True if the balances were dirty and were modified
-
+        self.ensure_records_exist(end_date if end_date else start_date)
         child_accounts = Account.objects.filter(account_parent=self, is_deleted=False)
-
+        
         # did *anything* in the subtree change?
         for child in child_accounts:
             child.tree_balances_needed_cleaning(start_date, end_date)
 
-        # is this account itself dirty?  If a child was dirty, child update will have dirtied the parent.
         first_dirty_record = self.balances.filter(
             balance_is_dirty=True,
-            db_date__lte=start_date
-        ).order_by('-db_date').first()
-
-        first_dirty_record_in_period = self.balances.filter(
-            balance_is_dirty=True,
-            db_date__gte=start_date,
             db_date__lte=end_date
         ).order_by('db_date').first()
 
-        # everything is clean, nothing to do
-        if not first_dirty_record and not first_dirty_record_in_period:
-            return False 
-        
-        closest_audit_record = self.balances.filter(
-            is_audit=True,
-            db_date__lte=start_date
-        ).order_by('-db_date').first()
+        # everything is clean in our range
+        if not first_dirty_record or first_dirty_record.db_date > end_date:
+            return False
 
-        real_clean_start = start_date
-        if not first_dirty_record_in_period:
-            # if interval is clean and there is an audit blocking the dirty propagation to start_date, nothing to do
-            if closest_audit_record and first_dirty_record.db_date < closest_audit_record.db_date:
-                return False 
-            else:
-                real_clean_start = first_dirty_record.db_date
+        first_dirty_date = first_dirty_record.db_date
 
         if not child_accounts.exists():
-            self.build_balances_leaf(real_clean_start, end_date)
-            
+            self.build_balances_leaf(first_dirty_date, end_date)
+        else:
+            self.build_balances_tree(first_dirty_date, end_date)
         return True
 
-    def build_balances_leaf(self, start_date, end_date):
+    def build_balances_leaf(self, first_dirty_date, end_date):
         """
         Recalculates running balances for a range.
-        Uses a 'Firewall' (the last clean balance) as the starting point.
-        start_date is the first dirty date for that account
         """
         # 1. Find the starting balance (the day before our first dirty record)
-        day_before = start_date - relativedelta(days=1)
+        day_before = first_dirty_date - relativedelta(days=1)
         starting_balance = AccountBalanceDB.objects.filter(
             account=self, 
             db_date=day_before
@@ -794,7 +773,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         # 2. Get all records that need cleaning
         to_clean = AccountBalanceDB.objects.filter(
             account=self, 
-            db_date__gte=start_date, 
+            db_date__gte=first_dirty_date, 
             db_date__lte=end_date
         ).order_by('db_date')
 
@@ -842,17 +821,16 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 'audit_count': item['day_audit_count'],
             } for item in child_data
         }
-        data = totals_map.get(p_record.db_date, {'balance': 0, 'delta': 0, 'audit': 0, 'audit_count':0})
         
         # 3. Fetch the parent records we need to update
         parent_records = AccountBalanceDB.objects.filter(
             account=self,
             db_date__gte=day_before_start,
             db_date__lte=end_date
-        .order_by('db_date'))
+        ).order_by('db_date')
         
-        day_before_record = all_records.filter(db_date=day_before_start).first()
-        parent_records = all_records.exclude(db_date=day_before_start)
+        day_before_record = parent_records.filter(db_date=day_before_start).first()
+        parent_records = parent_records.exclude(db_date=day_before_start)
 
         parent_audit=False
         running_balance=Decimal('0.00')
@@ -866,8 +844,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
             # 4. Map the data in the parent
             for p_record in parent_records:
-                
-                if parent_audit and data['audit_count'] > 0:
+                data = totals_map.get(p_record.db_date, {'balance': 0, 'delta': 0, 'audit': 0, 'audit_count':0})
+                if parent_audit and data['audit_count'] and data['audit_count'] > 0:
                     parent_audit = False
                 if parent_audit:
                     running_balance = running_balance + data['delta']
@@ -883,9 +861,10 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 p_record.balance_is_dirty = False
         else:
             for p_record in parent_records:
+                data = totals_map.get(p_record.db_date, {'balance': 0, 'delta': 0, 'audit': 0, 'audit_count':0})        
                 p_record.balance = data['balance']
                 p_record.delta = data['delta'] 
-                p_record.balance_is_dirty = False
+                p_record.balance_is_dirty = False                
 
         # 5. Bulk save back to the database
         AccountBalanceDB.objects.bulk_update(parent_records, ['balance', 'balance_is_dirty', 'delta'])
@@ -1103,8 +1082,6 @@ class CatType(BaseSoftDelete, UserPermissions):
             .order_by('-total')
         )
         return cat2s_sums
-
-
 
 
 class Cat1(BaseSoftDelete, UserPermissions):

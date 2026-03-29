@@ -139,14 +139,14 @@ class TransactionCategoryAJAXTests(BudgetBaseTestCase):
 
     def test_update_cat1_resets_cat2(self):
         """Selecting a new Cat1 should save it and nullify Cat2."""
-        with impersonate(self.user_a):
-            url = reverse('budgetdb:update_transaction_category')
-            response = self.client.post(url, {
-                'transaction_id': self.tx.id,
-                'cat_level': 1,
-                'category_id': self.cat1_b.id
-            #}, HTTP_X_REQUESTED_WITH='XMLHttpRequest') # Tells Django it's an AJAX call
-            })
+        self.client.force_login(self.user_a)
+        url = reverse('budgetdb:update_transaction_category')
+        response = self.client.post(url, {
+            'transaction_id': self.tx.id,
+            'cat_level': 1,
+            'category_id': self.cat1_b.id
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest') # Tells Django it's an AJAX call
+            #})
         self.assertEqual(response.status_code, 200)
         self.tx.refresh_from_db()
         self.assertEqual(self.tx.cat1, self.cat1_b)
@@ -154,28 +154,30 @@ class TransactionCategoryAJAXTests(BudgetBaseTestCase):
 
     def test_cat2_admin_list_json_filtering(self):
         """API should only return Cat2 objects belonging to the selected Cat1."""
-        with impersonate(self.user_a):
-            url = reverse('budgetdb:cat2_admin_list_json')
-            response = self.client.get(url, {'cat1_id': self.cat1_a.id})
+        self.client.force_login(self.user_a)
+        url = reverse('budgetdb:cat2_admin_list_json')
+        response = self.client.get(url, {
+            'cat1_id': self.cat1_a.id
+        })
         
         self.assertEqual(response.status_code, 200)
         data = response.json()
         
         # Should find Bus and Train, but NOT Groceries
-        options = [opt['name'] for opt in data['options']]
-        self.assertIn(self.cat2_a1.name, options)
-        self.assertIn(self.cat2_a2.name, options)
-        self.assertNotIn(self.cat2_b1.name, options)
+        cat2s = [opt['name'] for opt in data['cat2s']]
+        self.assertIn(self.cat2_a1.name, cat2s)
+        self.assertIn(self.cat2_a2.name, cat2s)
+        self.assertNotIn(self.cat2_b1.name, cat2s)
 
     def test_save_cat2_directly(self):
         """Selecting a Cat2 should save without affecting Cat1."""
-        with impersonate(self.user_a):
-            url = reverse('budgetdb:update_transaction_category')
-            response = self.client.post(url, {
-                'transaction_id': self.tx.id,
-                'cat_level': 2,
-                'category_id': self.cat2_a3.id
-            })
+        self.client.force_login(self.user_a)
+        url = reverse('budgetdb:update_transaction_category')
+        response = self.client.post(url, {
+            'transaction_id': self.tx.id,
+            'cat_level': 2,
+            'category_id': self.cat2_a3.id
+        })
 
         self.assertEqual(response.status_code, 200)
         self.tx.refresh_from_db()

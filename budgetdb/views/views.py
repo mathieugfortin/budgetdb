@@ -1355,13 +1355,6 @@ class PreferencesUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     def get_success_url(self):
         return reverse('budgetdb:home')
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # form.helper = FormHelper()
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', 'Update', css_class='btn-primary'))
-        return form
-
     def test_func(self):
         self.user = get_current_user()
         try:

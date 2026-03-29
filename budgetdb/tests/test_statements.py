@@ -2,7 +2,6 @@ from django.test import TestCase
 
 
 class TableLockTest(TestCase):
-    pass
    # def setUp(self):
     #    # Create a mock record
      #   self.verified_item = YourModel.objects.create(verified_lock=True)
