@@ -2,8 +2,8 @@ import pytest
 from datetime import date
 from django.contrib.auth import get_user_model
 from crum import impersonate
-from budgetdb.models import Account, AccountHost, Currency, Preference
-from budgetdb.models import Account, AccountHost, Currency, Preference
+from budgetdb.models import *
+
 User = get_user_model()
 
 @pytest.fixture
