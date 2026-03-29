@@ -2,7 +2,7 @@ from decimal import Decimal
 from datetime import date
 from crum import impersonate
 from .base import BudgetBaseTestCase
-from budgetdb.models import Transaction, Account, AccountBalanceDB
+from budgetdb.models import Transaction, Account
 from django.core.exceptions import ValidationError
 
 class TransactionValidationTests(BudgetBaseTestCase):
