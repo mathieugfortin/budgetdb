@@ -3,7 +3,7 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from crum import impersonate
 from budgetdb.models import Account, AccountHost, Currency, Preference, Transaction
-
+from budgetdb.models import Account, AccountHost, Currency, Preference
 User = get_user_model()
 
 @pytest.fixture
