@@ -27,7 +27,7 @@ class TestSoftDelete_features:
             # Note: 'client' is a built-in pytest-django fixture
             client.force_login(user_a) 
             url = reverse('budgetdb:delete_transaction', kwargs={'pk': tx.pk})
-            response = client.post(url)
+            client.post(url)
             
             # 3. Check Visibility via Managers
             active_exist_view = Transaction.view_objects.for_user(user_a).filter(pk=tx.pk).exists()
