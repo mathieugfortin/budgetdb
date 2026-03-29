@@ -266,7 +266,6 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         return form
 
     def form_valid(self, form):
-        pass
         return super().form_valid(form)
 
     def get_success_url(self):

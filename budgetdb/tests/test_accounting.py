@@ -2,7 +2,7 @@ from decimal import Decimal
 from datetime import date
 from crum import impersonate
 from .base import BudgetBaseTestCase
-from budgetdb.models import Transaction, Account
+from budgetdb.models import Transaction, Account, AccountBalanceDB
 from django.core.exceptions import ValidationError
 
 class TransactionValidationTests(BudgetBaseTestCase):
@@ -66,12 +66,12 @@ class AccountingTests(BudgetBaseTestCase):
             )
 
             # 3. Verify balance on the 1st (Should be $1000)
-            bal_1st = self.acc_a.get_balance("2026-02-01")
-            self.assertEqual(bal_1st, Decimal('1000.00'))
+            bal_1st = self.acc_a.get_balance(date(2026,2,1))
+            self.assertEqual(bal_1st.balance, Decimal('1000.00'))
 
             # 4. Verify balance on the 2nd (1000 - 200 = $800)
-            bal_2nd = self.acc_a.get_balance("2026-02-02")
-            self.assertEqual(bal_2nd, Decimal('800.00'))
+            bal_2nd = self.acc_a.get_balance(date(2026,2,2))
+            self.assertEqual(bal_2nd.balance, Decimal('800.00'))
 
             # 5. Add a NEW Audit on the 3rd (Hard reset to $500)
             Transaction.objects.create(
@@ -85,18 +85,20 @@ class AccountingTests(BudgetBaseTestCase):
             )
 
             # 6. Verify the audit override works
-            bal_3rd = self.acc_a.get_balance("2026-02-03")
-            self.assertEqual(bal_3rd, Decimal('500.00'))
+            bal_3rd = self.acc_a.get_balance(date(2026,2,3))
+            self.assertEqual(bal_3rd.balance, Decimal('500.00'))
 
-    def test_recursive_parent_balance(self):
+    def test_recursive_parent_balance_SUM_CHILDREN(self):
         """Test that a parent account correctly sums its children's balances."""
         with impersonate(self.user_a):
             # Create a child account
+            self.acc_a.calc_mode=Account.SUM_CHILDREN
+            self.acc_a.save()
             child_acc = Account.objects.create(
                 name="Child Savings",
                 account_host=self.host,
                 currency=self.cad,
-                account_parent=self.acc_a, # Link to Main Checking
+                account_parent=self.acc_a, 
                 owner=self.user_a,
                 date_open="2026-01-01"
             )
@@ -122,13 +124,48 @@ class AccountingTests(BudgetBaseTestCase):
                 currency=self.cad,
                 description="test a"
             )
+        parent_bal = self.acc_a.get_balance(date(2026,2,2))
+        self.assertEqual(parent_bal.balance, Decimal('500.00'))
 
-            # Check parent balance. Your code logic says:
-            # If children exist, return SUM of children. 
-            # Note: Depending on your exact intent, if the parent has its own 
-            # transactions, they might be ignored if children exist.
-            parent_bal = self.acc_a.get_balance("2026-02-02")
-            self.assertEqual(parent_bal, Decimal('500.00'))
+
+    def test_recursive_parent_balance_PARENT_OVERRIDE(self):
+        """Test that a parent account correctly sums its children's balances."""
+        with impersonate(self.user_a):
+            # Create a child account
+            self.acc_a.calc_mode=Account.PARENT_OVERRIDE
+            self.acc_a.save()
+            child_acc = Account.objects.create(
+                name="Child Savings",
+                account_host=self.host,
+                currency=self.cad,
+                account_parent=self.acc_a, 
+                owner=self.user_a,
+                date_open="2026-01-01"
+            )
+
+            # Put $500 in the child via Audit
+            Transaction.objects.create(
+                account_source=child_acc,
+                amount_actual=Decimal('500.00'),
+                date_actual="2026-02-01",
+                audit=True,
+                # owner=self.user_a
+                currency=self.cad,
+                description="test a"
+            )
+
+            # Put $1000 in the parent via Audit
+            Transaction.objects.create(
+                account_source=self.acc_a,
+                amount_actual=Decimal('1000.00'),
+                date_actual="2026-02-01",
+                audit=True,
+                # owner=self.user_a
+                currency=self.cad,
+                description="test a"
+            )
+        parent_bal = self.acc_a.get_balance(date(2026,2,2))
+        self.assertEqual(parent_bal.balance, Decimal('1000.00'))
 
 
     def test_recursive_parent_balance_child_is_fresher(self):
@@ -170,11 +207,13 @@ class AccountingTests(BudgetBaseTestCase):
             # If children exist, return SUM of children. 
             # Note: Depending on your exact intent, if the parent has its own 
             # transactions, they might be ignored if children exist.
-            parent_bal = self.acc_a.get_balance("2026-02-02")
-            self.assertEqual(parent_bal, Decimal('500.00'))            
+            parent_bal = self.acc_a.get_balance(date(2026,2,2))
+            self.assertEqual(parent_bal.balance, Decimal('500.00'))            
 
-    def test_recursive_parent_balance_parent_is_fresher(self):
+    def test_recursive_parent_balance_parent_is_fresher_SUM_CHILDREN(self):
         """Test that a parent account correctly sums its children's balances."""
+        self.acc_a.calc_mode=Account.SUM_CHILDREN
+        self.acc_a.save()
         with impersonate(self.user_a):
             # Create a child account
             child_acc = Account.objects.create(
@@ -212,5 +251,49 @@ class AccountingTests(BudgetBaseTestCase):
             # If children exist, return SUM of children. 
             # Note: Depending on your exact intent, if the parent has its own 
             # transactions, they might be ignored if children exist.
-            parent_bal = self.acc_a.get_balance("2026-02-02")
-            self.assertEqual(parent_bal, Decimal('1000.00'))            
+            parent_bal = self.acc_a.get_balance(date(2026,2,2))
+            self.assertEqual(parent_bal.balance, Decimal('500.00'))            
+
+    def test_recursive_parent_balance_parent_is_fresher_PARENT_OVERRIDE(self):
+        """Test that a parent account correctly sums its children's balances."""
+        self.acc_a.calc_mode=Account.PARENT_OVERRIDE
+        self.acc_a.save()
+        with impersonate(self.user_a):
+            # Create a child account
+            child_acc = Account.objects.create(
+                name="Child Savings",
+                account_host=self.host,
+                currency=self.cad,
+                account_parent=self.acc_a, # Link to Main Checking
+                owner=self.user_a,
+                date_open="2026-01-01"
+            )
+
+            # Put $500 in the child via Audit
+            Transaction.objects.create(
+                account_source=child_acc,
+                amount_actual=Decimal('500.00'),
+                date_actual="2026-02-01",
+                audit=True,
+                # owner=self.user_a
+                currency=self.cad,
+                description="test a"
+            )
+
+            # Put $1000 in the parent via Audit
+            Transaction.objects.create(
+                account_source=self.acc_a,
+                amount_actual=Decimal('1000.00'),
+                date_actual="2026-02-02",
+                audit=True,
+                # owner=self.user_a
+                currency=self.cad,
+                description="test a"
+            )
+
+            # Check parent balance. Your code logic says:
+            # If children exist, return SUM of children. 
+            # Note: Depending on your exact intent, if the parent has its own 
+            # transactions, they might be ignored if children exist.
+            parent_bal = self.acc_a.get_balance(date(2026,2,2))
+            self.assertEqual(parent_bal.balance, Decimal('1000.00'))                        

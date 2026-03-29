@@ -110,15 +110,6 @@ class TransactionManagerTests(BudgetBaseTestCase):
             )
             self.tx_deleted.soft_delete()
 
-    def test_viewer_manager_active_visibility(self):
-        """Friend can see active tx because they admin acc_a."""
-        # Using the for_user(user) pattern we built
-        active = Transaction.view_objects.for_user(self.user_friend).filter(pk=self.tx_active.pk).exists()
-        deleted = Transaction.view_objects.for_user(self.user_friend).filter(pk=self.tx_deleted.pk).exists()
-        assert active is True
-        # Should NOT see the deleted one in the active view
-        assert deleted is False
-
     def test_deleted_manager_visibility(self):
         """Friend can see deleted tx in the deleted_objects manager."""
         qs = Transaction.view_deleted_objects.for_user(self.user_friend)
@@ -160,14 +151,7 @@ class TransactionManagerTests(BudgetBaseTestCase):
         # Should NOT see the deleted one in the active view
         assert deleted is False
 
-    def test_deleted_manager_visibility(self):
-        """Friend can see deleted tx in the deleted_objects manager."""
-        qs = Transaction.view_deleted_objects.for_user(self.user_friend)
-        
-        self.assertTrue(qs.filter(pk=self.tx_deleted.pk).exists())
-        self.assertFalse(qs.filter(pk=self.tx_active.pk).exists())
-
-    def test_admin_manager_permissions(self):
+    def test_admin_manager_permissions2(self):
         """Verify AdminManager only shows accounts where user has admin rights."""
         # acc_a: friend is admin -> Should see
         # acc_b: friend is viewer -> Should NOT see if only involving acc_b

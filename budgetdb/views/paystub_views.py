@@ -64,7 +64,6 @@ def process_mapping_line(mapping, profile, pay_date, tokens, engine, commit=Fals
         if existing_tx:
             target_destination_account = existing_tx.account_destination or profile.checking_account
         else:
-            pass
             target_destination_account = profile.checking_account
         target_source_account = profile.pay_account
     else:    
@@ -287,7 +286,6 @@ def setup_paystub_mapping(request, profile_id=None):
             profile = PaystubProfile.admin_objects.all().first()
         else:
             # add logic to ask for a profile
-            pass
             profile = PaystubProfile.admin_objects.all().first()
 
     accounts = Account.admin_objects.all().annotate(

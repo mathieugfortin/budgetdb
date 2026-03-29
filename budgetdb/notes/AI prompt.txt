@@ -13,3 +13,5 @@ I have classes for AccountHost (like a bank), Account, AccountCategory (group ac
 Context: I was trained as a software engineer 30 years ago but I haven't coded professionally in at least 25.  I have a good mind for it but I do this for fun and coding practice.
 
 Current Task:
+
+I haven't touched at my tests in too long and I forgot how it's setup.  I work in code-server and I start my tests from the test icon on the left nav button.  I think I'm having problems because I changed my DB since last time and I remember setting --reuse-db but I don't know how to "reset" the db

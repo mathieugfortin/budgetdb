@@ -7,12 +7,8 @@ def theme_processor(request):
     theme = 'light' 
     user=get_current_user()
     if user is not None:
-        if user.id is not None:
-            try:
-                preference = Preference.objects.get(user=user)          
-                theme = preference.theme
-            except ObjectDoesNotExist:
-                pass
+        preference = Preference.objects.get(user=user)          
+        theme = preference.theme
     return {'preference_mode': theme}
 
 def version_info(request):
