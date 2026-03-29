@@ -1,6 +1,5 @@
 import pytest
 from datetime import date
-from decimal import Decimal
 from django.contrib.auth import get_user_model
 from crum import impersonate
 from budgetdb.models import Account, AccountHost, Currency, Preference, Transaction
