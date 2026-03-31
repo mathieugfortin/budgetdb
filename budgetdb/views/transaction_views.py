@@ -10,7 +10,6 @@ from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoes
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict
 from django.db import transaction
 from django.db.models import Case, Value, When, Sum, F, DecimalField, Q, Window, OuterRef, Subquery, ExpressionWrapper, DateField
-from django.db.models.functions import Coalesce
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
