@@ -220,7 +220,7 @@ def GetAccountTransactionListURLJSON(request):
             namestring = namestring + " - " + acc.owner.first_name.capitalize()
         namestring = namestring + " - " + acc.name
         data.append({
-            'name': acc.name,
+            'name': namestring,
             'url': reverse('budgetdb:list_account_transactions', kwargs={'pk': acc.pk})
         })
     return JsonResponse(data, safe=False)
