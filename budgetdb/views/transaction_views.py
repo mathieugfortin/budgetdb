@@ -9,7 +9,8 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict
 from django.db import transaction
-from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
+from django.db.models import Case, Value, When, Sum, F, DecimalField, Q, Window, OuterRef, Subquery, ExpressionWrapper, DateField
+from django.db.models.functions import Coalesce
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
@@ -445,9 +446,9 @@ def import_ofx_view(request):
         del request.session['ofx_import_data']
         del request.session['ofx_account_id']
         if show_result:
-            return redirect('budgetdb:list_account_activity_period', pk=account.pk, date1=earliest_date, date2=latest_date)
+            return redirect('budgetdb:list_account_transactions_period', pk=account.pk, date1=earliest_date, date2=latest_date)
         else:
-            return redirect('budgetdb:list_account_activity', pk=account.pk)
+            return redirect('budgetdb:list_account_transactions', pk=account.pk)
 
     # --- STEP 3: LIVE SIGN FLIP (Ajax-like update to session) ---
     if request.method == 'POST' and 'flip_now' in request.POST:
@@ -578,7 +579,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         return context
 
     def get_success_url(self):
-        return reverse('budgetdb:list_account_activity', kwargs={'pk': self.account.pk})
+        return reverse('budgetdb:list_account_transactions', kwargs={'pk': self.account.pk})
 
 
 ###################################################################################################################
@@ -808,6 +809,14 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
     context_obj = None
     statement_pk = None
     title = ""
+    paginate_by = None
+
+    def get_paginate_by(self, queryset):
+        # If we are in 'account' mode, we increase the limit to 
+        # minimize the risk of splitting a day across pages.
+        if self.filter_type == 'account':
+            return 500  # Or return None to disable pagination entirely
+        return self.paginate_by    
 
     def test_func(self):
         self.filter_type = self.kwargs.get('filter_type', 'account')
@@ -829,6 +838,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         date1 = self.kwargs.get('date1')
         date2 = self.kwargs.get('date2')
         statement_pk = self.kwargs.get('statement_pk')
+        sort = self.request.GET.get('sort', 'date_actual')
 
         # Set Default Dates from Preferences
         preference = Preference.objects.get(user=self.request.user.id)
@@ -874,11 +884,56 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
             self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
             self.end = datetime.strptime(date2, "%Y-%m-%d").date()
 
-        return Transaction.view_objects.filter(
+        qs = Transaction.view_objects.filter(
             filter_q, 
             date_actual__gte=self.begin, 
             date_actual__lte=self.end
-        )
+        ).order_by('date_actual', 'id')
+
+        if self.filter_type == 'account' and 'date_actual' in sort:
+            # clean up balances
+            self.context_obj.get_balances(self.begin, self.end).order_by('-db_date')
+            # add the previous day's date
+            qs = qs.annotate(
+                target_ledger_date=ExpressionWrapper(
+                    F('date_actual') - timedelta(days=1), 
+                    output_field=DateField()
+                )
+            )
+            daily_balance_subquery = AccountBalanceDB.objects.filter(
+                account=self.context_obj,
+                db_date=OuterRef('target_ledger_date')
+            ).values('balance')[:1]
+            #get yesterday's closing balance
+            qs = qs.annotate(day_start_balance=Subquery(daily_balance_subquery))
+
+            # 2. Individual contribution (standard source/dest logic)
+            qs = qs.annotate(
+                amount_contribution=Case(
+                    When(audit=True, then=Value(0)),
+                    When(account_source=self.context_obj, then=-F('amount_actual')),
+                    When(account_destination=self.context_obj, then=F('amount_actual')),
+                    default=0,
+                    output_field=DecimalField()
+                )
+            )
+
+            # 3. Running Sum PARTITIONED BY DATE
+            qs = qs.annotate(
+                intra_day_run_sum=Window(
+                    expression=Sum('amount_contribution'),
+                    partition_by=[F('date_actual')],
+                    order_by=[F('date_actual').asc(), F('id').desc()]
+                )
+            )
+
+            # 4. Final Balance = Daily Ledger + Intra-day progress
+            qs = qs.annotate(
+                calculated_balance=F('day_start_balance') + F('intra_day_run_sum')
+            )
+            #print(qs.query)
+        return qs
+
         
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

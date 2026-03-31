@@ -153,11 +153,11 @@ class BaseTransactionListTable(tables.Table):
         template_name="budgetdb/table2_columns/_transaction_list_render_statement.html",
         verbose_name='Statement',
         attrs=SHOW_DESKTOP_ONLY,
-        orderable=False
+        #orderable=False
     )
     description = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_description.html",
-        orderable=False, 
+        #orderable=False, 
         attrs={"td": {"class": "description-column"}}
     )
     recurencelinks = tables.TemplateColumn(
@@ -171,27 +171,27 @@ class BaseTransactionListTable(tables.Table):
         template_name="budgetdb/table2_columns/_transaction_list_render_cat1.html",
         verbose_name='Category',
         attrs=SHOW_DESKTOP_ONLY,
-        orderable=False,
+        #orderable=False,
         empty_values=()
     )
     cat2 = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_cat2.html",
         verbose_name='Sub-Cat',
         attrs=SHOW_DESKTOP_ONLY,
-        orderable=False,
+        #orderable=False,
         empty_values=()
     )   
     receipt = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_receipt.html",
         verbose_name='Receipt',
         attrs=HIDE_ON_VERTICAL_PHONE,
-        orderable=False
+        #orderable=False
     )
     verified = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_verified.html",
         verbose_name='Verif',
         attrs=HIDE_ON_VERTICAL_PHONE,
-        orderable=False
+        #orderable=False
     )
     addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
 
@@ -236,20 +236,35 @@ class BaseTransactionListTable(tables.Table):
         # Guard Account-specific logic
         if self.filter_type == 'account':
             self.account = self.context_object
-            self.balances = self.account.get_balances(self.begin, self.end)
         else:
             self.account = None
-            self.balances = None
-        
 
         self.all_cat1s = list(Cat1.admin_objects.all())
         
         super().__init__(*args, **kwargs)
+
+        order_by = self.request.GET.get('sort', '') if self.request else "missing"
+
+        # 2. Logic: If there is no sort, or if the sort is NOT on date_actual, hide the column
+        is_sorted_by_date = False
+        if order_by != "missing":
+            # Check if the first sort key (the primary one) is date_actual (asc or desc)
+            primary_sort = order_by.lstrip('-') 
+            if primary_sort == '' or primary_sort == 'date_actual':
+                is_sorted_by_date = True
+        
+
         if self.filter_type != 'account':
             self.columns.hide('mybalance')
             self.columns.hide('addaudit')
             self.columns.hide('statement')
             self.columns.hide('addtransaction')
+        elif not is_sorted_by_date:
+            self.columns.hide('mybalance')
+            self.columns.hide('addaudit')
+            self.columns.hide('addtransaction')
+
+
 
     def render_date_actual(self, value):
         # strftime("%Y-%m-%d")
@@ -270,28 +285,15 @@ class BaseTransactionListTable(tables.Table):
                 )
 
     def render_mybalance(self, value, record):
-        if not self.account or not self.balances or record.audit:
+        balance = getattr(record, 'calculated_balance', None)
+        if not self.account or not balance or record.audit:
             return mark_safe("")
-        if self.order_by[0] == '-date_actual':
-            balance = self.balances.get(db_date=record.date_actual).balance
-            if self.previous_date is None or self.previous_date != record.date_actual:
-                self.previous_date = record.date_actual
-                self.previous_amount = record.amount_actual
-                self.previous_balance = balance
-                self.previous_source = record.account_source
-            else:
-                if self.previous_source == self.account:
-                    balance = self.previous_balance + self.previous_amount
-                else:
-                    balance = self.previous_balance - self.previous_amount
-                self.previous_amount = record.amount_actual
-                self.previous_balance = balance
-                self.previous_source = record.account_source
-            self.linebalance = balance
-            currency=record.account_source.currency if record.account_source else record.account_destination.currency
-            return format_html('{amount}{symbol}',
-                    amount=balance,
-                    symbol=currency.symbol) 
+        currency = record.account_source.currency if record.account_source else record.account_destination.currency
+        return format_html('{amount}{symbol}',
+            amount=balance,
+            symbol=currency.symbol
+        )
+
 
     def render_addaudit(self, value, record):
         if record.audit:
@@ -299,8 +301,8 @@ class BaseTransactionListTable(tables.Table):
                                 amount=record.amount_actual,
                                 symbol=record.account_source.currency.symbol)        
 
-        balance_str = get_balance_token(self.linebalance)
-        reverse_url = reverse("budgetdb:list_account_activity_create_audit_from_account",
+        balance_str = get_balance_token(record.amount_actual)
+        reverse_url = reverse("budgetdb:list_account_transactions_create_audit_from_account",
                               kwargs={"accountpk": self.account.pk,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),
                                       "amount": balance_str,

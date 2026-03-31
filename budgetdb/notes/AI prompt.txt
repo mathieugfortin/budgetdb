@@ -14,4 +14,147 @@ Context: I was trained as a software engineer 30 years ago but I haven't coded p
 
 Current Task:
 
-I haven't touched at my tests in too long and I forgot how it's setup.  I work in code-server and I start my tests from the test icon on the left nav button.  I think I'm having problems because I changed my DB since last time and I remember setting --reuse-db but I don't know how to "reset" the db
+I have a view that list transactions.  I can present data for a given account and I have a ledger table (AccountBalanceDB) for the balance of an account for a given day.  The twist is that the balance after each transaction is not set. That also means that the intra-day balances need to be calculated on the fly when I render the table (with table2).  
+
+I think it would be cleaner to annotate the transaction queryset.  That would allow me to simplify my render template.  I'm guessing performance would also be better.
+I'd have to set the intra-day transaction order but I think that would be OK to choose an arbitrary criteria like transaction ID.
+
+That annotate is a bit too fancy for me.  Can you help me there?
+
+My view:
+class BaseTransactionListView(UserPassesTestMixin, MyListView):
+    model = Transaction
+    table_class = BaseTransactionListTable
+    template_name = 'budgetdb/transaction/base_transactions_list.html'
+    
+    # State variables
+    filter_type = 'account'
+    pk = None
+    begin = None
+    end = None
+    statement = None
+    context_obj = None
+    statement_pk = None
+    title = ""
+
+    def get_queryset(self):
+        #self.filter_type = self.kwargs.get('filter_type', 'account')
+        
+        self.pk = self.kwargs.get('pk')
+        date1 = self.kwargs.get('date1')
+        date2 = self.kwargs.get('date2')
+        statement_pk = self.kwargs.get('statement_pk')
+
+        # Set Default Dates from Preferences
+        preference = Preference.objects.get(user=self.request.user.id)
+        self.begin = preference.slider_start
+        self.end = preference.slider_stop
+
+        if self.filter_type == 'account':
+            self.context_obj = get_object_or_404(Account, pk=self.pk)
+            if not self.context_obj.can_view():
+                raise PermissionDenied
+            #  set statement conditions
+            if statement_pk:
+                statement = get_object_or_404(Statement, id=statement_pk)
+                self.statement_pk = statement.pk
+                self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
+                self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
+                #extend for late transactions
+                if last_obj := Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last():
+                    last_date = last_obj.date_actual
+                    self.end = max(self.end,last_date)
+            # Child Account logic (Logic from your original view)
+            child_accounts = Account.view_objects.filter(account_parent_id=self.pk)
+            accounts = child_accounts | Account.view_objects.filter(pk=self.pk)
+            filter_q = Q(account_source__in=accounts) | Q(account_destination__in=accounts)
+            self.title = self.context_obj.name
+
+        elif self.filter_type == 'cat2':
+            self.context_obj = get_object_or_404(Cat2, pk=self.pk)
+            if not self.context_obj.can_view():
+                raise PermissionDenied
+            filter_q = Q(cat2=self.context_obj)
+            self.title = f"{self.context_obj.cat1.name} - {self.context_obj.name}"
+
+        elif self.filter_type == 'cat1':
+            self.context_obj = get_object_or_404(Cat1, pk=self.pk)
+            if not self.context_obj.can_view():
+                raise PermissionDenied
+            filter_q = Q(cat1=self.context_obj)
+            self.title = self.context_obj.name            
+            
+        # Date Overload from URL 
+        if date1 and date2:
+            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
+            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
+
+        return Transaction.view_objects.filter(
+            filter_q, 
+            date_actual__gte=self.begin, 
+            date_actual__lte=self.end
+        )
+
+        My table init:
+
+    def __init__(self, *args, **kwargs): 
+        self.filter_type = kwargs.pop('filter_type', 'account')
+        self.filter_pk = kwargs.pop('filter_pk', None)
+        self.begin = kwargs.pop('begin', None)
+        self.end = kwargs.pop('end', None)
+        self.statement = kwargs.pop('statement', None)
+        self.request = kwargs.pop("request", None)
+
+        self.context_object = None
+        if self.filter_pk:
+            model_map = {
+                'account': Account,
+                'cat1': Cat1,
+                'cat2': Cat2
+            }
+            # Use view_objects/admin_objects as per your architecture
+            self.context_object = model_map[self.filter_type].view_objects.get(pk=self.filter_pk) 
+
+        # Guard Account-specific logic
+        if self.filter_type == 'account':
+            self.account = self.context_object
+            self.balances = self.account.get_balances(self.begin, self.end)
+        else:
+            self.account = None
+            self.balances = None
+        
+
+        self.all_cat1s = list(Cat1.admin_objects.all())
+        
+        super().__init__(*args, **kwargs)
+        if self.filter_type != 'account':
+            self.columns.hide('mybalance')
+            self.columns.hide('addaudit')
+            self.columns.hide('statement')
+            self.columns.hide('addtransaction')      
+
+And the balance render:
+
+    def render_mybalance(self, value, record):
+        if not self.account or not self.balances or record.audit:
+            return mark_safe("")
+        if self.order_by[0] == '-date_actual':
+            balance = self.balances.get(db_date=record.date_actual).balance
+            if self.previous_date is None or self.previous_date != record.date_actual:
+                self.previous_date = record.date_actual
+                self.previous_amount = record.amount_actual
+                self.previous_balance = balance
+                self.previous_source = record.account_source
+            else:
+                if self.previous_source == self.account:
+                    balance = self.previous_balance + self.previous_amount
+                else:
+                    balance = self.previous_balance - self.previous_amount
+                self.previous_amount = record.amount_actual
+                self.previous_balance = balance
+                self.previous_source = record.account_source
+            self.linebalance = balance
+            currency=record.account_source.currency if record.account_source else record.account_destination.currency
+            return format_html('{amount}{symbol}',
+                    amount=balance,
+                    symbol=currency.symbol) 
