@@ -20,7 +20,7 @@
             {% if account.account_parent is not None %}
                 <span class="material-symbols-outlined">arrow_circle_right</span>
             {% endif %}
-            <a href="{% url 'budgetdb:list_account_activity' account.id %}">{{ account.nice_name }}</a>
+            <a href="{% url 'budgetdb:list_account_transactions' account.id %}">{{ account.nice_name }}</a>
         </td>
         <td>{{ account.balance|floatformat:2 }}$</td>
 

@@ -29,18 +29,16 @@ function onRangeUpdate(begin, end) {
     // Placeholder for page-specific range logic
 }
 
-
-function addA(baseURL, pk, label, attachTo) {
+function addHRef(label, url, attachTo) {
     const container = document.getElementById(attachTo);
     if (!container) return;
 
     const newA = document.createElement('a');
-    newA.href = baseURL.replace(/12345/, pk.toString());
+    newA.href = url;
     newA.className = 'dropdown-item';
     newA.innerHTML = label;
     container.append(newA);
 }
-
 
 /**
  * Modal & Help Logic
@@ -206,19 +204,24 @@ $(document).ready(function() {
         });
 
         // Populate Dynamic Menus
-        $.getJSON(config.urls.cattype_list, (result) => {
-            result.forEach(field => {
-                addA(config.urls.cattype_pie, field[0].pk, field[1].name, 'pie_chart_menu');
-                addA(config.urls.cattype_bar, field[0].pk, field[1].name, 'bar_chart_menu');
-            });
+        $.getJSON(config.urls.cattype_pie_urls_json, (result) => {
+            result.forEach(item => addHRef(item.name, item.url, 'pie_chart_menu'));
         });
 
-        $.getJSON(config.urls.account_list, (result) => {
-            result.forEach(field => addA(config.urls.account_activity, field[0].pk, field[1].name, 'account_menu'));
+        $.getJSON(config.urls.cattype_bar_urls_json, (result) => {
+            result.forEach(item => addHRef(item.name, item.url, 'bar_chart_menu'));
         });
 
-        $.getJSON(config.urls.accountcat_list, (result) => {
-            result.forEach(field => addA(`${config.urls.timeline_chart}?ac=12345`, field[0].pk, field[1].name, 'timeline_menu'));
+        $.getJSON(config.urls.account_transaction_list_urls_json, (result) => {
+            result.forEach(item => addHRef(item.name, item.url, 'account_menu'));
+        });
+
+        $.getJSON(config.urls.cat1_list_URLsjson, (result) => {
+            result.forEach(item => addHRef(item.name, item.url, 'categories_menu'));
+        });        
+
+        $.getJSON(config.urls.accountcat_timeline_URLs_json, (result) => {
+            result.forEach(item => addHRef(item.name, item.url, 'timeline_menu'));
         });
         // 1. Get the container
         const sliderElement = document.getElementById('input_range'); // Use your actual ID

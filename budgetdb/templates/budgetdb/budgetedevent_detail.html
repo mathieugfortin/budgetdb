@@ -28,12 +28,12 @@
             <li>Amount Planned: {{ object.amount_planned }}</li>
             <li>Source: 
                 {% if object.account_source != None %} 
-                    <a href="{% url 'budgetdb:list_account_activity' object.account_source.id %}"> {{ object.account_source }} </a> 
+                    <a href="{% url 'budgetdb:list_account_transactions' object.account_source.id %}"> {{ object.account_source }} </a> 
                 {% endif %}
             </li>
             <li>Destination: 
                 {% if object.account_destination != None %} 
-                    <a href="{% url 'budgetdb:list_account_activity' object.account_destination.id %}"> {{ object.account_destination }} </a>
+                    <a href="{% url 'budgetdb:list_account_transactions' object.account_destination.id %}"> {{ object.account_destination }} </a>
                 {% endif %}
             </li>
             <li>Category: {{ object.cat1 }}</li>

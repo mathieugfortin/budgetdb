@@ -199,40 +199,46 @@ def GetAccountViewListJSON(request):
 
 @login_required_ajax
 @require_GET
-def GetAccountDetailedViewListJSON(request):
+def GetAccountTransactionListURLJSON(request):
     preference = Preference.objects.get(user=request.user.id)
-    queryset = Account.view_objects.all()
-    queryset = queryset.annotate(
+    accounts = Account.view_objects.all()
+    accounts = accounts.annotate(
         favorite=Case(
             When(favorites=preference.id, then=Value(True)),
             default=Value(False),
         )
     )
-    queryset = queryset.order_by("-favorite", "account_host", "name")
+    accounts = accounts.order_by("-favorite", "account_host", "name")
 
-    array = []
-    for entry in queryset:
+    data = []
+    for acc in accounts:
         namestring = ""
-        if entry.favorite:
+        if acc.favorite:
             namestring = namestring + "☆ "
-        namestring = namestring + entry.account_host.name
-        if entry.owner != get_current_user():
-            namestring = namestring + " - " + entry.owner.first_name.capitalize()
-        namestring = namestring + " - " + entry.name
-        array.append([{"pk": entry.pk}, {"name": namestring}])
-
-    return JsonResponse(array, safe=False)
+        namestring = namestring + acc.account_host.name
+        if acc.owner != get_current_user():
+            namestring = namestring + " - " + acc.owner.first_name.capitalize()
+        namestring = namestring + " - " + acc.name
+        data.append({
+            'name': namestring,
+            'url': reverse('budgetdb:list_account_transactions', kwargs={'pk': acc.pk})
+        })
+    return JsonResponse(data, safe=False)
 
 @login_required_ajax
 @require_GET
-def GetAccountCatListJSON(request):
-    queryset = AccountCategory.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
+def GetAccountCatTimelineURLsJSON(request):
+    categories = AccountCategory.view_objects.all().order_by("name")
+    base_url = reverse('budgetdb:timeline_chart')
+    
+    data = []
+    for cat in categories:
+        data.append({
+            'name': cat.name,
+            # Construct the URL with the query parameter ?ac=PK
+            'url': f"{base_url}?ac={cat.pk}"
+        })
+    return JsonResponse(data, safe=False)
 
 @login_required_ajax
 @require_GET
@@ -258,25 +264,33 @@ def GetVendorListJSON(request):
 
 @login_required_ajax
 @require_GET
-def GetCat1ListJSON(request):
-    queryset = Cat1.view_objects.all().order_by("name")
-
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
+def GetCat1ListURLJSON(request):
+    cats = Cat1.view_objects.all().order_by("name")
+    data = [{
+        'name': c.name,
+        'url': reverse('budgetdb:transaction_list_view', kwargs={'filter_type': 'cat1', 'pk': c.pk})
+    } for c in cats]
+    return JsonResponse(data, safe=False)    
 
 @login_required_ajax
 @require_GET
-def GetCatTypeListJSON(request):
-    queryset = CatType.view_objects.all().order_by("name")
+def GetCatTypePieURLsJSON(request):
+    cats = CatType.view_objects.all().order_by("name")
+    data = [{
+        'name': c.name,
+        'url': reverse('budgetdb:cattype_pie', kwargs={'cat_type_pk': c.pk})
+    } for c in cats]
+    return JsonResponse(data, safe=False)  
 
-    array = []
-    for entry in queryset:
-        array.append([{"pk": entry.pk}, {"name": entry.name}])
-
-    return JsonResponse(array, safe=False)
+@login_required_ajax
+@require_GET
+def GetCatTypeBarURLsJSON(request):
+    cats = CatType.view_objects.all().order_by("name")
+    data = [{
+        'name': c.name,
+        'url': reverse('budgetdb:cattype_bar', kwargs={'cat_type_pk': c.pk})
+    } for c in cats]
+    return JsonResponse(data, safe=False) 
 
 @login_required_ajax
 @require_GET

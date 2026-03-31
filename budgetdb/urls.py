@@ -115,8 +115,8 @@ urlpatterns = [
     # Account
     path('account/ListJSON', views.GetAccountViewListJSON,
          name='account_list_view_json'),
-    path('account/ListDetailedJSON', views.GetAccountDetailedViewListJSON,
-         name='account_list_detailed_view_json'),
+    path('account/ListDetailedJSON', views.GetAccountTransactionListURLJSON,
+         name='account_transaction_list_urls_json'),
     path('account/', views.AccountListViewSimple.as_view(),
          name='list_account_simple'),
     path('account/details', views.AccountSummaryView.as_view(),
@@ -133,18 +133,18 @@ urlpatterns = [
          name='ajax_check_account_unit_price'),
 
     path('account/listactivity/<int:pk>/', views.BaseTransactionListView.as_view(), 
-        name='list_account_activity'),
+        name='list_account_transactions'),
     path('account/listactivity/<int:pk>/<int:statement_pk>/', views.BaseTransactionListView.as_view(),
-        name='list_account_activity_statement'),
+        name='list_account_transactions_statement'),
     path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(), 
-        name='list_account_activity_period'),
+        name='list_account_transactions_period'),
 
     path('transaction/update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
          name='account_listview_update_transaction_modal'),
     path('transaction/add_audit_modal/<int:accountpk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
-         name='list_account_activity_create_audit_from_account'),
+         name='list_account_transactions_create_audit_from_account'),
     path('transaction/add_audit_modal/<int:accountpk>/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
-         name='list_account_activity_create_audit_from_account'),
+         name='list_account_transactions_create_audit_from_account'),
     path('transaction/add_modal/<int:accountpk>/<slug:date>/', views.TransactionCreateModal.as_view(),
          name='create_transaction_from_date_account_modal'),
     path('transaction/add_modal/<int:accountpk>/', views.TransactionCreateModal.as_view(),
@@ -152,7 +152,8 @@ urlpatterns = [
 
     ##########################################################################################################
     # AccountCategory
-    path('accountcat/ListJSON', views.GetAccountCatListJSON, name='accountcat_view_list_json'),
+    path('accountcat/timelineURLsJSON', views.GetAccountCatTimelineURLsJSON, 
+         name='accountcat_timeline_URLs_json'),
     path('accountcat/<int:pk>/', views.AccountCatDetailView.as_view(),
          name='details_accountcategory'),
     path('accountcat/update/<int:pk>/', views.AccountCatUpdateView.as_view(),
@@ -201,8 +202,8 @@ urlpatterns = [
     ##########################################################################################################
     # Cat1
 
-    path('cat1/ListJSON', views.GetCat1ListJSON,
-        name='cat1_list_json'),
+    path('cat1/ListJSON', views.GetCat1ListURLJSON,
+        name='cat1_list_URLsjson'),
     path('cat1/', views.Cat1ListView.as_view(),
          name='list_cat1'),
     path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
@@ -211,6 +212,7 @@ urlpatterns = [
          name='create_cat1'),
     path('cat1/update/<int:pk>/', views.Cat1UpdateView.as_view(),
          name='update_cat1'),
+     
 
     ##########################################################################################################
     # Cat2
@@ -233,9 +235,10 @@ urlpatterns = [
     ##########################################################################################################
     # CatType
 
-
-    path('cattype/ListJSON', views.GetCatTypeListJSON, 
-        name='cattype_list_json'),
+    path('cattype/ListPieURLsJSON', views.GetCatTypePieURLsJSON, 
+        name='cattype_pie_urls_json'),        
+    path('cattype/ListBarURLsJSON', views.GetCatTypeBarURLsJSON, 
+        name='cattype_bar_urls_json'), 
     path('cattype/cat1/totalsJSON', views.GetCatTypeByCat1sTotalsJSON,
         name='cattype_by_cat1_totals_json'),
     path('cattype/cat1/MonthlyTotalsJSON', views.GetCatTypeByCat1sMonthlyTotalsJSON,
@@ -309,6 +312,8 @@ urlpatterns = [
     
     path('transactions/<str:filter_type>/<int:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(),
         name='transaction_list_view'),
+    path('transactions/<str:filter_type>/<int:pk>/', views.BaseTransactionListView.as_view(),
+        name='transaction_list_view'),        
     path('transaction/ListManualJSON', views.load_manual_transactionsJSON, 
         name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
