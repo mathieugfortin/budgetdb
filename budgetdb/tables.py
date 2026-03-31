@@ -147,7 +147,7 @@ class BaseTransactionListTable(tables.Table):
         attrs={"td": {"class": "min"}},
         order_by=("date_actual", 'audit','-verified', '-id')
     )
-    amount_actual = tables.Column(verbose_name='$', orderable=False)
+    # amount_actual = tables.Column(verbose_name='$', orderable=False)
     mybalance = tables.Column(verbose_name='Balance', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
     statement = tables.TemplateColumn(    
         template_name="budgetdb/table2_columns/_transaction_list_render_statement.html",
@@ -181,6 +181,13 @@ class BaseTransactionListTable(tables.Table):
         #orderable=False,
         empty_values=()
     )   
+    amount_actual = tables.TemplateColumn(
+        template_name="budgetdb/table2_columns/_transaction_list_render_amount_actual.html",
+        verbose_name='$',
+        #attrs=HIDE_ON_VERTICAL_PHONE,
+        #orderable=False
+        extra_context={'today': date.today()}
+    )    
     receipt = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_receipt.html",
         verbose_name='Receipt',
@@ -195,14 +202,8 @@ class BaseTransactionListTable(tables.Table):
     )
     addaudit = tables.Column(verbose_name='Audit', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
 
-    view_account_id = None
     account = None
-    previous_date = None
-    previous_balance = None
-    previous_amount = None
-    previous_source = None
-    linebalance = None
-
+ 
     class Meta:
         model = Transaction
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
@@ -212,7 +213,8 @@ class BaseTransactionListTable(tables.Table):
         per_page = 150
         row_attrs = {
             "id": lambda record: f'T{record.pk}',
-            "class": lambda record: set_class_transaction(record)
+            "class": lambda record: set_class_transaction(record),
+            "data-txid": lambda record: record.pk,
         }
     
     def __init__(self, *args, **kwargs): 
@@ -266,20 +268,6 @@ class BaseTransactionListTable(tables.Table):
     def render_date_actual(self, value):
         # strftime("%Y-%m-%d")
         return format(value.strftime("%Y-%m-%d"))
-
-    def render_amount_actual(self, value, record):
-        if record.audit:
-            return mark_safe("")
-        if not (record.budget_only is True and record.date_actual <= date.today()):
-            if self.account and value != 0 and record.account_source == self.account:
-                value = value * -1
-        else:
-            return mark_safe("")   
-        currency=record.account_source.currency if record.account_source else record.account_destination.currency
-        return format_html('{amount}{symbol}',
-                    amount=value,
-                    symbol=currency.symbol
-                )
 
     def render_mybalance(self, value, record):
         balance = getattr(record, 'calculated_balance', None)

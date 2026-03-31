@@ -309,10 +309,23 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         return form
 
     def form_valid(self, form):
-        if "delete" in self.request.POST:
-            self.object.delete()
-            return redirect(self.get_success_url())
+        #if "delete" in self.request.POST:
+        #    self.object.delete()
+        #    return redirect(self.get_success_url())
 
+        # Check if fields affecting balance were changed
+        balance_sensitive_fields = ['amount_actual', 'date_actual', 'account_source', 'account_destination', 'is_deleted']
+        needs_refresh = any(field in form.changed_data for field in balance_sensitive_fields) or self.request.POST.get('delete') == 'true'
+        is_ajax = self.request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        if is_ajax:
+            instance = form.save()
+            return JsonResponse({
+                'success': True,
+                'needs_refresh': needs_refresh,
+                'transaction_id': instance.pk,
+                # Optionally send back simple display data
+                'description': instance.description,
+            })
         return super().form_valid(form)
 
     def get_success_url(self):

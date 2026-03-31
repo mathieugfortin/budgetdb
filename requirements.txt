@@ -9,7 +9,7 @@ click==8.2.1
 codecov-cli==11.2.6
 coverage==7.13.4
 crispy-bootstrap5==2023.10
-cryptography==46.0.5
+cryptography==46.0.6
 dill==0.4.0
 Django==6.0.3
 django-appconf==1.2.0
@@ -44,7 +44,6 @@ pluggy==1.6.0
 pycodestyle==2.14.0
 pycparser==3.0
 pyee==13.0.1
-Pygments==2.19.2
 pylint==3.3.7
 pypdfium2==5.5.0
 pytest==9.0.2
@@ -55,7 +54,7 @@ python-dateutil==2.9.0.post0
 python-slugify==8.0.4
 pytz==2025.2
 PyYAML==6.0.3
-requests==2.32.5
+requests==2.33.1
 responses==0.21.0
 sentry-sdk==2.52.0
 six==1.17.0
