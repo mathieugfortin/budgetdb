@@ -20,4 +20,3 @@ class UITests(LiveServerTestCase,BudgetBaseTestCase):
         with impersonate(self.user_a):
             response = self.client.get(reverse('budgetdb:home'))
         #self.assertContains(response, 'window.DjangoConfig = {')
-        #self.assertContains(response, '/cattype_list_json/') # Verify URL pattern exists

@@ -115,8 +115,8 @@ urlpatterns = [
     # Account
     path('account/ListJSON', views.GetAccountViewListJSON,
          name='account_list_view_json'),
-    path('account/ListDetailedJSON', views.GetAccountDetailedViewListJSON,
-         name='account_list_detailed_view_json'),
+    path('account/ListDetailedJSON', views.GetAccountTransactionListURLJSON,
+         name='account_transaction_list_urls_json'),
     path('account/', views.AccountListViewSimple.as_view(),
          name='list_account_simple'),
     path('account/details', views.AccountSummaryView.as_view(),
@@ -152,7 +152,8 @@ urlpatterns = [
 
     ##########################################################################################################
     # AccountCategory
-    path('accountcat/ListJSON', views.GetAccountCatListJSON, name='accountcat_view_list_json'),
+    path('accountcat/timelineURLsJSON', views.GetAccountCatTimelineURLsJSON, 
+         name='accountcat_timeline_URLs_json'),
     path('accountcat/<int:pk>/', views.AccountCatDetailView.as_view(),
          name='details_accountcategory'),
     path('accountcat/update/<int:pk>/', views.AccountCatUpdateView.as_view(),
@@ -201,8 +202,8 @@ urlpatterns = [
     ##########################################################################################################
     # Cat1
 
-    path('cat1/ListJSON', views.GetCat1ListJSON,
-        name='cat1_list_json'),
+    path('cat1/ListJSON', views.GetCat1ListURLJSON,
+        name='cat1_list_URLsjson'),
     path('cat1/', views.Cat1ListView.as_view(),
          name='list_cat1'),
     path('cat1/<int:pk>/', views.Cat1DetailView.as_view(),
@@ -234,9 +235,10 @@ urlpatterns = [
     ##########################################################################################################
     # CatType
 
-
-    path('cattype/ListJSON', views.GetCatTypeListJSON, 
-        name='cattype_list_json'),
+    path('cattype/ListPieURLsJSON', views.GetCatTypePieURLsJSON, 
+        name='cattype_pie_urls_json'),        
+    path('cattype/ListBarURLsJSON', views.GetCatTypeBarURLsJSON, 
+        name='cattype_bar_urls_json'), 
     path('cattype/cat1/totalsJSON', views.GetCatTypeByCat1sTotalsJSON,
         name='cattype_by_cat1_totals_json'),
     path('cattype/cat1/MonthlyTotalsJSON', views.GetCatTypeByCat1sMonthlyTotalsJSON,
@@ -310,6 +312,8 @@ urlpatterns = [
     
     path('transactions/<str:filter_type>/<int:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(),
         name='transaction_list_view'),
+    path('transactions/<str:filter_type>/<int:pk>/', views.BaseTransactionListView.as_view(),
+        name='transaction_list_view'),        
     path('transaction/ListManualJSON', views.load_manual_transactionsJSON, 
         name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,

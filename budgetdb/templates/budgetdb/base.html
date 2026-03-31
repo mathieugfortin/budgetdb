@@ -63,13 +63,11 @@
             window.DjangoConfig = {
                 isAuthenticated: {{ user.is_authenticated|yesno:"true,false" }},
                 urls: {
-                    cattype_list: "{% url 'budgetdb:cattype_list_json' %}",
-                    cattype_pie: "{% url 'budgetdb:cattype_pie' 12345 %}",
-                    cattype_bar: "{% url 'budgetdb:cattype_bar' 12345 %}",
-                    account_list: "{% url 'budgetdb:account_list_detailed_view_json' %}",
-                    account_activity: "{% url 'budgetdb:list_account_transactions' 12345 %}",
-                    accountcat_list: "{% url 'budgetdb:accountcat_view_list_json' %}",
-                    timeline_chart: "{% url 'budgetdb:timeline_chart' %}",
+                    cattype_pie_urls_json: "{% url 'budgetdb:cattype_pie_urls_json' %}",
+                    cattype_bar_urls_json: "{% url 'budgetdb:cattype_bar_urls_json' %}",
+                    account_transaction_list_urls_json: "{% url 'budgetdb:account_transaction_list_urls_json' %}",
+                    cat1_list_URLsjson: "{% url 'budgetdb:cat1_list_URLsjson' %}",
+                    accountcat_timeline_URLs_json: "{% url 'budgetdb:accountcat_timeline_URLs_json' %}",
                     preferences: "{% url 'budgetdb:preferences_json' %}",
                     set_interval: "{% url 'budgetdb:setinterval_json' %}",
                     update_theme_preference: "{% url 'budgetdb:update_theme_preference' %}",

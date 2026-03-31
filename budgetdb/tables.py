@@ -253,7 +253,6 @@ class BaseTransactionListTable(tables.Table):
             if primary_sort == '' or primary_sort == 'date_actual':
                 is_sorted_by_date = True
         
-
         if self.filter_type != 'account':
             self.columns.hide('mybalance')
             self.columns.hide('addaudit')
@@ -263,8 +262,6 @@ class BaseTransactionListTable(tables.Table):
             self.columns.hide('mybalance')
             self.columns.hide('addaudit')
             self.columns.hide('addtransaction')
-
-
 
     def render_date_actual(self, value):
         # strftime("%Y-%m-%d")
