@@ -13,3 +13,7 @@ I have classes for AccountHost (like a bank), Account, AccountCategory (group ac
 Context: I was trained as a software engineer 30 years ago but I haven't coded professionally in at least 25.  I have a good mind for it but I do this for fun and coding practice.
 
 Current Task:
+
+I have alignment problems.  There seems to often be an empty area on the right of my screens.  Sometimes I can scroll to the right and there is nothing.  Sometimes it's the menu's hamburger that's there and the navbar is full of empty (like in vertical phone mode)
+
+Do you see a problem with my html or CSS?

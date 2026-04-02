@@ -54,7 +54,8 @@ urlpatterns = [
 
     path('health/jobs/extend_ledger/', views.ledger_status_view,
          name='trigger_extend_ledger'),
-
+    path('health/jobs/trigger-rebuild/', views.trigger_rebuild_view, 
+        name='trigger_rebuild_ledger'),
 
     # User
     path('user/signup/', views.UserSignupView.as_view(),
@@ -253,6 +254,12 @@ urlpatterns = [
          name='details_cattype'),
     path('cattype/JSONcard/month/', views.CatTypeMonthJSON,
          name='cattype_month_JSON'),
+    path('cattype/JSONcard/year/', views.CatTypeYearJSON,
+         name='cattype_year_JSON'),
+    path('cattype/JSONcard/multiyear/', views.MultiYearSummaryJSON,
+         name='multi_year_summary'),
+
+         
     path('cattype/add/', views.CatTypeCreateView.as_view(),
          name='create_cattype'),
     path('cattype/update/<int:pk>/', views.CatTypeUpdateView.as_view(),

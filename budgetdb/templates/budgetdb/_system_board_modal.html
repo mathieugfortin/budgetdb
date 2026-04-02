@@ -46,10 +46,46 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div id="sync-progress" class="progress d-none" style="height: 4px;">
                     <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: 100%"></div>
                 </div>
+
+
+
+
+                <div class="card bg-danger bg-opacity-10 border-danger mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h6 class="text-uppercase text-danger fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">
+                                    Critical Maintenance
+                                </h6>
+                                <h4 class="mb-0">Ledger Rebuild</h4>
+                            </div>
+                            <div id="rebuild-status-badge" class="badge bg-secondary px-3 py-2">
+                                <span id="rebuild-status-text">Ready</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-sm-12">
+                                <button type="button" onclick="triggerNuclearRebuild()" id="btn-rebuild" 
+                                        class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center py-3">
+                                    <span class="material-symbols-outlined me-2">restart_alt</span>
+                                    Run Nuclear Rebuild (Wipe & Recalculate)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="rebuild-progress" class="progress d-none" style="height: 4px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width: 100%"></div>
+                </div>
+
+
+
             </div>
         </div>
     </div>

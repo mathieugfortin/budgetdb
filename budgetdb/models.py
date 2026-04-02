@@ -1005,6 +1005,23 @@ class CatType(BaseSoftDelete, UserPermissions):
         
         return total
 
+    def get_total(self, targetdate):
+        # improvement: how do we deal with account currencies ?
+        start = date(targetdate.year,1,1)
+        end = date(targetdate.year,12,31)
+        cat1s = Cat1.view_objects.filter(cattype=self)
+        cat2s = Cat2.view_objects.filter(cattype=self)
+        accounts = Account.admin_objects.all()
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end)
+ 
+        cat1onlytransact = transactions.filter(cat1__in=cat1s,cat2__isnull=True) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        cat2transact = transactions.filter(cat2__in=cat2s) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
+        type_transactions = cat1onlytransact | cat2transact
+        total = (type_transactions.aggregate(Sum('amount_actual')).get('amount_actual__sum') or Decimal('0.00'))
+        # total = (cat1onlytransact or Decimal('0.00')) + (cat2transact or Decimal('0.00'))
+        
+        return total
+
     def get_totals(self, start, end):
         # improvement: how do we deal with account currencies ?
         cat2s = Cat2.view_objects.filter(cattype=self)

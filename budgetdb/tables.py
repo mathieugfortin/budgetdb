@@ -224,16 +224,12 @@ class BaseTransactionListTable(tables.Table):
         self.end = kwargs.pop('end', None)
         self.statement = kwargs.pop('statement', None)
         self.request = kwargs.pop("request", None)
-
+        
         self.context_object = None
         if self.filter_pk:
-            model_map = {
-                'account': Account,
-                'cat1': Cat1,
-                'cat2': Cat2
-            }
-            # Use view_objects/admin_objects as per your architecture
-            self.context_object = model_map[self.filter_type].view_objects.get(pk=self.filter_pk) 
+            model_map = kwargs.pop("model_map", None)
+            if model_map:
+                self.context_object = model_map[self.filter_type].view_objects.get(pk=self.filter_pk) 
 
         # Guard Account-specific logic
         if self.filter_type == 'account':

@@ -6,7 +6,7 @@ from django.conf import settings
 def theme_processor(request):
     theme = 'light' 
     user=get_current_user()
-    if user is not None:
+    if user is not None and user.is_authenticated:
         preference = Preference.objects.get(user=user)          
         theme = preference.theme
     return {'preference_mode': theme}

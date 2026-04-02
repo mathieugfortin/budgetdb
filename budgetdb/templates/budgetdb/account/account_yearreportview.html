@@ -4,17 +4,15 @@
 
 {% block content %}
 {% load humanize %}
-<div class="container">
-    <div class="row">
-        <div class="col-md-2 text-left">
-            <a href="{% url 'budgetdb:year_report_account' pk pyear %}" class="btn btn-primary"> {{ pyear }} </a>
-        </div>
-        <div class="col-md-8 fs-3 text-center">
-            {{ account }} - {{ year }} </h1>
-        </div>
-        <div class="col-md-2 text-right">
-            <a href="{% url 'budgetdb:year_report_account' pk nyear %}" class="btn btn-primary text-right"> {{ nyear }} </a>
-        </div>
+<div class="row">
+    <div class="col-md-2 text-left">
+        <a href="{% url 'budgetdb:year_report_account' pk pyear %}" class="btn btn-primary"> {{ pyear }} </a>
+    </div>
+    <div class="col-md-8 fs-3 text-center">
+        {{ account }} - {{ year }} </h1>
+    </div>
+    <div class="col-md-2 text-right">
+        <a href="{% url 'budgetdb:year_report_account' pk nyear %}" class="btn btn-primary text-right"> {{ nyear }} </a>
     </div>
 </div>
 
