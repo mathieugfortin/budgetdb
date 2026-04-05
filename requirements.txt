@@ -44,6 +44,7 @@ pluggy==1.6.0
 pycodestyle==2.14.0
 pycparser==3.0
 pyee==13.0.1
+Pygments==2.20.0
 pylint==3.3.7
 pypdfium2==5.5.0
 pytest==9.0.2
