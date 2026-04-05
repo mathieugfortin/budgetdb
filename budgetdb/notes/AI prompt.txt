@@ -14,6 +14,4 @@ Context: I was trained as a software engineer 30 years ago but I haven't coded p
 
 Current Task:
 
-I have alignment problems.  There seems to often be an empty area on the right of my screens.  Sometimes I can scroll to the right and there is nothing.  Sometimes it's the menu's hamburger that's there and the navbar is full of empty (like in vertical phone mode)
-
-Do you see a problem with my html or CSS?
+I say I'm using i18n_patterns with an en-ca prefix but it's not really true.  I set the framework in place but I code as if it was only in english.  What do I need to change to really be multi-language im my implementation and how do I deploy a new language?

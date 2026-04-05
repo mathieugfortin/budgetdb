@@ -462,8 +462,8 @@ class AccountReport():
 
 class Account(MyMeta, BaseSoftDelete, UserPermissions):
     class Meta:
-        verbose_name = 'Account'
-        verbose_name_plural = 'Accounts'
+        verbose_name = _('Account')
+        verbose_name_plural = _('Accounts')
         ordering = ['account_host__name', 'name']
 
     SUM_CHILDREN = 'SUM'
