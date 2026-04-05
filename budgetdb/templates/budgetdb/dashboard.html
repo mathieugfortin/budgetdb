@@ -131,11 +131,11 @@
             $.getJSON('{% url "budgetdb:manual_transaction_list_json" %}', function(result) {
                 var UL = document.createElement('ul');
                 $.each(result, function(i, field){
-                    LI = document.createElement('li');
-                    A = document.createElement('a');
-                    baseURL = '{% url "budgetdb:details_transaction" 12345 %}';
-                    baseURL=baseURL.replace(/12345/,field[0].pk.toString());
-                    A.setAttribute('href',baseURL);
+                    let LI = document.createElement('li');
+                    let A = document.createElement('a');
+                    let baseURL = '{% url "budgetdb:details_transaction" 12345 %}';
+                    baseURL = baseURL.replace(/12345/, field[0].pk.toString());
+                    A.setAttribute('href', baseURL);
                     A.innerHTML =  field[2].description;
                     LI.innerHTML = field[1].date + ' ';
                     LI.append(A);
