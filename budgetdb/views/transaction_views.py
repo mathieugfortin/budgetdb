@@ -309,9 +309,6 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         return form
 
     def form_valid(self, form):
-        #if "delete" in self.request.POST:
-        #    self.object.delete()
-        #    return redirect(self.get_success_url())
 
         # Check if fields affecting balance were changed
         balance_sensitive_fields = ['amount_actual', 'date_actual', 'account_source', 'account_destination', 'is_deleted']
