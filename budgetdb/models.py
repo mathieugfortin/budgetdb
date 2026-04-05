@@ -1011,7 +1011,6 @@ class CatType(BaseSoftDelete, UserPermissions):
         end = date(targetdate.year,12,31)
         cat1s = Cat1.view_objects.filter(cattype=self)
         cat2s = Cat2.view_objects.filter(cattype=self)
-        accounts = Account.admin_objects.all()
         transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end)
  
         cat1onlytransact = transactions.filter(cat1__in=cat1s,cat2__isnull=True) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')
