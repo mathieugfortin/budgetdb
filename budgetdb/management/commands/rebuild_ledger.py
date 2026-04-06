@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from budgetdb.models import Account, Transaction, AccountBalanceDB
 from budgetdb.services import LedgerService
-from django.db.models import Min
+from django.db.models import Min, Q
 
 class Command(BaseCommand):
     help = 'Wipes and recalculates the entire AccountBalanceDB from Transaction history.'
