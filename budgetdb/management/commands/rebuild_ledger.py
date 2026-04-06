@@ -1,3 +1,4 @@
+from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from budgetdb.models import Account, Transaction, AccountBalanceDB
@@ -53,6 +54,6 @@ class Command(BaseCommand):
                 if earliest:
                     # This one call will recursively clean every child 
                     # before finishing the parent's calculation.
-                    root.get_balances(earliest, datetime.date.today())
+                    root.get_balances(earliest, date.today())
 
         self.stdout.write(self.style.SUCCESS('Successfully rebuilt the ledger hull!'))
