@@ -213,7 +213,7 @@ class BaseTransactionListTable(tables.Table):
         per_page = 150
         row_attrs = {
             "id": lambda record: f'T{record.pk}',
-            "class": lambda record: set_class_transaction(record),
+            "class": set_class_transaction,
             "data-txid": lambda record: record.pk,
         }
     
