@@ -88,25 +88,97 @@ function triggerManualExtension() {
     });
 }
 
-function startStatusPoller(url) {
-    const interval = setInterval(() => {
-        fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('ledger-status-text').innerText = data.status;
-                if (data.last_run) {
-                    document.getElementById('ledger-last-run').innerText = data.last_run;
-                }
-                
-                if (data.status !== 'Running') {
-                    clearInterval(interval);
-                    document.getElementById('btn-sync').disabled = false;
-                    document.getElementById('sync-progress').classList.add('d-none');
-                    document.getElementById('status-badge').classList.replace('bg-warning', 'bg-success');
-                }
-            });
-    }, 2000);
+
+function triggerNuclearRebuild() {
+    if (!confirm("Are you sure? This will wipe the entire balance cache and recalculate from scratch. This may take a moment.")) {
+        return;
+    }
+
+    const config = window.DjangoConfig;
+    const btn = document.getElementById('btn-rebuild');
+    const progressBar = document.getElementById('rebuild-progress');
+    const statusBadge = document.getElementById('rebuild-status-badge');
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    btn.disabled = true;
+    progressBar.classList.remove('d-none');
+    statusBadge.classList.replace('bg-secondary', 'bg-warning');
+    document.getElementById('rebuild-status-text').innerText = 'Rebuilding...';
+
+    fetch(config.urls.trigger_rebuild_ledger, { // You'll need to add this URL
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Reuse your existing status poller logic
+        startStatusPoller(config.urls.trigger_rebuild_ledger, 'rebuild');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        progressBar.classList.add('d-none');
+    });
 }
+
+
+
+
+function startStatusPoller(url, taskType = 'extend') {
+    // Mapping of which elements to update based on the task
+    const elements = {
+        'extend': {
+            status: 'ledger-status-text',
+            btn: 'btn-sync',
+            progress: 'sync-progress',
+            badge: 'status-badge'
+        },
+        'rebuild': {
+            status: 'rebuild-status-text',
+            btn: 'btn-rebuild',
+            progress: 'rebuild-progress',
+            badge: 'rebuild-status-badge'
+        }
+    }[taskType];
+
+    const pollInterval = setInterval(() => {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const status = data.status;
+                document.getElementById(elements.status).innerText = status;
+
+                if (status === 'Completed' || status.includes('Error')) {
+                    clearInterval(pollInterval);
+                    
+                    // Reset UI
+                    document.getElementById(elements.btn).disabled = false;
+                    document.getElementById(elements.progress).classList.add('d-none');
+                    
+                    // Update Badge Color
+                    const badge = document.getElementById(elements.badge);
+                    if (status === 'Completed') {
+                        badge.className = 'badge bg-success px-3 py-2';
+                        // Refresh the last run timestamp if provided
+                        if (data.last_run) {
+                            document.getElementById('ledger-last-run').innerText = data.last_run;
+                        }
+                    } else {
+                        badge.className = 'badge bg-danger px-3 py-2';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Polling error:', error);
+                clearInterval(pollInterval);
+            });
+    }, 2000); // Poll every 2 seconds
+}
+
+
 document.addEventListener('DOMContentLoaded', function() {
     const healthModal = document.getElementById('systemHealthModal');
     

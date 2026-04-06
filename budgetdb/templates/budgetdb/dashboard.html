@@ -3,7 +3,7 @@
 {% block head_comment %}<!--dashboard-->{% endblock %}
 {% block title %}{{title}}{% endblock %}
 {% block content %}
-<div class="container-fluid px-md-5"> 
+<div class="row px-md-5"> 
     <div class="row row-cols-1 row-cols-md-2 ">
         <div class="col">
             <div class="card">
@@ -33,9 +33,25 @@
         <div class="col">
             <div class="card">
                 <div class="card-body" style="width: 600px;height:400px;">
-                    <h5 class="card-title">next chart</h5>
+                    <h5 class="card-title">This year</h5>
                     <div id="chart4" style="width: 90%;height:90%;">
                     </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="multiYearTable">
+                        <thead class="table-light">
+                            <tr id="table-header">
+                                <th>Category</th>
+                                <th style="width: 150px;">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -61,6 +77,25 @@
             }
         );
     </script>  
+    <script>
+        var chart4Dom = document.getElementById('chart4');
+        var chart4 = echarts.init(chart4Dom);
+        let option4;
+        // debugger
+        $(document).ready(function(){
+            $.getJSON('{% url "budgetdb:cattype_year_JSON" %}?pk1=116&pk2=-117&pk3=-125', function(data) {
+                    option4 = data
+                    option4 && chart4.setOption(option4);
+                    }
+                );
+            }
+        );
+    </script>   
+
+
+
+
+
     <script type="text/javascript">
         $(document).ready(function() {
             // Manually trigger as many as you want!
@@ -68,28 +103,84 @@
         });
     </script>
     <script>
+        function renderSparkline(domId, dataPoints, isTotal) {
+            var chart = echarts.init(document.getElementById(domId));
+            var option = {
+                grid: { left: 0, right: 0, top: 5, bottom: 5 },
+                xAxis: { type: 'category', show: false },
+                yAxis: { type: 'value', show: false },
+                series: [{
+                    data: dataPoints,
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { 
+                        width: 2, 
+                        color: isTotal ? '#0d6efd' : '#6c757d' 
+                    },
+                    areaStyle: {
+                        color: isTotal ? 'rgba(13, 110, 253, 0.1)' : 'rgba(108, 117, 125, 0.1)'
+                    }
+                }]
+            };
+            chart.setOption(option);
+        }
         let listManual;
         var listDom = document.getElementById('chart3');
         $(document).ready(function(){
             $.getJSON('{% url "budgetdb:manual_transaction_list_json" %}', function(result) {
-                    var UL = document.createElement('ul');
-                    $.each(result, function(i, field){
-                        LI = document.createElement('li');
-                        A = document.createElement('a');
-                        baseURL = '{% url "budgetdb:details_transaction" 12345 %}';
-                        baseURL=baseURL.replace(/12345/,field[0].pk.toString());
-                        A.setAttribute('href',baseURL);
-                        A.innerHTML =  field[2].description;
-                        LI.innerHTML = field[1].date + ' ';
-                        LI.append(A);
-                        LI.innerHTML = LI.innerHTML + ' ' + field[3].amount + '$';
-                        UL.append(LI);
-                    });            
-                    document.getElementById('chart3').append(UL);        
-                    }
-                );
-            }
-        );
+                var UL = document.createElement('ul');
+                $.each(result, function(i, field){
+                    let LI = document.createElement('li');
+                    let A = document.createElement('a');
+                    let baseURL = '{% url "budgetdb:details_transaction" 12345 %}';
+                    baseURL = baseURL.replace(/12345/, field[0].pk.toString());
+                    A.setAttribute('href', baseURL);
+                    A.innerHTML =  field[2].description;
+                    LI.innerHTML = field[1].date + ' ';
+                    LI.append(A);
+                    LI.innerHTML = LI.innerHTML + ' ' + field[3].amount + '$';
+                    UL.append(LI);
+                });            
+                document.getElementById('chart3').append(UL);        
+            });
+
+
+            const years = "2023,2024,2025,2026"; 
+            $.getJSON('{% url "budgetdb:multi_year_summary" %}?pk1=116&pk2=-117&pk3=-125&years=' + years, function(data) {
+                
+                // 1. Headers
+                data.years.forEach(year => $('#table-header').find('th:last').before(`<th>${year}</th>`));
+                const urlPattern = "{% url 'budgetdb:transaction_list_view' 'cattype' 9999 '2000-01-01' '2000-12-31' %}";
+                // 2. Rows
+                data.rows.forEach((row, index) => {
+                    let rowHtml = `<tr><td class="${row.is_total ? 'fw-bold' : ''}">${row.category}</td>`;
+                    
+                    row.values.forEach((val, i) => {
+                        const year = data.years[i];
+                        const date1 = `${year}-01-01`;
+                        const date2 = `${year}-12-31`;
+                        
+                        // Skip linking for the "Balance" total row if you don't have a view for it
+                        if (!row.is_total) {
+                            let finalUrl = urlPattern
+                                .replace('9999', row.pk)
+                                .replace('2000-01-01', date1)
+                                .replace('2000-12-31', date2);
+                            rowHtml += `<td><a href="${finalUrl}">${val.toLocaleString()}</a></td>`;
+                        } else {
+                            rowHtml += `<td class="fw-bold">${val.toLocaleString('en-CA', {minimumFractionDigits: 0})}</td>`;
+                        }
+                    });
+
+                    rowHtml += `<td><div id="sparkline-${index}" style="width: 120px; height: 30px;"></div></td></tr>`;
+                    $('#table-body').append(rowHtml);
+                    renderSparkline(`sparkline-${index}`, row.values, row.is_total);
+                });
+            });
+
+
+        });
     </script>
 
 {% endblock %}

@@ -118,37 +118,29 @@ class LedgerService:
 
     @staticmethod
     def refresh_daily_delta(account_id, work_date):
-        """Calculates the sum of ins and outs for ONE account on ONE day."""
-        # Sum transactions coming IN to this account
-        inflow = Transaction.objects.filter(
-            account_destination_id=account_id,
+        stats = Transaction.objects.filter(
             date_actual=work_date,
-            is_deleted=False,
-            audit=False
-        ).aggregate(total=Sum('amount_actual'))['total'] or Decimal('0.00')
+            is_deleted=False
+        ).filter(
+            Q(account_destination_id=account_id) | Q(account_source_id=account_id)
+        ).aggregate(
+            inflow=Sum('amount_actual', filter=Q(account_destination_id=account_id, audit=False)),
+            outflow=Sum('amount_actual', filter=Q(account_source_id=account_id, audit=False)),
+            audit_val=Sum('amount_actual', filter=Q(account_source_id=account_id, audit=True))
+        )
 
-        # Sum transactions going OUT of this account
-        outflow = Transaction.objects.filter(
-            account_source_id=account_id,
-            date_actual=work_date,
-            is_deleted=False,
-            audit=False
-        ).aggregate(total=Sum('amount_actual'))['total'] or Decimal('0.00')
-
-        audit = Transaction.objects.filter(
-            account_source_id=account_id,
-            date_actual=work_date,
-            is_deleted=False,
-            audit=True
-        ).aggregate(total=Sum('amount_actual'))['total'] or None
-        is_audit = True if audit else False
-
-        # Update the delta in the ledger
-        # Note: We do NOT update 'balance' here. We leave it dirty.
+        inflow = stats['inflow'] or Decimal('0.00')
+        outflow = stats['outflow'] or Decimal('0.00')
+        audit = stats['audit_val']
+        
         AccountBalanceDB.objects.filter(
             account_id=account_id, 
             db_date=work_date
-        ).update(delta=(inflow - outflow), audit=audit, is_audit=is_audit)
+        ).update(
+            delta=(inflow - outflow), 
+            audit=audit, 
+            is_audit=True if audit is not None else False
+        )
 
     @classmethod
     def mark_tree_dirty(cls, account, work_date):

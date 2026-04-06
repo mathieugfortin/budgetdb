@@ -1,3 +1,4 @@
+<!-- base.html-->
 {% load static %}
 <!doctype html>
 <html lang="en-ca" data-bs-theme="{{ preference_mode|default:'light' }}">
@@ -73,6 +74,7 @@
                     update_theme_preference: "{% url 'budgetdb:update_theme_preference' %}",
                     trigger_extend_ledger: "{% url 'budgetdb:trigger_extend_ledger' %}",
                     cat2_ajax_load: "{% url 'budgetdb:ajax_load_cat2' %}",
+                    trigger_rebuild_ledger: "{% url 'budgetdb:trigger_rebuild_ledger' %}",
                 }
             };
         </script>

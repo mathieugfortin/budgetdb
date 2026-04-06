@@ -432,6 +432,38 @@ def ledger_status_view(request):
     }
     return JsonResponse(context)
 
+
+@login_required_ajax
+def trigger_rebuild_view(request):
+    if request.method == "POST":
+        # We define a wrapper to handle the cache status updates
+        def run_rebuild_wrapper():
+            cache.set('rebuild_task_status', 'Running', 300)
+            try:
+                # Import your command or call the logic directly
+                from django.core.management import call_command
+                # call_command('rebuild_ledger') # This calls the command we wrote earlier
+                cache.set('rebuild_task_status', 'Completed', 3600)
+                cache.set('ledger_task_last_run', datetime.now().strftime("%Y-%m-%d %H:%M"))
+            except Exception as e:
+                cache.set('rebuild_task_status', f'Error: {str(e)}', 300)
+
+        thread = threading.Thread(target=run_rebuild_wrapper)
+        thread.start()
+        
+        return JsonResponse({
+            'status': 'Running',
+            'message': 'Nuclear rebuild initiated.'
+        })
+    
+    # GET logic for status polling
+    return JsonResponse({
+        'status': cache.get('rebuild_task_status', 'Idle'),
+    })
+
+
+
+
 @login_required_ajax
 @require_GET
 def load_cat2_unit_price(request):
@@ -461,3 +493,204 @@ def load_cat2_stock(request):
         return JsonResponse({"unitprice": unitprice}, safe=False)
     else:
         return JsonResponse({"unitprice": False}, safe=False)
+
+@login_required_ajax
+@require_GET
+def CatTypeMonthJSON(request):
+    today = date.today()
+    #today = date.fromisoformat('2024-06-04')
+    series = []
+    total = Decimal('0.00')
+    i = 1
+    param = request.GET.get(f'pk{i}', None)    
+    while param is not None:
+        id = param
+        sign = 1
+        cattype = None
+        if id[0] == '-':
+            sign = -1
+            id = id.replace('-','',1)
+        try:
+            cattype = CatType.view_objects.get(pk=id)
+            value = sign * cattype.get_month_total(today)
+            total = total + value
+            linedict = {
+                'name': cattype.name,
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [value],
+            }
+            series.append(linedict)
+        except ObjectDoesNotExist:
+            continue
+        
+        i = i + 1
+        param = request.GET.get(f'pk{i}', None)    
+
+
+    linedict = {
+                'name': 'balance',
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [total],
+            }
+    series.append(linedict)
+
+    month_name = today.strftime("%B")
+
+
+    data = {
+ 
+        "tooltip": {
+            "trigger": 'axis',
+            "axisPointer": {
+         "type": 'shadow' 
+            }
+        },
+        'xAxis': {
+            'type': 'value',
+            'position': 'top',
+            'splitLine': {
+                'lineStyle': {
+                    'type': 'dashed'
+                }
+            }
+        },
+        'yAxis': {
+            'type': 'category',
+            'show': False,
+            'data': [month_name]
+        },
+        'series': series
+    
+    }
+    return JsonResponse(data, safe=False)
+
+@login_required_ajax
+@require_GET
+def CatTypeYearJSON(request):
+    today = date.today()
+    #today = date.fromisoformat('2024-06-04')
+    series = []
+    total = Decimal('0.00')
+    i = 1
+    year = request.GET.get('year', None) 
+    if year == 'last':
+        today=date(today.year-1,1,1)
+    param = request.GET.get(f'pk{i}', None)    
+    while param is not None:
+        id = param
+        sign = 1
+        cattype = None
+        if id[0] == '-':
+            sign = -1
+            id = id.replace('-','',1)
+        try:
+            cattype = CatType.view_objects.get(pk=id)
+            value = sign * cattype.get_total(today)
+            total = total + value
+            linedict = {
+                'name': cattype.name,
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [value],
+            }
+            series.append(linedict)
+        except ObjectDoesNotExist:
+            continue
+        
+        i = i + 1
+        param = request.GET.get(f'pk{i}', None)    
+
+
+    linedict = {
+                'name': 'balance',
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [total],
+            }
+    series.append(linedict)
+
+    month_name = today.strftime("%B")
+
+
+    data = {
+ 
+        "tooltip": {
+            "trigger": 'axis',
+            "axisPointer": {
+         "type": 'shadow' 
+            }
+        },
+        'xAxis': {
+            'type': 'value',
+            'position': 'top',
+            'splitLine': {
+                'lineStyle': {
+                    'type': 'dashed'
+                }
+            }
+        },
+        'yAxis': {
+            'type': 'category',
+            'show': False,
+            'data': [month_name]
+        },
+        'series': series
+    
+    }
+    return JsonResponse(data, safe=False)    
+
+@login_required_ajax
+@require_GET
+def MultiYearSummaryJSON(request):
+    # Get list of years, e.g., ?years=2024,2025,2026
+    years_param = request.GET.get('years', str(date.today().year))
+    target_years = [int(y) for y in years_param.split(',')]
+    
+    # Get the category PKs (pk1, pk2, etc.)
+    pks = []
+    i = 1
+    while True:
+        p = request.GET.get(f'pk{i}')
+        if not p: break
+        pks.append(p)
+        i += 1
+
+    table_data = []
+    totals_by_year = {year: Decimal('0.00') for year in target_years}
+
+    for p in pks:
+        sign = -1 if p.startswith('-') else 1
+        pk_id = p.lstrip('-')
+        
+        try:
+            cattype = CatType.view_objects.get(pk=pk_id)
+            row = {
+                'pk': pk_id,
+                'category': cattype.name,
+                'values': []
+            }
+            
+            for year in target_years:
+                # Use Jan 1st of that year to get yearly totals
+                reference_date = date(year, 1, 1)
+                val = sign * cattype.get_total(reference_date)
+                row['values'].append(float(val))
+                totals_by_year[year] += val
+                
+            table_data.append(row)
+        except CatType.DoesNotExist:
+            continue
+
+    # Append the Balance/Total row
+    table_data.append({
+        'category': 'Balance',
+        'values': [float(totals_by_year[y]) for y in target_years],
+        'is_total': True
+    })
+
+    return JsonResponse({
+        'years': target_years,
+        'rows': table_data
+    }, safe=False)    

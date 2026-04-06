@@ -88,6 +88,12 @@
         });
 
         $(document).on("click", ".confirm-delete", function () {
+            const txId = $(this).closest('form').data('txid'); 
+            // Animate the row out immediately for UX
+            $('#T' + txId).fadeOut(400, function() {
+                $(this).remove();
+            });
+            
             const $form = $(this).closest("form");
             // Remove any existing delete input
             $form.find("input[name='delete']").remove();
@@ -256,7 +262,31 @@
                 if ($amountField.length) $amountField.focus();
             }, 300);
         });
+
         
+        $(document).on('bs.modal.forms.submit', '#modal', function(event, response) {
+            if (response.success) {
+                if (response.needs_refresh) {
+                    // Option A: Full reload if balances/dates changed or deleted
+                    // This ensures your Window Functions recalculate correctly
+                    location.reload(); 
+                } else {
+                    // Option B: Partial update for non-balance fields
+                    const txId = response.transaction_id;
+                    const $row = $('#T' + txId);
+                    
+                    // Update the description text without a reload
+                    $row.find('.description-column').text(response.description);
+                    
+                    // Close modal and show a quick "Saved" flash
+                    $('#modal').modal('hide');
+                    $row.addClass('table-success');
+                    setTimeout(() => $row.removeClass('table-success'), 2000);
+                }
+            }
+        });
+
+
         // 8. AUTO-SCROLL & NOTIFICATION (Using Query Parameters)
         const urlParams = new URLSearchParams(window.location.search);
         const updatedId = urlParams.get('updated_id');

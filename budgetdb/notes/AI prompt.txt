@@ -13,3 +13,5 @@ I have classes for AccountHost (like a bank), Account, AccountCategory (group ac
 Context: I was trained as a software engineer 30 years ago but I haven't coded professionally in at least 25.  I have a good mind for it but I do this for fun and coding practice.
 
 Current Task:
+
+I say I'm using i18n_patterns with an en-ca prefix but it's not really true.  I set the framework in place but I code as if it was only in english.  What do I need to change to really be multi-language im my implementation and how do I deploy a new language?

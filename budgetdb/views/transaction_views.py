@@ -18,7 +18,7 @@ from django.views.generic import ListView, CreateView, UpdateView, View, DetailV
 from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data, PaystubEngine
 from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable, BaseTransactionListTable
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
+from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference, CatType
 from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile, Statement
 from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
@@ -309,10 +309,20 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
         return form
 
     def form_valid(self, form):
-        if "delete" in self.request.POST:
-            self.object.delete()
-            return redirect(self.get_success_url())
 
+        # Check if fields affecting balance were changed
+        balance_sensitive_fields = ['amount_actual', 'date_actual', 'account_source', 'account_destination', 'is_deleted']
+        needs_refresh = any(field in form.changed_data for field in balance_sensitive_fields) or self.request.POST.get('delete') == 'true'
+        is_ajax = self.request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        if is_ajax:
+            instance = form.save()
+            return JsonResponse({
+                'success': True,
+                'needs_refresh': needs_refresh,
+                'transaction_id': instance.pk,
+                # Optionally send back simple display data
+                'description': instance.description,
+            })
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -801,6 +811,9 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
     
     # State variables
     filter_type = 'account'
+    filter_model = Account
+    filter_q = None
+
     pk = None
     begin = None
     end = None
@@ -809,105 +822,121 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
     statement_pk = None
     title = ""
     paginate_by = None
+    model_map = {
+        'account': Account,
+        'cat1': Cat1,
+        'cat2': Cat2,
+        'cattype': CatType
+    }
 
     def get_paginate_by(self, queryset):
-        # If we are in 'account' mode, we increase the limit to 
-        # minimize the risk of splitting a day across pages.
+        # minimize the risk of splitting a day across pages, which would break the balance calculation.
         if self.filter_type == 'account':
-            return 500  # Or return None to disable pagination entirely
+            return 500  
         return self.paginate_by    
 
     def test_func(self):
-        self.filter_type = self.kwargs.get('filter_type', 'account')
-        model_map = {
-                'account': Account,
-                'cat1': Cat1,
-                'cat2': Cat2
-            }
-        view_object = get_object_or_404(model_map[self.filter_type], pk=self.kwargs.get('pk'), is_deleted=False)
-        return view_object.can_view()
+        return self.context_obj.can_view()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.filter_type = kwargs.get('filter_type', 'account')
+        self.filter_model = self.model_map.get(self.filter_type)
+        self.pk = kwargs.get('pk')
+        
+        # 1. Pre-fetch the object so it's available for test_func and the query
+        self.context_obj = get_object_or_404(self.filter_model, pk=self.pk, is_deleted=False)
+        
+        # 2. Run the logic to set titles, dates, and filter_q
+        self.setup_filter_context()
+        
+        return super().dispatch(request, *args, **kwargs)
+
+
+    def setup_filter_context(self):
+        """Sets up titles, dates, and the base Q object once."""
+        preference = Preference.objects.get(user=self.request.user)
+        self.begin = preference.slider_start
+        self.end = preference.slider_stop
+        
+        # 1. Handle Dates from URL (Overload)
+        date1 = self.kwargs.get('date1')
+        date2 = self.kwargs.get('date2')
+        if date1 and date2:
+            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
+            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
+
+        # 2. Strategy Pattern for Filter Logic
+        filter_method = getattr(self, f"_setup_{self.filter_type}", self._setup_default)
+        self.filter_q = filter_method(preference)
+
+
+    def _setup_account(self, preference):
+        self.title = self.context_obj.name
+        statement_pk = self.kwargs.get('statement_pk')
+        
+        if statement_pk:
+            statement = get_object_or_404(Statement, id=statement_pk)
+            self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
+            self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
+            
+            # Use the 'last_obj' check
+            if last_obj := Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last():
+                self.end = max(self.end, last_obj.date_actual)
+
+        child_accounts = Account.view_objects.filter(account_parent_id=self.pk)
+        accounts = child_accounts | Account.view_objects.filter(pk=self.pk)
+        return Q(account_source__in=accounts) | Q(account_destination__in=accounts)
+
+    def _setup_cat1(self, preference):
+        self.title = self.context_obj.name
+        return Q(cat1=self.context_obj)
+
+    def _setup_cat2(self, preference):
+        self.title = f"{self.context_obj.cat1.name} - {self.context_obj.name}"
+        return Q(cat2=self.context_obj)
+
+    def _setup_cattype(self, preference):
+        self.title = self.context_obj.name
+        return Q(cat1__cattype=self.context_obj) | Q(cat2__cattype=self.context_obj)
+
+    def _setup_default(self, preference):
+        self.title = "Transactions"
+        return Q()
+
+
+
 
     def handle_no_permission(self):
         raise PermissionDenied
 
     def get_queryset(self):
-        #self.filter_type = self.kwargs.get('filter_type', 'account')
-        
-        self.pk = self.kwargs.get('pk')
-        date1 = self.kwargs.get('date1')
-        date2 = self.kwargs.get('date2')
-        statement_pk = self.kwargs.get('statement_pk')
-        sort = self.request.GET.get('sort', 'date_actual')
-
-        # Set Default Dates from Preferences
-        preference = Preference.objects.get(user=self.request.user.id)
-        self.begin = preference.slider_start
-        self.end = preference.slider_stop
-
-        if self.filter_type == 'account':
-            self.context_obj = get_object_or_404(Account, pk=self.pk)
-            if not self.context_obj.can_view():
-                raise PermissionDenied
-            #  set statement conditions
-            if statement_pk:
-                statement = get_object_or_404(Statement, id=statement_pk)
-                self.statement_pk = statement.pk
-                self.begin = statement.statement_date - timedelta(days=preference.statement_buffer_before)
-                self.end = statement.statement_date + timedelta(days=preference.statement_buffer_after)
-                #extend for late transactions
-                if last_obj := Transaction.admin_objects.filter(statement=statement).order_by('date_actual').last():
-                    last_date = last_obj.date_actual
-                    self.end = max(self.end,last_date)
-            # Child Account logic (Logic from your original view)
-            child_accounts = Account.view_objects.filter(account_parent_id=self.pk)
-            accounts = child_accounts | Account.view_objects.filter(pk=self.pk)
-            filter_q = Q(account_source__in=accounts) | Q(account_destination__in=accounts)
-            self.title = self.context_obj.name
-
-        elif self.filter_type == 'cat2':
-            self.context_obj = get_object_or_404(Cat2, pk=self.pk)
-            if not self.context_obj.can_view():
-                raise PermissionDenied
-            filter_q = Q(cat2=self.context_obj)
-            self.title = f"{self.context_obj.cat1.name} - {self.context_obj.name}"
-
-        elif self.filter_type == 'cat1':
-            self.context_obj = get_object_or_404(Cat1, pk=self.pk)
-            if not self.context_obj.can_view():
-                raise PermissionDenied
-            filter_q = Q(cat1=self.context_obj)
-            self.title = self.context_obj.name            
-            
-        # Date Overload from URL 
-        if date1 and date2:
-            self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
-            self.end = datetime.strptime(date2, "%Y-%m-%d").date()
 
         qs = Transaction.view_objects.filter(
-            filter_q, 
+            self.filter_q, 
             date_actual__gte=self.begin, 
             date_actual__lte=self.end
         ).order_by('date_actual', 'id')
+        sort = self.request.GET.get('sort', 'date_actual')
 
         if self.filter_type == 'account' and 'date_actual' in sort:
             # clean up balances
-            self.context_obj.get_balances(self.begin, self.end).order_by('-db_date')
+            self.context_obj.get_balances(self.begin, self.end)
+
+            # Subquery for yesterday's closing balance
+            daily_balance_subquery = AccountBalanceDB.objects.filter(
+                account=self.context_obj,
+                db_date=OuterRef('target_ledger_date')
+            ).values('balance')[:1]
+
             # add the previous day's date
             qs = qs.annotate(
                 target_ledger_date=ExpressionWrapper(
                     F('date_actual') - timedelta(days=1), 
                     output_field=DateField()
                 )
-            )
-            daily_balance_subquery = AccountBalanceDB.objects.filter(
-                account=self.context_obj,
-                db_date=OuterRef('target_ledger_date')
-            ).values('balance')[:1]
-            #get yesterday's closing balance
-            qs = qs.annotate(day_start_balance=Subquery(daily_balance_subquery))
-
-            # 2. Individual contribution (standard source/dest logic)
-            qs = qs.annotate(
+            ).annotate(
+                day_start_balance=Subquery(daily_balance_subquery),
+                # Calculate if money is moving in or out of THIS account
                 amount_contribution=Case(
                     When(audit=True, then=Value(0)),
                     When(account_source=self.context_obj, then=-F('amount_actual')),
@@ -915,20 +944,19 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
                     default=0,
                     output_field=DecimalField()
                 )
-            )
-
-            # 3. Running Sum PARTITIONED BY DATE
-            qs = qs.annotate(
+            ).annotate(
+                # Running sum within the specific day
                 intra_day_run_sum=Window(
                     expression=Sum('amount_contribution'),
                     partition_by=[F('date_actual')],
                     order_by=[F('date_actual').asc(), F('id').desc()]
                 )
-            )
-
-            # 4. Final Balance = Daily Ledger + Intra-day progress
-            qs = qs.annotate(
-                calculated_balance=F('day_start_balance') + F('intra_day_run_sum')
+            ).annotate(
+                # The final balance column for the table
+                calculated_balance=ExpressionWrapper(
+                    F('day_start_balance') + F('intra_day_run_sum'),
+                    output_field=DecimalField()
+                )
             )
             #print(qs.query)
         return qs
@@ -963,6 +991,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
            'end': self.end,
            'request': self.request,
            'statement': self.statement_pk,
+           'model_map': self.model_map,
        }        
 
 ###################################################################################################################
