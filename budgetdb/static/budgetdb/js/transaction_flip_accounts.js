@@ -1,5 +1,4 @@
-<script type="text/javascript">
-// js_flip_account.html
+// js_flip_account.js
 (function($) {
     window.changeaccounts = function() {
         var source = $("#id_account_source");
@@ -22,4 +21,3 @@
         }
     };
 })(jQuery);
-</script>

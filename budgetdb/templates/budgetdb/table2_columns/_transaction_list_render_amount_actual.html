@@ -1,23 +1,9 @@
 <!-- budgetdb/table2_columns/_transaction_list_render_amount_actual.html -->
 {% load transaction_extras %}
-
 <div class="d-flex align-items-center justify-content-end gap-3">
     {% with final_amount=record|display_amount:table.account %}
-        {% if final_amount %}
+        {% if final_amount != '' %}
             {{ final_amount }}{{ record.account_source.currency.symbol }}
         {% endif %}
     {% endwith %}
 </div>
-
-<!--
-        if record.audit:
-            return mark_safe("")
-        if not (record.budget_only is True and record.date_actual <= date.today()):
-            if self.account and value != 0 and record.account_source == self.account:
-                value = value * -1
-        else:
-            return mark_safe("")   
-
-
-            AND not (record.budget_only is True and record.date_actual <= date.today()) -->
- 

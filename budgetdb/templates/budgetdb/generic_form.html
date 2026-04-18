@@ -26,6 +26,6 @@
         {% include "budgetdb/js/js_currency.html" %}
     {% endif %}    
     {% if contains_account == True %}
-        {% include "budgetdb/js/js_flip_accounts.html" %}
+        <script type="text/javascript" src="{% static 'budgetdb/js/transaction_flip_accounts.js' %}"></script>
     {% endif %}    
 {% endblock %}

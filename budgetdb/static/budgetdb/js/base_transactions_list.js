@@ -1,333 +1,248 @@
 // static 'budgetdb/js/base_transactions_list.js'
 
-(function($) {
-    $(function() {
-        // 1. DATA INITIALIZATION
-        const config = document.getElementById('tx-config').dataset;
-        const allCat1s = JSON.parse(document.getElementById('cat1-data').textContent);
-        const csrftoken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-        console.log("config:",config)
+const TransactionManager = {
+    // 1. CONFIGURATION & SELECTORS
+    // Update these in one place if your HTML changes
+    config: {},
+    ui: {
+        modal: "#modal",
+        deleteSection: "#delete-section",
+        normalActions: "#normal-actions",
+        isDeletedInput: "input[name='is_deleted']",
+        tableRows: "tbody tr[data-date]"
+    },
 
-        // HELPER FUNCTION TO HIDE SELECT2 AND SHOW SPAN
-        function hideSelect2($select) {
-            const $wrapper = $select.closest('.cat1-wrapper, .cat2-wrapper');
-            const $container = $wrapper.find('.cat1-select-container, .cat2-select-container');
-            const $span = $wrapper.find('.cat-display');
+    // 2. INITIALIZATION
+    init() {
+        this.config = document.getElementById('tx-config').dataset;
+        this.allCat1s = JSON.parse(document.getElementById('cat1-data').textContent);
+        this.csrftoken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-            $container.addClass('d-none');
-            $span.removeClass('d-none');
-            
-            // Destroy select2 to keep the DOM clean
-            if ($select.data('select2')) {
-                $select.select2('destroy');
-            }
-        }
-        // CAT1 SWAPPER (Click to Edit)
-        $(document).on('click', '.cat1-wrapper .cat-display', function() {
-            const $span = $(this);
-            const $wrapper = $span.closest('.cat1-wrapper');
-            const $container = $wrapper.find('.cat1-select-container');
-            const txId = $wrapper.data('txid');
-            const currentId = $wrapper.data('cat1-id');
+        this.initTooltips();
+        this.bindEvents();
+        this.handlePostLoadNavigation();
+    },
 
-            // Create the select element safely
-            const $select = $('<select>', {
-                class: 'cat-select cat1-select form-select form-select-sm',
-                'data-txid': txId
-            });
+    // 3. EVENT BINDING (The "Traffic Controller")
+    bindEvents() {
+        const self = this;
 
-            // Add the default option
-            $select.append($('<option>', { value: '', text: '---------' }));
+        // Category Editing (Cat1 & Cat2)
+        $(document).on('click', '.cat1-wrapper .cat-display', (e) => self.editCat1(e));
+        $(document).on('change', '.cat1-select', (e) => self.saveCat1(e));
+        $(document).on('click', '.cat2-wrapper .cat-display', (e) => self.editCat2(e));
+        $(document).on('change', '.cat2-select', (e) => self.saveCat2(e));
+        $(document).on('blur', '.cat-select', (e) => self.closeInlineEdit(e));
 
-            // Add category options
-            allCat1s.forEach(cat => {
-                const $option = $('<option>', {
-                    value: cat.id,
-                    text: cat.name
-                });
-                if (cat.id == currentId) {
-                    $option.prop('selected', true);
-                }
-                $select.append($option);
-            });
+        // Delete Functionality
+        $(document).on("click", ".show-delete-confirm", () => self.toggleDeleteUI(true));
+        $(document).on("click", ".cancel-delete", () => self.toggleDeleteUI(false));
+        $(document).on("click", ".confirm-delete", (e) => self.prepareDelete(e));
 
-            // Clear and inject the new DOM element
-            $container.empty().append($select).removeClass('d-none');
-            $span.addClass('d-none');
-
-            // Initialize Select2
-            $select.select2({ width: '100%', minimumResultsForSearch: 10 });
-            $select.select2('open');
-
-            $select.on('select2:close', function() {
-                hideSelect2($(this));
-            });
-        });
-
-        // delete handling
-        $(document).on("click", ".show-delete-confirm", function () {
-            const $normal = $("#normal-actions");
-            const $delete = $("#delete-section");
-
-            $normal.slideUp(200, function () {
-                $delete.hide().removeClass("d-none").slideDown(250);
-            });
-        });
-
-        // Cancel delete
-        $(document).on("click", ".cancel-delete", function () {
-            const $normal = $("#normal-actions");
-            const $delete = $("#delete-section");
-
-            $delete.slideUp(200, function () {
-                $delete.addClass("d-none");
-                $normal.slideDown(250);
-            });
-        });
-
-        $(document).on("click", ".confirm-delete", function () {
-            const txId = $(this).closest('form').data('txid'); 
-            // Animate the row out immediately for UX
-            $('#T' + txId).fadeOut(400, function() {
-                $(this).remove();
-            });
-            
-            const $form = $(this).closest("form");
-            // Remove any existing delete input
-            $form.find("input[name='delete']").remove();
-            // Add hidden delete input
-            $("<input>", {
-                type: "hidden",
-                name: "delete",
-                value: "true"
-            }).appendTo($form);
-        });
-
-        // 3. AJAX SAVING (Cat1)
-        $(document).on('change', '.cat1-select', function() {
-            const $select = $(this);
-            const txId = $select.data('txid');
-            const cat1Id = $select.val();
-            const $wrapper = $select.closest('.cat1-wrapper');
-
-            const selectedText = $select.find("option:selected").text();
-            $wrapper.find('.cat-display').text(selectedText);
-            $wrapper.data('cat1-id', cat1Id);
-            $wrapper.attr('data-cat1-id', cat1Id); // Critical for Cat2 to "see" the update
-
-            $.post(config.urlUpdateTransactionCategory, {
-                'transaction_id': txId,
-                'cat_level': 1,
-                'category_id': cat1Id,
-                'csrfmiddlewaretoken': csrftoken
-            })
-            .done(function() {
-                const $badge = $('#save-check-cat1' + txId);
-                $badge.addClass('show');
-                setTimeout(() => $badge.removeClass('show'), 1500);
-                
-                const $cat2Wrapper = $select.closest('tr').find('.cat2-wrapper');
-                const $cat2Display = $cat2Wrapper.find('.cat-display');
-                $cat2Display.text('---------');                  // Reset the text
-                // $cat2Wrapper.find('.cat-display').text('---------');
-                $cat2Wrapper.data('cat2-id', '');                // Clear the ID data
-                $cat2Wrapper.attr('data-cat2-id', '');           // Clear the ID attribute
-                // 2. Trigger the  CSS Pulse
-                $cat2Display.addClass('pulse-warning');
-                setTimeout(() => {
-                    $cat2Display.removeClass('pulse-warning');
-                }, 1500);
-            })
-            .fail(() => alert("Error saving Cat1!"));
-        });
-
-        // 4. CAT2 SWAPPER (Select2 Auto-Open)
-        $(document).on('click', '.cat2-wrapper .cat-display', function() {
-            const $span = $(this);
-            const $wrapper = $span.closest('.cat2-wrapper');
-            const $container = $wrapper.find('.cat2-select-container');
-            const txId = $wrapper.data('txid');
-            const currentCat2Id = $wrapper.data('cat2-id');
-            
-            // Find the Cat1 wrapper in the same row
-            const $cat1Wrapper = $span.closest('tr').find(`.cat1-wrapper[data-txid="${txId}"]`);
-            const cat1Id = $cat1Wrapper.attr('data-cat1-id') || $cat1Wrapper.data('cat1-id');
-
-            if (!cat1Id || cat1Id === "") {
-                alert("Please select a Category first.");
-                return;
-            }
-
-            $.getJSON(config.urlGetCat2List, { 'cat1_id': cat1Id })
-                // 4. CAT2 SWAPPER (Inside .done)
-                .done(function(data) {
-                    const $select = $('<select>', {
-                        class: 'cat-select cat2-select form-select form-select-sm',
-                        'data-txid': txId
-                    });
-
-                    $select.append($('<option>', { value: '', text: '---------' }));
-
-                    $.each(data.cat2s, function(i, item) {
-                        const $option = $('<option>', {
-                            value: item.id,
-                            text: item.name
-                        });
-                        if (item.id == currentCat2Id) {
-                            $option.prop('selected', true);
-                        }
-                        $select.append($option);
-                    });
-
-                    $container.empty().append($select).removeClass('d-none');
-                    $span.addClass('d-none');
-                    
-                    $select.select2({ width: '100%', minimumResultsForSearch: 10 });
-                    $select.select2('open');
-
-                    $select.on('select2:close', function() {
-                        hideSelect2($(this));
-                    });
-                })
-                .fail(function() {
-                        alert("Error fetching sub-categories.");
-                    });
-            });
-
-        // 5. AJAX SAVING (Cat2)
-        $(document).on('change', '.cat2-select', function() {
-            const $select = $(this);
-            const txId = $select.data('txid');
-            const cat2Id = $select.val();
-            const $wrapper = $select.closest('.cat2-wrapper');
-
-            const selectedText = $select.find("option:selected").text();
-            $wrapper.find('.cat-display').text(selectedText);
-            $wrapper.data('cat2-id', cat2Id);
-
-            $.post(config.urlUpdateTransactionCategory, {
-                'transaction_id': txId,
-                'cat_level': 2,
-                'category_id': cat2Id,
-                'csrfmiddlewaretoken': csrftoken
-            })
-            .done(function() {
-                const $badge = $('#save-check-cat2' + txId);
-                $badge.addClass('show');
-                setTimeout(() => $badge.removeClass('show'), 1500);
-            })
-            .fail(() => alert("Error saving Cat2!"));
-        });
-
-        // 6. BLUR LOGIC (Switch back to text when clicking away)
-        $(document).on('blur', '.cat-select', function() {
-            const $select = $(this);
-            const $container = $select.closest('.cat1-select-container, .cat2-select-container');
-            const $wrapper = $select.closest('.cat1-wrapper, .cat2-wrapper');
-            
-            $container.addClass('d-none');
-            $wrapper.find('.cat-display').removeClass('d-none');
-        });
-
-
-        // 7. SELECT2 LOGIC
-        
-        // A. Primary Edit/Update buttons (on the main table)
+        // Modal Integration
         $(".update-transaction").each(function () {
-            $(this).modalForm({ formURL: $(this).data("form-url"), modalID: "#modal" });
+            $(this).modalForm({ formURL: $(this).data("form-url"), modalID: self.ui.modal });
         });
 
-        // C. Initialization logic when the modal finishes opening
-        $(document).on("shown.bs.modal", "#modal", function() {
-            const $modal = $(this);
+        $(document).on("shown.bs.modal", this.ui.modal, (e) => self.onModalOpen(e));
+        $(document).on('bs.modal.forms.submit', this.ui.modal, (e, resp) => self.onModalSubmit(resp));
+    },
 
+    // 4. CATEGORY LOGIC
+    editCat1(e) {
+        const $span = $(e.currentTarget);
+        const $wrapper = $span.closest('.cat1-wrapper');
+        const $container = $wrapper.find('.cat1-select-container');
+        const currentId = $wrapper.data('cat1-id');
 
-            // Initialize Select2 inside the modal
-            $modal.find("select").each(function() {
-                if (!$(this).hasClass('select2-hidden-accessible')) {
-                    $(this).select2({ 
-                        dropdownParent: $modal, 
-                        width: '100%', 
-                        allowClear: true 
-                    });
-                }
-            });
-
-            // Fix Accessibility and Focus
-            $modal.removeAttr('aria-hidden');
-            setTimeout(() => {
-                const $amountField = $('#id_amount_actual');
-                if ($amountField.length) $amountField.focus();
-            }, 300);
-        });
-
+        const $select = $('<select>', { class: 'cat-select cat1-select form-select form-select-sm' });
+        $select.append('<option value="">---------</option>');
         
-        $(document).on('bs.modal.forms.submit', '#modal', function(event, response) {
-            if (response.success) {
-                if (response.needs_refresh) {
-                    // Option A: Full reload if balances/dates changed or deleted
-                    // This ensures your Window Functions recalculate correctly
-                    location.reload(); 
-                } else {
-                    // Option B: Partial update for non-balance fields
-                    const txId = response.transaction_id;
-                    const $row = $('#T' + txId);
-                    
-                    // Update the description text without a reload
-                    $row.find('.description-column').text(response.description);
-                    
-                    // Close modal and show a quick "Saved" flash
-                    $('#modal').modal('hide');
-                    $row.addClass('table-success');
-                    setTimeout(() => $row.removeClass('table-success'), 2000);
-                }
-            }
+        this.allCat1s.forEach(cat => {
+            let selected = (cat.id == currentId) ? 'selected' : '';
+            $select.append(`<option value="${cat.id}" ${selected}>${cat.name}</option>`);
         });
 
+        $container.empty().append($select).removeClass('d-none');
+        $span.addClass('d-none');
+        $select.select2({ width: '100%' }).select2('open');
+    },
 
-        // 8. AUTO-SCROLL & NOTIFICATION (Using Query Parameters)
-        const urlParams = new URLSearchParams(window.location.search);
-        const updatedId = urlParams.get('updated_id');
+    saveCat1(e) {
+        const $select = $(e.currentTarget);
+        const txId = $select.closest('.cat1-wrapper').data('txid');
+        const val = $select.val();
+
+        $.post(this.config.urlUpdateTransactionCategory, {
+            'transaction_id': txId, 'cat_level': 1, 'category_id': val, 'csrfmiddlewaretoken': this.csrftoken
+        }).done(() => {
+            this.flashSuccess('#save-check-cat1' + txId);
+            // Reset Cat2 sibling in same row
+            const $cat2Disp = $select.closest('tr').find('.cat2-wrapper .cat-display');
+            $cat2Disp.text('---------').addClass('pulse-warning');
+            setTimeout(() => $cat2Disp.removeClass('pulse-warning'), 1500);
+        });
+    },
+
+    editCat2(e) {
+        const $span = $(e.currentTarget);
+        const $wrapper = $span.closest('.cat2-wrapper');
+        const txId = $wrapper.data('txid');
+        const $cat1Wrapper = $span.closest('tr').find('.cat1-wrapper');
+        const cat1Id = $cat1Wrapper.attr('data-cat1-id') || $cat1Wrapper.data('cat1-id');
+
+        if (!cat1Id) return alert("Select a Category first.");
+
+        $.getJSON(this.config.urlGetCat2List, { 'cat1_id': cat1Id }).done((data) => {
+            const $select = $('<select>', { class: 'cat-select cat2-select form-select form-select-sm' });
+            $select.append('<option value="">---------</option>');
+            data.cat2s.forEach(item => {
+                let selected = (item.id == $wrapper.data('cat2-id')) ? 'selected' : '';
+                $select.append(`<option value="${item.id}" ${selected}>${item.name}</option>`);
+            });
+            $wrapper.find('.cat2-select-container').empty().append($select).removeClass('d-none');
+            $span.addClass('d-none');
+            $select.select2({ width: '100%' }).select2('open');
+        });
+    },
+
+    saveCat2(e) {
+        const $select = $(e.currentTarget);
+        const txId = $select.closest('.cat2-wrapper').data('txid');
+        $.post(this.config.urlUpdateTransactionCategory, {
+            'transaction_id': txId, 'cat_level': 2, 'category_id': $select.val(), 'csrfmiddlewaretoken': this.csrftoken
+        }).done(() => this.flashSuccess('#save-check-cat2' + txId));
+    },
+
+    // 5. DELETE & MODAL LOGIC
+    toggleDeleteUI(show) {
+        const $norm = $(this.ui.normalActions);
+        const $del = $(this.ui.deleteSection);
+        if (show) {
+            $norm.slideUp(200, () => $del.removeClass("d-none").slideDown(250));
+        } else {
+            $del.slideUp(200, () => { $del.addClass("d-none"); $norm.slideDown(250); });
+        }
+    },
+
+    prepareDelete(e) {
+        const $form = $(e.currentTarget).closest("form");
+        const txId = $form.data('txid');
+        // Set the actual Django field to true
+        $form.find(this.ui.isDeletedInput).val("true");
+        // Immediate UX feedback
+        $('#T' + txId).fadeOut(400);
+    },
+
+    onModalSubmit(response) {
+        console.log("RAW RESPONSE FROM SERVER:", response);
+        if (!response.success) return;
+       
+        if (response.needs_refresh) {
+            const url = new URL(window.location.href);
+            if (response.scroll_date) {
+                url.searchParams.set('scroll_date', response.scroll_date);
+                url.searchParams.set('updated_id', response.transaction_id);
+                //url.searchParams.delete('updated_id');
+            } else {
+                url.searchParams.set('updated_id', response.transaction_id);
+                url.searchParams.set('scroll_date', response.scroll_date);
+                //url.searchParams.delete('scroll_date');
+            }
+            window.location.href = url.toString();
+        } else {
+            const $row = $('#T' + response.transaction_id);
+            $row.find('.description-column').text(response.description);
+            $(this.ui.modal).modal('hide');
+            this.flashRow($row);
+        }
+    },
+
+    // 6. NAVIGATION & HELPERS
+    handlePostLoadNavigation() {
+        const params = new URLSearchParams(window.location.search);
+        console.log(params);
+        const updatedId = params.get('updated_id');
+        const scrollDate = params.get('scroll_date');
+        let $target;
 
         if (updatedId) {
-            const $targetRow = $('#T' + updatedId);
-            
-            if ($targetRow.length) {
-                // 1. Smooth Scroll to center
-                $targetRow[0].scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-
-                // 2. Add the "Updated!" Badge (The Floating Version)
-                const $firstCell = $targetRow.find('td:first');
-                $firstCell.css('position', 'relative'); 
-                const savedBadge = $('<span class="badge bg-success floating-badge animate__animated animate__fadeIn">Updated!</span>');
-                $firstCell.append(savedBadge);
-
-                // 3. Highlight the row
-                $targetRow.addClass('table-success');
-
-                // 4. Cleanup and "Clean" the URL
-                setTimeout(() => {
-                    $targetRow.removeClass('table-success');
-                    savedBadge.fadeOut(400, function() { $(this).remove(); });
-                    
-                    const params = new URLSearchParams(window.location.search);
-                    
-                    // 2. Remove ONLY the updated_id
-                    params.delete('updated_id');
-                    
-                    // 3. Reconstruct the URL: Path + remaining params (like sort)
-                    const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-                    
-                    // 4. Update the address bar without losing your sort!
-                    window.history.replaceState(null, '', newRelativePathQuery);
-                }, 3000);
-            }
+            $target = $('#T' + updatedId);
+        } else if (scrollDate) {
+            $target = this.findRowByDate(scrollDate);
         }
-    });
-})(jQuery); 
 
+        if ($target && $target.length) {
+            $target[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            this.flashRow($target);
+            this.cleanUrl(['updated_id', 'scroll_date']);
+        }
+    },
+
+    findRowByDate(targetDate) {
+        console.log("Searching for closest row to:", targetDate);
+        const targetTime = new Date(targetDate).getTime();
+        let $bestMatch = null;
+        let closestDiff = Infinity;
+
+        // Use the selector defined in ui.tableRows
+        $(this.ui.tableRows).each(function() {
+            const dateStr = $(this).attr('data-date'); // Use attr to be safe
+            if (!dateStr) return;
+
+            const rowTime = new Date(dateStr).getTime();
+            const diff = Math.abs(targetTime - rowTime);
+
+            if (diff < closestDiff) {
+                closestDiff = diff;
+                $bestMatch = $(this);
+            }
+        });
+
+        if ($bestMatch) {
+            console.log("Best match found:", $bestMatch.attr('id'), "with date:", $bestMatch.data('date'));
+        } else {
+            console.warn("No rows with data-date found in the table.");
+        }
+        
+        return $bestMatch;
+    },
+
+    flashRow($row) {
+        $row.addClass('table-success');
+        setTimeout(() => $row.removeClass('table-success'), 2000);
+    },
+
+    flashSuccess(selector) {
+        $(selector).addClass('show');
+        setTimeout(() => $(selector).removeClass('show'), 1500);
+    },
+
+    closeInlineEdit(e) {
+        const $select = $(e.currentTarget);
+        $select.closest('.cat1-select-container, .cat2-select-container').addClass('d-none');
+        $select.closest('.cat1-wrapper, .cat2-wrapper').find('.cat-display').removeClass('d-none');
+    },
+
+    initTooltips() {
+        [...document.querySelectorAll('[data-bs-toggle="tooltip"]')].map(el => new bootstrap.Tooltip(el));
+    },
+
+    onModalOpen() {
+        const $modal = $(this.ui.modal);
+        $modal.find("select:not(.select2-hidden-accessible)").select2({ 
+            dropdownParent: $modal, width: '100%', allowClear: true 
+        });
+        setTimeout(() => $('#id_amount_actual').focus(), 300);
+    },
+
+    cleanUrl(keysToRemove) {
+        const params = new URLSearchParams(window.location.search);
+        keysToRemove.forEach(k => params.delete(k));
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.history.replaceState(null, '', newUrl);
+    }
+};
+
+// Start everything
+$(document).ready(() => TransactionManager.init());

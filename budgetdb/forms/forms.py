@@ -1167,25 +1167,28 @@ class PreferenceForm(forms.ModelForm):
         self.fields['slider_stop'].label = 'End of time selection'
         
         self.helper.layout = Layout(
-            Div(
-                Div('slider_start', css_class='form-group col-md-4  '),
-                Div('slider_stop', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('theme', css_class='col-3' ),
             ),
-            Div(
-                Div('timeline_start', css_class='form-group col-md-4  '),
-                Div('timeline_stop', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('slider_start', css_class='col-4'),
+                Column('slider_stop', css_class='col-4'),
             ),
-            Div(
-                Div('currencies', css_class='form-group col-md-4  '),
-                Div('currency_prefered', css_class='form-group col-md-4  '),
+            Row(
+                Column('timeline_start', css_class='col-4'),
+                Column('timeline_stop', css_class='col-4'),
+            ),
+            Row(
+                Column('currencies', css_class='col-4'),
+                Column('currency_prefered', css_class='col-4'),
                 Field('user', type="hidden"),
-                css_class='row'
             ),
-            Div(
-                Div('favorite_accounts', css_class='form-group col-md-4  '),
-                css_class='row'
+            Row(
+                Column('favorite_accounts', css_class='col-4'),
+            ),
+            Row(
+                Column('statement_buffer_before', css_class='col-4'),
+                Column('statement_buffer_after', css_class='col-4'),  
             ),
         )
 

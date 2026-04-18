@@ -120,7 +120,12 @@
 
         $.get(url, function(res) {
             myChart.hideLoading();
-            cat1Data = res.data; 
+            catData = res.data.map(item => ({
+                name: item.name,
+                cat1_id: item.cat1_id,
+                realValue: item.value, // Keep the actual negative number here
+                value: Math.abs(item.value) // Use absolute value for the slice size
+            }));
             
             myChart.setOption({
                 backgroundColor: 'transparent', // Ensure chart doesn't force a background
@@ -132,8 +137,10 @@
                         color: getTheme() === 'dark' ? '#fff' : '#000'
                     },
                     formatter: function(params) {
-                        let val = params.value.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
-                        return `<strong>${params.name}</strong><br/>${val} (${params.percent}%)`;
+                        let actualValue = params.data.realValue;
+                        let val = actualValue.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+                        let label = actualValue < 0 ? `<strong>${params.name} (Credit)</strong>` : `<strong>${params.name}</strong>`;
+                        return `${label}<br/>${val} (${params.percent}%)`;
                     }
                 },
                 series: [{
@@ -141,7 +148,7 @@
                     type: 'pie',
                     radius: ['30%', '60%'],
                     center: ['50%', '50%'], 
-                    data: cat1Data,
+                    data: catData,
                     avoidLabelOverlap: true,
                     itemStyle: {
                         borderRadius: 6,
@@ -171,6 +178,12 @@
         const url = `{% url "budgetdb:cattype_by_cat2_totals_json" %}?begin=${currentBegin}&end=${currentEnd}&cattype=${catTypeId}&cat1=${cat1Id}`;
         $.get(url, function(res) {
             myChart.hideLoading();
+            cat2Data = res.data.map(item => ({
+                name: item.name,
+                cat2_id: item.cat2_id,
+                realValue: item.value, // Keep the actual negative number here
+                value: Math.abs(item.value) // Use absolute value for the slice size
+            }));
             myChart.setOption({
                 series: [
                     {
@@ -185,7 +198,7 @@
                         type: 'pie',
                         radius: ['35%', '55%'],
                         center: ['70%', '50%'],
-                        data: res.data,
+                        data: cat2Data,
                         itemStyle: {
                             borderRadius: 6,
                             borderColor: getTheme() === 'dark' ? '#212529' : '#fff',

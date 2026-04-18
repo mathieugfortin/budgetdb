@@ -251,19 +251,42 @@ class PaystubEngine:
         return extracted_text
 
     def _tokenize_all(self):
-        """Turn the whole PDF into a clean list of token lists."""
         tokenized = []
-        # Your regex for splitting numbers/spaces
+        self.sequence_map = {}
         regex = r'\s{2,}|\s(?=\$|\d|-(?!\s))'
+        title_clean_pattern = r'\s+(Retro|Current|YTD|Rate|Hours|Earnings|Amount|Year to Date|Rétro|Taux en cours|Heures en cours|Gains en cours|En cours|Cumulatif).*'
         
-        for line in self.raw_text.split('\n'):
+        for line_idx, line in enumerate(self.raw_text.split('\n'), start=1):
             clean_line = line.strip()
             if not clean_line: continue
             
-            # Split the line into parts (Keyword, Value1, Value2...)
             parts = [p.strip() for p in re.split(regex, clean_line) if p.strip()]
-            if parts:
+            
+            if not parts:
+                continue
+
+            parts[0] = re.sub(title_clean_pattern, '', parts[0], flags=re.IGNORECASE).strip()
+
+            # Intercept the specific bank deposit line
+            # Checking if it looks like the account line (has a date and a $)
+            if len(parts) >= 3 and '/' in parts[-2] and '$' in parts[-1]:
+                date_key = f"{parts[0]} (Date)"
+                total_key = f"{parts[0]} (Total)"
+                # Split it into two virtual lines for the mapping engine
+                tokenized.append([f"{parts[0]} (Date)", parts[-2]])
+                tokenized.append([f"{parts[0]} (Total)", parts[-1]])
+                # Save sequence for the split lines
+                if date_key not in self.sequence_map: 
+                    self.sequence_map[date_key] = line_idx
+                if total_key not in self.sequence_map: 
+                    self.sequence_map[total_key] = line_idx
+            else:
+                keyword = parts[0]
                 tokenized.append(parts)
+                
+                # Save sequence for standard lines
+                if keyword not in self.sequence_map: 
+                    self.sequence_map[keyword] = line_idx
 
         return tokenized
 
@@ -292,18 +315,72 @@ class PaystubEngine:
     def sync_mappings_with_db(self, profile):
         token_dict = self.get_token_dict()
 
-        for i, (keyword, tokens) in enumerate(token_dict.items()):
-            # Look up which section this keyword belongs to
-            section_name = self.find_section_for_keyword(keyword)
+        for keyword, occurrences in token_dict.items():
+            for tokens in occurrences:
+                token_count = len(tokens)
+                section_name = self.find_section_for_keyword(keyword)
+                sequence = self.sequence_map.get(keyword, 999)
 
-            PaystubMapping.objects.update_or_create(
-                profile=profile,
-                line_keyword=keyword,
-                defaults={
-                    'section_name': section_name,
-                    'line_sequence': i,
-                }
-            )
+                mapping_key = f"{keyword} [{token_count}]" if token_count > 3 else keyword
+
+                existing_rules = PaystubMapping.objects.filter(
+                    profile=profile,
+                    line_keyword=mapping_key,
+                    token_count=token_count
+                )
+                if existing_rules.exists():
+                    # match the PDF structure.
+                    existing_rules.update(
+                        line_sequence=sequence,
+                    )
+                else:
+                    # Create the initial 'Empty' mapping
+                    PaystubMapping.objects.create(
+                        profile=profile,
+                        line_keyword=mapping_key,
+                        section_name=self.find_section_for_keyword(keyword),
+                        line_sequence=sequence,
+                        token_count=token_count
+                    )
+
+    def get_mapping_key(self, keyword, tokens):
+        """Standardized key generation used everywhere."""
+        count = len(tokens)
+        return f"{keyword} [{count}]" if count > 3 else keyword
+
+    def get_active_mappings(self):
+        """Returns a dict of mapping_key -> tokens."""
+        active = {}
+        tokens_map = self.get_token_dict()
+        for keyword, occurrences in tokens_map.items():
+            for tokens in occurrences:
+                key = self.get_mapping_key(keyword, tokens)
+                active[key] = tokens
+        return active
+
+    def get_unmapped_keys(self, profile):
+        """
+        Returns a list of keys found in the PDF that are not 
+        fully configured in the database.
+        """
+        active_pdf_keys = self.get_active_mappings().keys()
+        existing_mappings = PaystubMapping.objects.filter(
+            profile=profile, 
+            line_keyword__in=active_pdf_keys
+        )
+
+        ready_keywords = set()
+        for m in existing_mappings:
+            is_metadata = m.is_ignored or m.is_header or m.is_date_line or m.is_net_pay
+            has_cat = m.category_id is not None
+            needs_destination = m.is_pass_through 
+            has_dest = m.destination_account_id is not None
+            
+            if is_metadata or (has_cat and (not needs_destination or has_dest)):
+                ready_keywords.add(m.line_keyword)
+
+        # Return the difference: keys in PDF but not in 'ready' set
+        return [key for key in active_pdf_keys if key not in ready_keywords]
 
     def get_mapped_amounts(self):
         """
@@ -341,9 +418,13 @@ class PaystubEngine:
         return results
 
     def get_token_dict(self):
-        """Used by the Mapping UI: maps keyword -> full list of tokens."""
-        # Parts[0] is the keyword (e.g., 'Canada Income Tax')
-        return {parts[0]: parts for parts in self.tokenized_lines}
+        token_map = {}
+        for parts in self.tokenized_lines:
+            keyword = parts[0]
+            if keyword not in token_map:
+                token_map[keyword] = []
+            token_map[keyword].append(parts)
+        return token_map
 
     def find_section_for_keyword(self, keyword):
         """
@@ -366,10 +447,12 @@ class PaystubEngine:
         ).first()
 
         if date_mapping:
-            # Get the tokens for that specific line from our Engine
-            tokens = self.get_token_dict().get(date_mapping.line_keyword)
+            # tokens is a list of lists: e.g., [['000605371', '2024/01/05', '$2,292.27']]
+            occurrences = self.get_token_dict().get(date_mapping.line_keyword)
             
-            if tokens:
+            # Check that we have at least one occurrence of this line
+            if occurrences and len(occurrences) > 0:
+                tokens = occurrences[0]
                 try:
                     # Use the saved index (e.g. index 2 from your debug screenshot)
                     indices = [int(i) for i in date_mapping.column_indices.split(',')]
