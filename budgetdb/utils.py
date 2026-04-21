@@ -559,7 +559,6 @@ class PaystubEngine:
 
         if commit:
             final_jt = JoinedTransactions.admin_objects.get(id=manual_jt_id) if manual_jt_id else discovered_jt
-            unique_note = f"Imported: {mapping.line_keyword}"
 
             if existing_tx:
                 existing_tx.amount_actual = Decimal(format(final_amount, ".2f"))
