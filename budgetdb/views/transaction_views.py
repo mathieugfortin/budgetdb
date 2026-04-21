@@ -266,6 +266,14 @@ class TransactionCreateModal(LoginRequiredMixin, UserPassesTestMixin, BSModalCre
         return form
 
     def form_valid(self, form):
+        instance = form.save()
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'needs_refresh': True, 
+                'scroll_date': instance.date_actual.strftime('%Y-%m-%d'),
+                'transaction_id': instance.pk,
+            })
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -312,16 +320,19 @@ class TransactionModalUpdate(LoginRequiredMixin, UserPassesTestMixin, BSModalUpd
 
         # Check if fields affecting balance were changed
         balance_sensitive_fields = ['amount_actual', 'date_actual', 'account_source', 'account_destination', 'is_deleted']
-        needs_refresh = any(field in form.changed_data for field in balance_sensitive_fields) or self.request.POST.get('delete') == 'true'
+        is_delete_action = self.request.POST.get('delete') == 'true'
+        needs_refresh = any(field in form.changed_data for field in balance_sensitive_fields) or is_delete_action
         is_ajax = self.request.headers.get('x-requested-with') == 'XMLHttpRequest'
         if is_ajax:
             instance = form.save()
+
             return JsonResponse({
                 'success': True,
                 'needs_refresh': needs_refresh,
                 'transaction_id': instance.pk,
-                # Optionally send back simple display data
+                'scroll_date': instance.date_actual.strftime('%Y-%m-%d'),
                 'description': instance.description,
+                'is_deleted': is_delete_action,
             })
         return super().form_valid(form)
 
@@ -800,7 +811,7 @@ class TransactionListView(LoginRequiredMixin, ListView):
         if end < begin:
             end = begin + relativedelta(months=1)
 
-        qs = Transaction.view_objects.filter(date_actual__gt=begin, date_actual__lte=end).order_by('date_actual', 'audit')
+        qs = Transaction.view_objects.filter(date_actual__gte=begin, date_actual__lte=end, audit=False).order_by('date_actual', 'audit')
         return qs
 
 
@@ -817,6 +828,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
     pk = None
     begin = None
     end = None
+    authorized = False
     statement = None
     context_obj = None
     statement_pk = None
@@ -826,7 +838,8 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         'account': Account,
         'cat1': Cat1,
         'cat2': Cat2,
-        'cattype': CatType
+        'cattype': CatType,
+        'paystub_id': None,
     }
 
     def get_paginate_by(self, queryset):
@@ -836,21 +849,22 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         return self.paginate_by    
 
     def test_func(self):
-        return self.context_obj.can_view()
+        return self.authorized
 
     def dispatch(self, request, *args, **kwargs):
         self.filter_type = kwargs.get('filter_type', 'account')
         self.filter_model = self.model_map.get(self.filter_type)
         self.pk = kwargs.get('pk')
         
-        # 1. Pre-fetch the object so it's available for test_func and the query
-        self.context_obj = get_object_or_404(self.filter_model, pk=self.pk, is_deleted=False)
-        
+        self.context_obj = None
+        if self.filter_model:
+            self.context_obj = get_object_or_404(self.filter_model, pk=self.pk, is_deleted=False)
+            self.authorized = self.context_obj.can_view()
+            
         # 2. Run the logic to set titles, dates, and filter_q
         self.setup_filter_context()
         
         return super().dispatch(request, *args, **kwargs)
-
 
     def setup_filter_context(self):
         """Sets up titles, dates, and the base Q object once."""
@@ -868,7 +882,6 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         # 2. Strategy Pattern for Filter Logic
         filter_method = getattr(self, f"_setup_{self.filter_type}", self._setup_default)
         self.filter_q = filter_method(preference)
-
 
     def _setup_account(self, preference):
         self.title = self.context_obj.name
@@ -899,12 +912,21 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         self.title = self.context_obj.name
         return Q(cat1__cattype=self.context_obj) | Q(cat2__cattype=self.context_obj)
 
+    def _setup_paystub_id(self, preference):
+        date_part = self.pk.split('-')[:3] # Extracts YYYY-MM-DD
+        if len(date_part) == 3:
+            target_date = datetime.strptime("-".join(date_part), "%Y-%m-%d").date()
+            self.begin = target_date
+            self.end = target_date
+        paystub = get_object_or_404(PaystubProfile, pk=self.pk.split('-')[-1], is_deleted=False)
+        self.authorized = paystub.can_view() if paystub else False
+        self.title = f"Paystub: {paystub.name} - {target_date}"
+
+        return Q(paystub_id=self.pk)
+
     def _setup_default(self, preference):
         self.title = "Transactions"
         return Q()
-
-
-
 
     def handle_no_permission(self):
         raise PermissionDenied
@@ -915,8 +937,12 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
             self.filter_q, 
             date_actual__gte=self.begin, 
             date_actual__lte=self.end
-        ).order_by('date_actual', 'id')
+        )
         sort = self.request.GET.get('sort', 'date_actual')
+        if sort == 'date_actual':
+            qs = qs.order_by('date_actual', '-id')
+        elif sort == '-date_actual':
+            qs = qs.order_by('-date_actual', 'id')
 
         if self.filter_type == 'account' and 'date_actual' in sort:
             # clean up balances

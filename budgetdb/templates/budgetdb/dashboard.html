@@ -9,7 +9,12 @@
             <div class="card">
                 <div class="card-body"  style="height:300px;" > 
                     <h5 class="card-title">This Month's Balance</h5>
-                    <div id="chart1" style="height:300px;"></div>
+                    <div class="echart-container" 
+                        id="chart1" 
+                        style="height:300px;"
+                        data-url="{% url 'budgetdb:cattype_month_balance_JSON' %}?pk1=116&pk3=-117&pk4=-125&pk2=-457"
+                        data-type="cattype-bar">
+                    </div>
                 </div>
             </div>
         </div>
@@ -34,7 +39,11 @@
             <div class="card">
                 <div class="card-body" style="width: 600px;height:400px;">
                     <h5 class="card-title">This year</h5>
-                    <div id="chart4" style="width: 90%;height:90%;">
+                    <div class="echart-container" 
+                        id="chart4" 
+                        style="height:300px;"
+                        data-url="{% url "budgetdb:cattype_year_JSON" %}?pk1=116&pk3=-117&pk4=-125&pk2=-457"
+                        data-type="cattype-bar">
                     </div>
                 </div>
             </div>
@@ -55,6 +64,19 @@
                 </div>
             </div>
         </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-body"  style="height:300px;" > 
+                    <h5 class="card-title">Last Month's Balance</h5>
+                    <div class="echart-container" 
+                        id="chart5" 
+                        style="height:300px;"
+                        data-url="{% url 'budgetdb:cattype_month_balance_JSON' %}?pk1=116&pk3=-117&pk4=-125&pk2=-457&month=last"
+                        data-type="cattype-bar">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -63,45 +85,32 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js" integrity="sha384-BQKzmHvQLMCAnL3UtDBA1Al5tFjsCz1wrMlIUA1wkzo14DYkRWjywW+p9pCj0cwd" crossorigin="anonymous"></script>           
     <script type="text/javascript" src="{% static 'budgetdb/js/echarts_timeline.js' %}"></script>
 
+    <script type="text/javascript" src="{% static 'budgetdb/js/dashboard_charts.js' %}"></script>
+
     <script>
-        var chart1Dom = document.getElementById('chart1');
-        var chart1 = echarts.init(chart1Dom);
-        let option1;
-        // debugger
-        $(document).ready(function(){
-            $.getJSON('{% url "budgetdb:cattype_month_JSON" %}?pk1=116&pk2=-117&pk3=-125', function(data) {
-                    option1 = data
-                    option1 && chart1.setOption(option1);
-                    }
-                );
-            }
-        );
-    </script>  
-    <script>
-        var chart4Dom = document.getElementById('chart4');
-        var chart4 = echarts.init(chart4Dom);
-        let option4;
-        // debugger
-        $(document).ready(function(){
-            $.getJSON('{% url "budgetdb:cattype_year_JSON" %}?pk1=116&pk2=-117&pk3=-125', function(data) {
-                    option4 = data
-                    option4 && chart4.setOption(option4);
-                    }
-                );
-            }
-        );
-    </script>   
-
-
-
-
-
-    <script type="text/javascript">
         $(document).ready(function() {
-            // Manually trigger as many as you want!
+            // 1. Prepare the redirect template once
+            const redirectTemplate = "{% url 'budgetdb:transaction_list_view' 'cattype' 999 'START_DATE' 'END_DATE' %}";
+
+            // 2. Automatically find and init all "cattype-bar" charts
+            $('.echart-container[data-type="cattype-bar"]').each(function() {
+                const id = $(this).attr('id');
+                const url = $(this).data('url');
+                initCatTypeChart(id, url, redirectTemplate);
+            });
+
+            // 3. Initialize your specialized charts (like chart2 timeline)
             initTimelineChart('chart2', '{% url "budgetdb:timeline_option_json" %}?ac=favorites&period=nextmonth');
+
+            // 4. Manual Transaction List (Could also be moved to its own .js function)
+            // ... your getJSON for manual_transaction_list_json ...
+            
+            // 5. Table and Sparklines
+            // ... your getJSON for multi_year_summary ...
         });
     </script>
+
+
     <script>
         function renderSparkline(domId, dataPoints, isTotal) {
             var chart = echarts.init(document.getElementById(domId));
@@ -128,6 +137,7 @@
         let listManual;
         var listDom = document.getElementById('chart3');
         $(document).ready(function(){
+
             $.getJSON('{% url "budgetdb:manual_transaction_list_json" %}', function(result) {
                 var UL = document.createElement('ul');
                 $.each(result, function(i, field){
@@ -147,7 +157,7 @@
 
 
             const years = "2023,2024,2025,2026"; 
-            $.getJSON('{% url "budgetdb:multi_year_summary" %}?pk1=116&pk2=-117&pk3=-125&years=' + years, function(data) {
+            $.getJSON('{% url "budgetdb:multi_year_summary" %}?pk1=116&pk3=-117&pk4=-125&pk2=-457&years=' + years, function(data) {
                 
                 // 1. Headers
                 data.years.forEach(year => $('#table-header').find('th:last').before(`<th>${year}</th>`));

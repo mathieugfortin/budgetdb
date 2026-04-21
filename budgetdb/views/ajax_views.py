@@ -320,6 +320,7 @@ def GetCatTypeByCat1sTotalsJSON(request):
 @login_required_ajax
 @require_GET
 def GetCatTypeByCat2sTotalsJSON(request):
+    # cattype_by_cat2_totals_json
     form = CatType_Cat1_begin_end_ValForm(request.GET, user=request.user)
 
     if not form.is_valid():
@@ -442,7 +443,7 @@ def trigger_rebuild_view(request):
             try:
                 # Import your command or call the logic directly
                 from django.core.management import call_command
-                # call_command('rebuild_ledger') # This calls the command we wrote earlier
+                call_command('rebuild_ledger') # This calls the command we wrote earlier
                 cache.set('rebuild_task_status', 'Completed', 3600)
                 cache.set('ledger_task_last_run', datetime.now().strftime("%Y-%m-%d %H:%M"))
             except Exception as e:
@@ -460,9 +461,6 @@ def trigger_rebuild_view(request):
     return JsonResponse({
         'status': cache.get('rebuild_task_status', 'Idle'),
     })
-
-
-
 
 @login_required_ajax
 @require_GET
@@ -496,8 +494,17 @@ def load_cat2_stock(request):
 
 @login_required_ajax
 @require_GET
-def CatTypeMonthJSON(request):
-    today = date.today()
+def CatTypeMonthBalanceJSON(request):
+      # cattype_month_JSON
+    target_date = date.today()
+    month_param = request.GET.get('month', None)
+    if month_param:
+        if month_param == 'last':
+            target_date = target_date - relativedelta(months=1)
+
+    start_date = target_date.replace(day=1).strftime('%Y-%m-%d')
+    last_day = (target_date + relativedelta(day=31)).strftime('%Y-%m-%d')
+
     #today = date.fromisoformat('2024-06-04')
     series = []
     total = Decimal('0.00')
@@ -510,14 +517,27 @@ def CatTypeMonthJSON(request):
         if id[0] == '-':
             sign = -1
             id = id.replace('-','',1)
+        if sign == -1:
+            # Stack all negative items together
+            stack_group = 'expenses'
+            y_category = 'Expenses'
+        else:
+            # Positive items (Revenue) - no stack or unique stack
+            stack_group = None 
+            y_category = 'Revenue'            
         try:
             cattype = CatType.view_objects.get(pk=id)
-            value = sign * cattype.get_month_total(today)
+            value = sign * cattype.get_month_total(target_date)
+            
             total = total + value
             linedict = {
                 'name': cattype.name,
                 'type': 'bar',
                 'smooth': 'true',
+                'stack': stack_group,
+                'pk': id,
+                'start': start_date,
+                'end': last_day,
                 'data': [value],
             }
             series.append(linedict)
@@ -536,7 +556,93 @@ def CatTypeMonthJSON(request):
             }
     series.append(linedict)
 
-    month_name = today.strftime("%B")
+    month_name = target_date.strftime("%B")
+
+
+    data = {
+ 
+        "tooltip": {
+            "trigger": 'axis',
+            "axisPointer": {
+         "type": 'shadow' 
+            }
+        },
+        'xAxis': {
+            'type': 'value',
+            'position': 'top',
+            'splitLine': {
+                'lineStyle': {
+                    'type': 'dashed'
+                }
+            }
+        },
+        'yAxis': {
+            'type': 'category',
+            'show': False,
+            'data': [month_name]
+        },
+        'series': series
+    
+    }
+    return JsonResponse(data, safe=False)
+
+
+
+@login_required_ajax
+@require_GET
+def CatTypeMonthJSON(request):
+    # cattype_month_JSON
+    target_date = date.today()
+    month_param = request.GET.get('month', None)
+    if month_param:
+        if month_param == 'last':
+            target_date = target_date - relativedelta(months=1)
+
+    start_date = target_date.replace(day=1).strftime('%Y-%m-%d')
+    last_day = (target_date + relativedelta(day=31)).strftime('%Y-%m-%d')
+
+    #today = date.fromisoformat('2024-06-04')
+    series = []
+    total = Decimal('0.00')
+    i = 1
+    param = request.GET.get(f'pk{i}', None)    
+    while param is not None:
+        id = param
+        sign = 1
+        cattype = None
+        if id[0] == '-':
+            sign = -1
+            id = id.replace('-','',1)
+        try:
+            cattype = CatType.view_objects.get(pk=id)
+            value = sign * cattype.get_month_total(target_date)
+            total = total + value
+            linedict = {
+                'name': cattype.name,
+                'type': 'bar',
+                'smooth': 'true',
+                'pk': id,
+                'start': start_date,
+                'end': last_day,
+                'data': [value],
+            }
+            series.append(linedict)
+        except ObjectDoesNotExist:
+            continue
+        
+        i = i + 1
+        param = request.GET.get(f'pk{i}', None)    
+
+
+    linedict = {
+                'name': 'balance',
+                'type': 'bar',
+                'smooth': 'true',
+                'data': [total],
+            }
+    series.append(linedict)
+
+    month_name = target_date.strftime("%B")
 
 
     data = {
@@ -577,6 +683,8 @@ def CatTypeYearJSON(request):
     year = request.GET.get('year', None) 
     if year == 'last':
         today=date(today.year-1,1,1)
+    start_date = today.strftime('%Y-%m-%d')
+    last_day = (date(today.year,12,31)).strftime('%Y-%m-%d')        
     param = request.GET.get(f'pk{i}', None)    
     while param is not None:
         id = param
@@ -593,6 +701,9 @@ def CatTypeYearJSON(request):
                 'name': cattype.name,
                 'type': 'bar',
                 'smooth': 'true',
+                'pk': id,
+                'start': start_date,
+                'end': last_day,                
                 'data': [value],
             }
             series.append(linedict)
@@ -611,7 +722,7 @@ def CatTypeYearJSON(request):
             }
     series.append(linedict)
 
-    month_name = today.strftime("%B")
+    name = today.strftime("%Y")
 
 
     data = {
@@ -634,7 +745,7 @@ def CatTypeYearJSON(request):
         'yAxis': {
             'type': 'category',
             'show': False,
-            'data': [month_name]
+            'data': [name]
         },
         'series': series
     

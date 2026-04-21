@@ -1,5 +1,5 @@
 {% extends 'budgetdb/base.html' %}
-{% block head_comment %}<!--paystub PDF import template-->{% endblock %}
+{% block head_comment %}<!--paystub_import_check.html-->{% endblock %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -9,16 +9,29 @@
 
 {% block content %}
 
-
+<div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+    <h2>{{ pay_date|date:"Y-m-d" }}</h2>
+    
+    <div>
+        <span class="text-muted small me-3">Need to split a line or change a category?</span>
+        
+        <a href="{% url 'budgetdb:paystub_edit_mappings' profile.id %}" class="btn btn-outline-secondary shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sliders me-1" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
+            </svg>
+            Adjust Mappings
+        </a>
+    </div>
+</div>
 {% for section in sections %}
     {% if section.actions %}
         <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-secondary text-white fw-bold">
+            <div class="card-header bg-secondary text-uppercase text-white fw-bold text-center py-2">
                 {{ section.header }}
             </div>
             <div class="card-body p-0">
                 <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
+                    <thead class="bg-body-tertiary text-uppercase small fw-semibold">
                         <tr>
                             <th style="width: 30%;">Category</th>
                             <th style="width: 25%;">Source Account</th>

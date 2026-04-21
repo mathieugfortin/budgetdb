@@ -9,6 +9,52 @@ import json
 from django.contrib.auth import SESSION_KEY, BACKEND_SESSION_KEY, HASH_SESSION_KEY
 from django.conf import settings
 
+class TestTransactionToggle_feature():
+    def setUp(self):
+        super().setUp()
+        # Define URLs here so 'reverse' is called within the test context
+        self.url_receipt = reverse('budgetdb:togglereceipttransaction_json')
+        self.url_verify = reverse('budgetdb:toggleverifytransaction_json')
+
+    def post_toggle(self, url, pk):
+        return self.client.post(
+                    url, 
+                    {'transaction_id': pk},
+                    HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                    )
+
+    def test_toggle_updates_database(self, user_a, acc_a, host_1, cad):
+        self.client.force_login(user_a)
+        with impersonate(user_a):
+            tx = Transaction.objects.create(
+                description="Toggle Test",
+                receipt=False,
+                verified=False,
+                account_source=acc_a,
+                amount_actual=Decimal('100.00'),
+                date_actual=acc_a.date_open,
+                currency=cad,
+            )
+   
+        # receipt
+        assert self.post_toggle(self.url_receipt, tx.id).status_code is 200
+        tx.refresh_from_db()
+        assert tx.receipt is True
+
+        assert self.post_toggle(self.url_receipt, tx.id).status_code is 200
+        tx.refresh_from_db()
+        assert tx.receipt is False
+
+        # Verified logic
+        assert self.post_toggle(self.url_verify, tx.id).status_code is 200
+        tx.refresh_from_db()
+        assert tx.verified is True
+
+        assert self.post_toggle(self.url_verify, tx.id).status_code is 200
+        tx.refresh_from_db()
+        assert tx.verified is False
+
+
 class TransactionToggleTests(BudgetBaseTestCase2):
     def setUp(self):
         super().setUp()

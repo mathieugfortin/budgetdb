@@ -1,5 +1,6 @@
 import django_tables2 as tables
 from budgetdb.models import *
+from decimal import Decimal
 from django.utils.html import format_html
 from django.urls import reverse
 from crum import get_current_user
@@ -145,9 +146,8 @@ class BaseTransactionListTable(tables.Table):
         template_name="budgetdb/table2_columns/_transaction_list_render_date.html",
         verbose_name='Date',
         attrs={"td": {"class": "min"}},
-        order_by=("date_actual", 'audit','-verified', '-id')
+        order_by=("date_actual", '-id')
     )
-    # amount_actual = tables.Column(verbose_name='$', orderable=False)
     mybalance = tables.Column(verbose_name='Balance', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
     statement = tables.TemplateColumn(    
         template_name="budgetdb/table2_columns/_transaction_list_render_statement.html",
@@ -209,12 +209,13 @@ class BaseTransactionListTable(tables.Table):
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
                   "cat1", "cat2", "amount_actual", "verified", "receipt", "mybalance", "addaudit")
         attrs = {"class": "table table-hover"}
-        order_by = ("-date_actual")
+        order_by = ('date_actual','-id')
         per_page = 150
         row_attrs = {
             "id": lambda record: f'T{record.pk}',
             "class": set_class_transaction,
             "data-txid": lambda record: record.pk,
+            "data-date": lambda record: record.date_actual.strftime('%Y-%m-%d') if record.date_actual else "",
         }
     
     def __init__(self, *args, **kwargs): 
@@ -267,7 +268,9 @@ class BaseTransactionListTable(tables.Table):
 
     def render_mybalance(self, value, record):
         balance = getattr(record, 'calculated_balance', None)
-        if not self.account or not balance or record.audit:
+        if record.amount_actual == Decimal(2766.92):
+            pass
+        if not self.account or balance is None or record.audit:
             return mark_safe("")
         currency = record.account_source.currency if record.account_source else record.account_destination.currency
         return format_html('{amount}{symbol}',
@@ -282,7 +285,7 @@ class BaseTransactionListTable(tables.Table):
                                 amount=record.amount_actual,
                                 symbol=record.account_source.currency.symbol)        
 
-        balance_str = get_balance_token(record.amount_actual)
+        balance_str = f'{record.calculated_balance}'.replace('.','')
         reverse_url = reverse("budgetdb:list_account_transactions_create_audit_from_account",
                               kwargs={"accountpk": self.account.pk,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),

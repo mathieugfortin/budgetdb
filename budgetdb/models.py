@@ -291,7 +291,7 @@ class Preference(models.Model):
     timeline_stop = models.DateField(blank=True, null=True)
     timeline_start = models.DateField(blank=True, null=True)
     statement_buffer_before = models.IntegerField('days before statement date in transactionlist view', default=36)
-    statement_buffer_after = models.IntegerField('days before statement date in transactionlist view', default=0)
+    statement_buffer_after = models.IntegerField('days after statement date in transactionlist view', default=0)
     currencies = models.ManyToManyField("Currency", related_name="currencies")
     currency_prefered = models.ForeignKey("Currency",
                                           on_delete=models.DO_NOTHING,
@@ -1075,7 +1075,7 @@ class CatType(BaseSoftDelete, UserPermissions):
     def get_cat2_totals(self, cat1, start, end):
         # improvement: how do we deal with account currencies ?
         cat2s = Cat2.view_objects.filter(cattype=self, cat1=cat1)
-        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end,cat2__in=cat2s, cat1=cat1)
+        transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lte=end,cat2__in=cat2s, cat1=cat1)
         cat2s_sums = (transactions
             .values('cat2_id', 'cat2__name') # Use the relationship path
             .annotate(total=Sum('amount_actual'))
@@ -1168,6 +1168,9 @@ class PaystubMapping(BaseSoftDelete, UserPermissions):
     is_date_line = models.BooleanField(default=False)
     is_ignored = models.BooleanField(default=False)
     is_net_pay = models.BooleanField(default=False)
+    is_pass_through  = models.BooleanField(default=False)
+    token_count = models.IntegerField(default=0, help_text="number of token for this line")
+
     entry_type = models.CharField(
         max_length=10,
         choices=EntryType.choices,
@@ -1188,6 +1191,22 @@ class PaystubMapping(BaseSoftDelete, UserPermissions):
 
     def __str__(self):
         return f'{self.section_name} - {self.category}'
+
+    @property
+    def keyword_label(self):
+        """Returns 'Regular Pay [3]' as 'Regular Pay'"""
+        if not self.line_keyword:
+            return ""
+        # rsplit from the right, exactly once
+        parts = self.line_keyword.rsplit(' [', 1)
+        return parts[0]
+
+    @property
+    def token_suffix(self):
+        """Returns the [n] part for small badges/tooltips"""
+        if ' [' in self.line_keyword:
+            return f"{self.line_keyword.rsplit(' [')[1].rsplit(']')[0]}"
+        return ""
 
 
 class Vendor(BaseSoftDelete, UserPermissions):
@@ -1307,9 +1326,9 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
     verified = models.BooleanField('Verified in a statement', default=False)
     audit = models.BooleanField('Audit', default=False)
     receipt = models.BooleanField('Checked with receipt', default=False)
-    balance = models.DecimalField('Balance', decimal_places=2, max_digits=10, blank=True, null=True)
     fit_id = models.CharField(max_length=255, null=True, blank=True)
     fit_id_transfer = models.CharField(max_length=255, null=True, blank=True)
+    paystub_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f'{self.description} - {self.date_actual}'

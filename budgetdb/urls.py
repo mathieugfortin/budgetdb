@@ -198,7 +198,7 @@ urlpatterns = [
     path('budgetedEvent/createfromt/<int:transaction_id>/', views.BudgetedEventCreateFromTransaction.as_view(),
          name='create_budgetedevent_from_t'),
     path('budgetedEvent/update/<int:pk>/', views.BudgetedEventUpdate.as_view(),
-         name='update_be'),
+         name='update_budgetedevent'),
 
     ##########################################################################################################
     # Cat1
@@ -254,6 +254,9 @@ urlpatterns = [
          name='details_cattype'),
     path('cattype/JSONcard/month/', views.CatTypeMonthJSON,
          name='cattype_month_JSON'),
+    path('cattype/JSONcard/monthbalance/', views.CatTypeMonthBalanceJSON,
+         name='cattype_month_balance_JSON'),
+
     path('cattype/JSONcard/year/', views.CatTypeYearJSON,
          name='cattype_year_JSON'),
     path('cattype/JSONcard/multiyear/', views.MultiYearSummaryJSON,
@@ -317,9 +320,9 @@ urlpatterns = [
     ##########################################################################################################
     # Transaction
     
-    path('transactions/<str:filter_type>/<int:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(),
+    path('transactions/<str:filter_type>/<str:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(),
         name='transaction_list_view'),
-    path('transactions/<str:filter_type>/<int:pk>/', views.BaseTransactionListView.as_view(),
+    path('transactions/<str:filter_type>/<str:pk>/', views.BaseTransactionListView.as_view(),
         name='transaction_list_view'),        
     path('transaction/ListManualJSON', views.load_manual_transactionsJSON, 
         name='manual_transaction_list_json'),
@@ -345,15 +348,23 @@ urlpatterns = [
     path('transaction/update/<int:pk>/', views.TransactionUpdateView.as_view(),
          name='update_transaction'),
     path('transaction/uploadOFX/', views.import_ofx_view,
-         name='upload_transactions_OFX'),         
-    path('transaction/uploadPDFpaystub/<int:profile_id>/', views.setup_paystub_mapping,
+         name='upload_transactions_OFX'),
+
+
+    path('transaction/paystub/uploadPDF/<int:profile_id>/', views.paystub_PDF_import,
          name='upload_paystub_PDF'),         
-    path('transaction/uploadPDFpaystub/', views.setup_paystub_mapping,
-         name='upload_paystub_PDF'),         
-    path('transaction/commitpaystub/', views.commit_paystub,
+    path('transaction/paystub/uploadPDF/', views.paystub_PDF_import,
+         name='upload_paystub_PDF'), 
+    path('transaction/paystub/edit_mappings/<int:profile_id>/', views.paystub_edit_mappings,
+         name='paystub_edit_mappings'),         
+    path('transaction/paystub/confirm_import/<int:profile_id>/', views.paystub_confirm_import,
+         name='paystub_confirm_import'),
+    path('transaction/paystub/commit/', views.commit_paystub,
          name='commit_paystub_PDF'), 
 
-         
+
+
+
     # path('audit/<int:pk>/', views..as_view(),
     #      name='details_Audit'),
     path('calendar/', views.TransactionCalendarView.as_view(),

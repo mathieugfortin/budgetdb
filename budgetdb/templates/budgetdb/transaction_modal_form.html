@@ -15,7 +15,7 @@
     {% crispy form %}
 {% endblock %}
 {% block script %}
-
+    <script type="text/javascript" src="{% static 'budgetdb/js/transaction_flip_accounts.js' %}"></script>
     {% include "budgetdb/js/js_template_from_vendor.html" %}
     {% include "budgetdb/js/js_cat1-cat2.html" %}    
     {% include "budgetdb/js/js_unit_price.html" %}

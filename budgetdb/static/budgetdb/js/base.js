@@ -371,9 +371,14 @@ $(document).ready(function() {
 
                 // 3. Create the slider
                 noUiSlider.create(sliderElement, {
+                    //range: {
+                    //    'min': new Date(res.timeline_start).getTime(),
+                    //    'max': new Date(res.timeline_stop).getTime()
+                    //},
                     range: {
-                        'min': new Date(res.timeline_start).getTime(),
-                        'max': new Date(res.timeline_stop).getTime()
+                        // Replacing '-' with '/' forces the browser to parse as Local Time
+                        'min': new Date(res.timeline_start.replace(/-/g, '\/')).getTime(),
+                        'max': new Date(res.timeline_stop.replace(/-/g, '\/')).getTime()
                     },
                     step: 24 * 60 * 60 * 1000, // 1 day
                     start: [new Date(res.slider_start).getTime(), new Date(res.slider_stop).getTime()],
