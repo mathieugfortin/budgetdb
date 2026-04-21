@@ -1192,6 +1192,22 @@ class PaystubMapping(BaseSoftDelete, UserPermissions):
     def __str__(self):
         return f'{self.section_name} - {self.category}'
 
+    @property
+    def keyword_label(self):
+        """Returns 'Regular Pay [3]' as 'Regular Pay'"""
+        if not self.line_keyword:
+            return ""
+        # rsplit from the right, exactly once
+        parts = self.line_keyword.rsplit(' [', 1)
+        return parts[0]
+
+    @property
+    def token_suffix(self):
+        """Returns the [n] part for small badges/tooltips"""
+        if ' [' in self.line_keyword:
+            return f"{self.line_keyword.rsplit(' [')[1].rsplit(']')[0]}"
+        return ""
+
 
 class Vendor(BaseSoftDelete, UserPermissions):
     class Meta:

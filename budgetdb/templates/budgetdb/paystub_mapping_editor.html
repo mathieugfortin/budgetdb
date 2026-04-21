@@ -74,9 +74,15 @@
 
                 <tr class="mapping-row {% if form.instance.is_ignored %}line-ignored d-none{% endif %}{% if form.instance.line_keyword in unmapped_keys %}bg-warning-subtle border border-warning rounded{% endif %}">   
                     <!-- <td class="text-truncate"> -->
-                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                    <td title="Raw Key: {{ record.line_keyword }}">
+                        <strong>{{ form.instance.keyword_label }}</strong> 
+                        <span class="badge rounded-pill bg-light text-dark border small">
+                            {{ form.instance.token_suffix }}
+                        </span><!-- 
+                    </td>    
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">-->
                         {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-                        <strong>{{ form.instance.line_keyword }}</strong>
+                        <!-- <strong>{{ form.instance.line_keyword }}</strong>-->
                     </td>
                     <td class="text-center no-label">
                         <input type="checkbox" 

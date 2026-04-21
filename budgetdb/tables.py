@@ -146,9 +146,8 @@ class BaseTransactionListTable(tables.Table):
         template_name="budgetdb/table2_columns/_transaction_list_render_date.html",
         verbose_name='Date',
         attrs={"td": {"class": "min"}},
-        order_by=("date_actual", 'audit','-verified', '-id')
+        order_by=("date_actual", '-id')
     )
-    # amount_actual = tables.Column(verbose_name='$', orderable=False)
     mybalance = tables.Column(verbose_name='Balance', orderable=False, empty_values=(), attrs=HIDE_ON_PHONE)
     statement = tables.TemplateColumn(    
         template_name="budgetdb/table2_columns/_transaction_list_render_statement.html",
@@ -210,7 +209,7 @@ class BaseTransactionListTable(tables.Table):
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
                   "cat1", "cat2", "amount_actual", "verified", "receipt", "mybalance", "addaudit")
         attrs = {"class": "table table-hover"}
-        order_by = ("-date_actual")
+        order_by = ('date_actual','-id')
         per_page = 150
         row_attrs = {
             "id": lambda record: f'T{record.pk}',

@@ -883,7 +883,6 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         filter_method = getattr(self, f"_setup_{self.filter_type}", self._setup_default)
         self.filter_q = filter_method(preference)
 
-
     def _setup_account(self, preference):
         self.title = self.context_obj.name
         statement_pk = self.kwargs.get('statement_pk')
@@ -938,8 +937,12 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
             self.filter_q, 
             date_actual__gte=self.begin, 
             date_actual__lte=self.end
-        ).order_by('date_actual', 'id')
+        )
         sort = self.request.GET.get('sort', 'date_actual')
+        if sort == 'date_actual':
+            qs = qs.order_by('date_actual', '-id')
+        elif sort == '-date_actual':
+            qs = qs.order_by('-date_actual', 'id')
 
         if self.filter_type == 'account' and 'date_actual' in sort:
             # clean up balances
