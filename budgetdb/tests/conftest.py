@@ -192,7 +192,7 @@ def cat_type_a(user_a):
     with impersonate(user_a):
         return CatType.objects.create(
                 name="catType A",
-                owner=self.user_a,
+                owner=user_a,
             )
 
 @pytest.fixture
@@ -200,7 +200,7 @@ def cat_type_b(user_a):
     with impersonate(user_a):
         return CatType.objects.create(
                 name="catType A",
-                owner=self.user_a,
+                owner=user_a,
             )
 
 @pytest.fixture
@@ -208,17 +208,17 @@ def cat1_a(user_a, cat_type_a):
     with impersonate(user_a):
         return Cat1.objects.create(
                 name="cat1 A", 
-                owner=self.user_a,
-                cattype=self.cat_type_a,
+                owner=user_a,
+                cattype=cat_type_a,
             )
 
 @pytest.fixture
-def cat1_b(user_a, cat_type_a):
+def cat1_b(user_a, cat_type_b):
     with impersonate(user_a):
         return Cat1.objects.create(
                 name="cat1 B", 
-                owner=self.user_a,
-                cattype=self.cat_type_b,
+                owner=user_a,
+                cattype=cat_type_b,
             )
 
 @pytest.fixture
@@ -226,28 +226,28 @@ def cat1_c(user_a, cat_type_a):
     with impersonate(user_a):
         return Cat1.objects.create(
                 name="cat1 C", 
-                owner=self.user_a,
-                cattype=self.cat_type_a,
+                owner=user_a,
+                cattype=cat_type_a,
             )
 
 @pytest.fixture
-def cat2_a1(user_a, cat_type_a):
+def cat2_a1(user_a, cat_type_a, cat1_a):
     with impersonate(user_a):
         return Cat2.objects.create(
                 name="cat2 A1", 
-                cat1=self.cat1_a, 
-                cattype=self.cat_type_a,
-                owner=self.user_a,
+                cat1=cat1_a, 
+                cattype=cat_type_a,
+                owner=user_a,
             )
 
 @pytest.fixture
-def cat2_a2(user_a, cat_type_a):
+def cat2_a2(user_a, cat_type_a, cat1_a):
     with impersonate(user_a):
         return Cat2.objects.create(
                 name="cat2 A2", 
-                cat1=self.cat1_a, 
-                cattype=self.cat_type_a,
-                owner=self.user_a,
+                cat1=cat1_a, 
+                cattype=cat_type_a,
+                owner=user_a,
             )
 
 @pytest.fixture
@@ -255,20 +255,20 @@ def cat2_a3(user_a, cat_type_a):
     with impersonate(user_a):
         return Cat2.objects.create(
                 name="cat2 A3", 
-                cattype=self.cat_type_a,
-                cat1=self.cat1_a, 
-                owner=self.user_a,
+                cattype=cat_type_a,
+                cat1=cat1_a, 
+                owner=user_a,
             )            
 
 
 @pytest.fixture
-def cat2_b1(user_a, cat_type_a):
+def cat2_b1(user_a, cat_type_b, cat1_b):
     with impersonate(user_a):
         return Cat2.objects.create(
-                cattype=self.cat_type_b,
+                cattype=cat_type_b,
                 name="cat2 B1", 
-                cat1=self.cat1_b, 
-                owner=self.user_a,
+                cat1=cat1_b, 
+                owner=user_a,
             )
 
 
@@ -276,21 +276,32 @@ def cat2_b1(user_a, cat_type_a):
 def cat2_b2(user_a, cat_type_a):
     with impersonate(user_a):
         return Cat2.objects.create(
-                cattype=self.cat_type_b,
+                cattype=cat_type_b,
                 name="cat2 B2", 
-                cat1=self.cat1_b, 
-                owner=self.user_a,
+                cat1=cat1_b, 
+                owner=user_a,
             ) 
 
 @pytest.fixture
 def cat2_c1(user_a, cat_type_a):
     with impersonate(user_a):
         return Cat2.objects.create(
-                cattype=self.cat_type_a,
+                cattype=cat_type_a,
                 name="cat2 C1", 
-                cat1=self.cat1_c, 
-                owner=self.user_a,
+                cat1=cat1_c, 
+                owner=user_a,
             )
 
-
+@pytest.fixture
+def tx_a_cata(user_a, acc_a, cat_type_a, cad, cat1_a, cat2_a1):
+    with impersonate(user_a):
+        return Transaction.objects.create(
+            account_source=acc_a,
+            amount_actual=Decimal('50.00'),
+            date_actual=acc_a.date_open,
+            description="cat1_a - cat2_a1",
+            currency=cad,
+            cat1=cat1_a,
+            cat2=cat2_a1,
+        )
 
