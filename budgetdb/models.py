@@ -525,11 +525,32 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def ensure_records_exist(self, target_date):
         """Checks if records exist up to target_date; creates them if not."""
+        balances = self.balances.order_by('db_date').first()
+        first_record = balances.db_date if balances else None
+        # if there are balances missing at the start
+        new_rows = []
+        if first_record and first_record > self.date_open:
+            current_date = self.date_open
+            new_rows.append(AccountBalanceDB(
+                    account=self,
+                    db_date=self.date_open - timedelta(days=1),
+                    balance=Decimal('0.00'),
+                    audit=Decimal('0.00'),
+                    is_audit=True,
+                    balance_is_dirty=False 
+                ))
+            while current_date < first_record:
+                new_rows.append(AccountBalanceDB(
+                    account=self,
+                    db_date=current_date,
+                    balance_is_dirty=True # New rows are always dirty until first calculation
+                ))
+                current_date += timedelta(days=1)
+        #if there are balances missing at the end or none before target_date
         last_record = self.balances.order_by('db_date').last()
         start_from = last_record.db_date + timedelta(days=1) if last_record else self.date_open
         current_date = start_from
         if start_from <= target_date:
-            new_rows = [] 
             # if there are no balances, set the day before account openning at 0       
             if not last_record:
                 new_rows.append(AccountBalanceDB(
@@ -549,8 +570,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
                 ))
                 current_date += timedelta(days=1)
 
-            if new_rows:
-                AccountBalanceDB.objects.bulk_create(new_rows)
+        if new_rows:
+            AccountBalanceDB.objects.bulk_create(new_rows)
 
     def get_balances(self, start_date, end_date):
         # Use an atomic block to prevent partial 'Clean' states
@@ -568,6 +589,10 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         return AccountBalanceDB.objects.get(account=self, db_date=date)
 
     def save(self, *args, **kwargs):
+        ############
+        ######### when saving and parent change, old and new parents needs to be reset
+        ################
+
         # Convert string dates to date objects if necessary
         if isinstance(self.date_open, str):
             self.date_open = datetime.strptime(self.date_open, '%Y-%m-%d').date()
@@ -582,9 +607,9 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             old_date_closed = loaded.get('date_closed', self.date_closed)
 
             super(Account, self).save(*args, **kwargs)            
-            if self.date_closed != None and self.date_closed < old_date_closed:
+            if self.date_closed != None and (old_date_closed is None or self.date_closed < old_date_closed):
                 #remove unused balances 
-                AccountBalanceDB.objects.filter(account=self.account,db_date__gt=self.date_closed).delete()
+                AccountBalanceDB.objects.filter(account=self,db_date__gt=self.date_closed).delete()
 
     def get_absolute_url(self):
         return reverse('budgetdb:list_account_simple')

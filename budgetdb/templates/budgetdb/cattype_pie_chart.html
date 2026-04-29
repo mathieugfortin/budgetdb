@@ -120,7 +120,7 @@
 
         $.get(url, function(res) {
             myChart.hideLoading();
-            catData = res.data.map(item => ({
+            const catData = res.data.map(item => ({
                 name: item.name,
                 cat1_id: item.cat1_id,
                 realValue: item.value, // Keep the actual negative number here
@@ -178,7 +178,7 @@
         const url = `{% url "budgetdb:cattype_by_cat2_totals_json" %}?begin=${currentBegin}&end=${currentEnd}&cattype=${catTypeId}&cat1=${cat1Id}`;
         $.get(url, function(res) {
             myChart.hideLoading();
-            cat2Data = res.data.map(item => ({
+            const cat2Data = res.data.map(item => ({
                 name: item.name,
                 cat2_id: item.cat2_id,
                 realValue: item.value, // Keep the actual negative number here

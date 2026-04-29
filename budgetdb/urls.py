@@ -130,26 +130,9 @@ urlpatterns = [
          name='create_account'),
     path('account/update/<int:pk>/', views.AccountUpdateView.as_view(),
          name='update_account'),
-    path('ajax/check-account-unit-price/', views.load_account_unit_price,
+
+    path('account/ajax/check-account-unit-price/', views.load_account_unit_price,
          name='ajax_check_account_unit_price'),
-
-    path('account/listactivity/<int:pk>/', views.BaseTransactionListView.as_view(), 
-        name='list_account_transactions'),
-    path('account/listactivity/<int:pk>/<int:statement_pk>/', views.BaseTransactionListView.as_view(),
-        name='list_account_transactions_statement'),
-    path('account/listactivity/<int:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(), 
-        name='list_account_transactions_period'),
-
-    path('transaction/update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
-         name='account_listview_update_transaction_modal'),
-    path('transaction/add_audit_modal/<int:accountpk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
-         name='list_account_transactions_create_audit_from_account'),
-    path('transaction/add_audit_modal/<int:accountpk>/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
-         name='list_account_transactions_create_audit_from_account'),
-    path('transaction/add_modal/<int:accountpk>/<slug:date>/', views.TransactionCreateModal.as_view(),
-         name='create_transaction_from_date_account_modal'),
-    path('transaction/add_modal/<int:accountpk>/', views.TransactionCreateModal.as_view(),
-         name='create_transaction_from_date_account_modal'),
 
     ##########################################################################################################
     # AccountCategory
@@ -228,9 +211,10 @@ urlpatterns = [
          name='create_cat2'),
     path('cat2/update/<int:pk>/', views.Cat2UpdateView.as_view(),
          name='update_cat2'),
-    path('ajax/load-cat2/', views.load_cat2,
+
+    path('cat2/ajax/load-cat2/', views.load_cat2,
          name='ajax_load_cat2'),
-    path('ajax/check-cat2-unit-price/', views.load_cat2_unit_price,
+    path('cat2/ajax/check-cat2-unit-price/', views.load_cat2_unit_price,
          name='ajax_check_cat2_unit_price'),
 
     ##########################################################################################################
@@ -314,16 +298,17 @@ urlpatterns = [
          name='details_template'),
     path('template/update/<int:pk>/', views.TemplateUpdateView.as_view(),
          name='update_template'),
+
     path('template/ajax/get-template/', views.get_template,
          name='ajax_get_template'),
 
     ##########################################################################################################
     # Transaction
     
-    path('transactions/<str:filter_type>/<str:pk>/<slug:date1>/<slug:date2>/', views.BaseTransactionListView.as_view(),
-        name='transaction_list_view'),
     path('transactions/<str:filter_type>/<str:pk>/', views.BaseTransactionListView.as_view(),
-        name='transaction_list_view'),        
+        name='transaction_list_view'),
+          
+
     path('transaction/ListManualJSON', views.load_manual_transactionsJSON, 
         name='manual_transaction_list_json'),
     path('transaction/toggleverifyJSON', views.TransactionVerifyToggleJSON,
@@ -333,8 +318,6 @@ urlpatterns = [
     path('transaction/updatecatJSON', views.update_transaction_categoryJSON,
          name='update_transaction_category'),
 
-    path('transaction/save/<int:pk>/', views.saveTransaction,
-         name='saveTransaction'),
     path('transaction/<int:pk>/', views.TransactionDetailView.as_view(),
          name='details_transaction'),
     path('transaction/add/', views.TransactionCreateView.as_view(),
@@ -364,9 +347,18 @@ urlpatterns = [
 
 
 
+    path('transaction/update_modal/<int:pk>/', views.TransactionModalUpdate.as_view(),
+         name='account_listview_update_transaction_modal'),
+    path('transaction/add_audit_modal/<int:accountpk>/audit_add', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+         name='create_audit_transaction_from_account'),
+    path('transaction/add_audit_modal/<int:accountpk>/<slug:date>/<str:amount>', views.TransactionAuditCreateModalViewFromDateAccount.as_view(),
+         name='create_audit_transaction_from_account'),
+    path('transaction/add_modal/<int:accountpk>/<slug:date>/', views.TransactionCreateModal.as_view(),
+         name='create_transaction_from_date_and_account'),
+    path('transaction/add_modal/<int:accountpk>/', views.TransactionCreateModal.as_view(),
+         name='create_transaction_from_date_and_account'),
 
-    # path('audit/<int:pk>/', views..as_view(),
-    #      name='details_Audit'),
+
     path('calendar/', views.TransactionCalendarView.as_view(),
          name='calendar_transaction'),
     path('transaction/list2/', views.TransactionListView.as_view(),
@@ -377,7 +369,8 @@ urlpatterns = [
          name='list_manual_transaction'),
     path('transaction/deleted_list/', views.TransactionDeletedListView.as_view(),
          name='list_deleted_transaction'),
-    path('ajax/load-payment-transaction/', views.ajax_load_transaction_payments,
+
+    path('transaction/ajax/load-payment-transaction/', views.ajax_load_transaction_payments,
          name='ajax_load_payment_transaction'),
 
     ##########################################################################################################

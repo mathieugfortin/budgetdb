@@ -90,7 +90,7 @@
     <script>
         $(document).ready(function() {
             // 1. Prepare the redirect template once
-            const redirectTemplate = "{% url 'budgetdb:transaction_list_view' 'cattype' 999 'START_DATE' 'END_DATE' %}";
+            const redirectTemplate = "{% url 'budgetdb:transaction_list_view' 'cattype' 999 %}?start={{START_DATE}}&end={{END_DATE}}";
 
             // 2. Automatically find and init all "cattype-bar" charts
             $('.echart-container[data-type="cattype-bar"]').each(function() {
@@ -161,7 +161,7 @@
                 
                 // 1. Headers
                 data.years.forEach(year => $('#table-header').find('th:last').before(`<th>${year}</th>`));
-                const urlPattern = "{% url 'budgetdb:transaction_list_view' 'cattype' 9999 '2000-01-01' '2000-12-31' %}";
+                const urlPattern = "{% url 'budgetdb:transaction_list_view' 'cattype' 9999 %}?start=2000-01-01&end=2000-12-31";
                 // 2. Rows
                 data.rows.forEach((row, index) => {
                     let rowHtml = `<tr><td class="${row.is_total ? 'fw-bold' : ''}">${row.category}</td>`;
