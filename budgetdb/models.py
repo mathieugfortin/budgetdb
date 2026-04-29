@@ -525,7 +525,8 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def ensure_records_exist(self, target_date):
         """Checks if records exist up to target_date; creates them if not."""
-        first_record = self.balances.order_by('db_date').first().db_date
+        balances = self.balances.order_by('db_date').first()
+        first_record = balances.db_date if balances else None
         # if there are balances missing at the start
         new_rows = []
         if first_record and first_record > self.date_open:
@@ -591,7 +592,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         ############
         ######### when saving and parent change, old and new parents needs to be reset
         ################
-        
+
         # Convert string dates to date objects if necessary
         if isinstance(self.date_open, str):
             self.date_open = datetime.strptime(self.date_open, '%Y-%m-%d').date()
