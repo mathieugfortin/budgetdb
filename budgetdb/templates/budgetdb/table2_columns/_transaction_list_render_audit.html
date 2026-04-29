@@ -3,7 +3,7 @@
         type="button" 
         title="Confirm account balance for this day"
         class="update-transaction btn btn-link btn-sm" 
-        data-form-url="{% url 'budgetdb:list_account_transactions_create_audit_from_account' account_id record.date_actual|date:'Y-m-d' record.balance  %}">
+        data-form-url="{% url 'budgetdb:create_audit_transaction_from_account' account_id record.date_actual|date:'Y-m-d' record.balance  %}">
         <span class="material-symbols-outlined">add_circle</span>
     </button>
 {% else %}                      

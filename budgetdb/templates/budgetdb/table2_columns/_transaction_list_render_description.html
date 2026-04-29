@@ -55,7 +55,7 @@
 
     {# 6. Transfer Links (Source/Destination) #}
     {% if record.account_destination and record.account_destination.id != account_id %}
-        <a href="{% url 'budgetdb:list_account_transactions' record.account_destination.id %}"
+        <a href="{% url 'budgetdb:transaction_list_view' 'account' record.account_destination.id %}"
            class="btn btn-outline-info btn-sm rounded-pill py-0 px-2 d-inline-flex align-items-center fw-medium" 
            style="font-size: 0.75rem; border-style: dashed;">
             <span class="material-symbols-outlined me-1" style="font-size: 14px;">east</span>
@@ -64,7 +64,7 @@
     {% endif %}
 
     {% if record.account_source and record.account_source.id != account_id %}
-        <a href="{% url 'budgetdb:list_account_transactions' record.account_source.id %}" 
+        <a href="{% url 'budgetdb:transaction_list_view' 'account' record.account_source.id %}" 
            class="btn btn-outline-info btn-sm rounded-pill py-0 px-2 d-inline-flex align-items-center fw-medium" 
            style="font-size: 0.75rem; border-style: dashed;">
             <span class="material-symbols-outlined me-1" style="font-size: 14px;">west</span>

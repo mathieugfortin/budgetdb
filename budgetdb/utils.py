@@ -3,7 +3,7 @@ from calendar import HTMLCalendar
 from datetime import datetime, timedelta
 from django.urls import reverse, reverse_lazy
 from ofxparse import OfxParser
-from .models import Transaction, Statement, Vendor, PaystubMapping, Cat2, JoinedTransactions
+from .models import Transaction, Vendor, PaystubMapping, Cat2, JoinedTransactions
 from django.db.models import Q
 from dateutil import parser
 import pdfplumber
@@ -338,7 +338,7 @@ class PaystubEngine:
                     PaystubMapping.objects.create(
                         profile=self.profile,
                         line_keyword=mapping_key,
-                        section_name=self.find_section_for_keyword(keyword),
+                        section_name=section_name,
                         line_sequence=sequence,
                         token_count=token_count
                     )

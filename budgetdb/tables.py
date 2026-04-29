@@ -286,7 +286,7 @@ class BaseTransactionListTable(tables.Table):
                                 symbol=record.account_source.currency.symbol)        
 
         balance_str = f'{record.calculated_balance}'.replace('.','')
-        reverse_url = reverse("budgetdb:list_account_transactions_create_audit_from_account",
+        reverse_url = reverse("budgetdb:create_audit_transaction_from_account",
                               kwargs={"accountpk": self.account.pk,
                                       "date": record.date_actual.strftime("%Y-%m-%d"),
                                       "amount": balance_str,

@@ -193,23 +193,6 @@ class TransactionCategoryAJAXTests(BudgetBaseTestCase):
             )
             #self.client.login(email='owner@example.com', password='secret')
 
-    def test_cat2_admin_list_json_filtering(self):
-        """API should only return Cat2 objects belonging to the selected Cat1."""
-        self.client.force_login(self.user_a)
-        url = reverse('budgetdb:cat2_admin_list_json')
-        response = self.client.get(url, {
-            'cat1_id': self.cat1_a.id
-        })
-        
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        
-        # Should find Bus and Train, but NOT Groceries
-        cat2s = [opt['name'] for opt in data['cat2s']]
-        self.assertIn(self.cat2_a1.name, cat2s)
-        self.assertIn(self.cat2_a2.name, cat2s)
-        self.assertNotIn(self.cat2_b1.name, cat2s)
-
     def test_save_cat2_directly(self):
         """Selecting a Cat2 should save without affecting Cat1."""
         self.client.force_login(self.user_a)

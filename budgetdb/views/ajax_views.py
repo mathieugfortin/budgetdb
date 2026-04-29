@@ -221,7 +221,7 @@ def GetAccountTransactionListURLJSON(request):
         namestring = namestring + " - " + acc.name
         data.append({
             'name': namestring,
-            'url': reverse('budgetdb:list_account_transactions', kwargs={'pk': acc.pk})
+            'url': reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': acc.pk})
         })
     return JsonResponse(data, safe=False)
 
@@ -494,6 +494,163 @@ def load_cat2_stock(request):
 
 @login_required_ajax
 @require_GET
+def echartOptionTimeline2JSON(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({}, status=401)
+
+    preference = get_object_or_404(Preference, user=request.user.id)
+    begin = preference.slider_start
+    end = preference.slider_stop
+    
+    accountcategoryID = request.GET.get('ac', None)
+    period = request.GET.get('period', None)
+
+    # 1. Date Range Logic
+    if period == 'nextmonth':
+        begin = date.today() - timedelta(days=5)
+        end = begin + timedelta(days=30)
+
+    # 2. Account Filtering
+    if accountcategoryID == 'favorites':
+        accounts = preference.favorite_accounts.all()
+        title = 'Favorite Accounts'
+    elif accountcategoryID in [None, 'None', '']:
+        accounts = Account.view_objects.all().order_by('account_host', 'name')
+        title = 'All Accounts'
+    else:
+        try:
+            accountcategory = AccountCategory.view_objects.get(pk=accountcategoryID)
+            accounts = Account.view_objects.filter(account_categories=accountcategory.pk).order_by('account_host', 'name')
+            title = accountcategory.name
+        except ObjectDoesNotExist:
+            raise PermissionDenied
+
+    # 3. Prepare X-Axis and find "Today" index
+    dates = MyCalendar.objects.filter(db_date__gte=begin, db_date__lte=end).order_by('db_date')
+    x_axis = [f'{day.db_date}' for day in dates]
+    today_str = str(date.today())
+
+    series = []
+    series_label = []
+    nb_days = len(x_axis)
+    linetotaldata = [Decimal('0.00')] * nb_days
+
+    # 4. Process individual Account Lines
+    for account in accounts:
+        if not account.can_view():
+            continue
+        if account.date_closed and account.date_closed < begin:
+            continue
+
+        series_label.append(account.name)
+        balances = account.get_balances(begin, end)
+        balance_map = {b.db_date: b.balance for b in balances}
+
+        linedata = []
+
+        for i in range(nb_days):
+            current_date = begin + timedelta(days=i)
+            # we may have holes in the balances if the account was opened or closed during the interval
+            # the default value keeps the graph clean
+            val = balance_map.get(current_date, Decimal('0.00')) 
+            linedata.append(val)
+            linetotaldata[i] += val
+
+        series.append({
+            'name': account.name,
+            'type': 'line',
+            'smooth': True,
+            'areaStyle': {'opacity': 0.1}, # Subtle area fill
+            'symbol': 'circle',            # Standard dot
+            'symbolSize': 4,
+            'yAxisIndex': 0,
+            'data': linedata,
+            'markLine': {
+                'silent': True,
+                'symbol': 'none',
+                'label': {'show': True, 'position': 'end', 'formatter': 'Today'},
+                'lineStyle': {'color': '#ff4d4f', 'type': 'dashed', 'width': 2},
+                'data': [{'xAxis': today_str}] if today_str in x_axis else []
+            } if len(series) == 0 else None # Only add to the first series to avoid duplicates            
+        })
+
+    series.append({
+        'name': 'GRAND TOTAL',
+        'type': 'line',
+        'smooth': True,
+        'yAxisIndex': 1,
+        'lineStyle': {'width': 3, 'type': 'dashed'},
+        'itemStyle': {'color': '#5470c6'}, # A distinct color
+        'data': linetotaldata,
+        'zIndex': 10 # Keep it on top of other lines
+    })
+    series_label.append('GRAND TOTAL')
+
+    # 6. Final ECharts Option Dictionary
+    data = {
+        'title': {
+            'text': title,
+            'left': 'center',
+            'textStyle': {'fontSize': 16}
+        },
+        'legend': {
+            'data': series_label,
+            # 'type': 'scroll',
+            'type': 'plain',
+            'orient': 'horizontal',
+            'bottom': '0',
+            'left': 'center',
+            'padding': [5, 10],
+            'textStyle': { 'fontSize': 12 },
+        },
+        'grid': {
+            'left': '3%',
+            'right': '4%',
+            'bottom': '20%',
+            'top': '15%',
+            'containLabel': True
+        },
+        'xAxis': {
+            'type': 'category',
+            'boundaryGap': False,
+            'data': x_axis,
+            # Add the vertical "Today" line directly to the Axis
+            'axisPointer': { 'show': True, 'snap': True },
+        },
+        'yAxis': [
+            {
+                'type': 'value',
+                'name': 'Accounts',
+                'position': 'left',
+                'axisLabel': {'formatter': '{value}'}
+            },
+            {
+                'type': 'value',
+                'name': 'Total',
+                'position': 'right',
+                'splitLine': {'show': False}, # Hide grid lines for the 2nd axis to avoid clutter
+                'axisLabel': {'formatter': '{value}'}
+            }
+        ],
+        'series': series,
+        # Special 'Today' marker attached to the first series or as a standalone
+        'markLine': {
+            'silent': True,
+            'symbol': 'none',
+            'label': {'formatter': 'Today', 'position': 'end'},
+            'lineStyle': {'color': 'red', 'type': 'solid', 'width': 2},
+            'data': [{'xAxis': today_str}] if today_str in x_axis else []
+        },
+        "custom_metadata": {
+            "total_series_count": len(series)
+        }
+    }
+
+    return JsonResponse(data, safe=False)
+
+
+@login_required_ajax
+@require_GET
 def CatTypeMonthBalanceJSON(request):
       # cattype_month_JSON
     target_date = date.today()
@@ -520,11 +677,11 @@ def CatTypeMonthBalanceJSON(request):
         if sign == -1:
             # Stack all negative items together
             stack_group = 'expenses'
-            y_category = 'Expenses'
+            # y_category = 'Expenses'
         else:
             # Positive items (Revenue) - no stack or unique stack
             stack_group = None 
-            y_category = 'Revenue'            
+            # y_category = 'Revenue'            
         try:
             cattype = CatType.view_objects.get(pk=id)
             value = sign * cattype.get_month_total(target_date)

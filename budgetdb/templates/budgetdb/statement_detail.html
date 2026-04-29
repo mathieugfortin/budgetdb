@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<h1>Statement {{ statement.statement_date|date:"Y-m-d"  }} for <a href="{% url 'budgetdb:list_account_transactions_statement' statement.account.id statement.id  %}?sort=date_actual" >{{ statement.account.name }}</a></h1>
+<h1>Statement {{ statement.statement_date|date:"Y-m-d"  }} for <a href="{% url 'budgetdb:transaction_list_view' 'account' statement.account.id %}?statement={{statement.id}}&sort=date_actual" >{{ statement.account.name }}</a></h1>
 
 <table class="table">
     <thead class="thead-dark">

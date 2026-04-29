@@ -465,10 +465,12 @@ def import_ofx_view(request):
         # Clean up session
         del request.session['ofx_import_data']
         del request.session['ofx_account_id']
+        base_url = reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account' ,'pk': account.pk})
         if show_result:
-            return redirect('budgetdb:list_account_transactions_period', pk=account.pk, date1=earliest_date, date2=latest_date)
+            params = urlencode({'start': earliest_date, 'end': latest_date})
+            return redirect(f"{base_url}?{params}")
         else:
-            return redirect('budgetdb:list_account_transactions', pk=account.pk)
+            return redirect(f"{base_url}")
 
     # --- STEP 3: LIVE SIGN FLIP (Ajax-like update to session) ---
     if request.method == 'POST' and 'flip_now' in request.POST:
@@ -599,7 +601,7 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         return context
 
     def get_success_url(self):
-        return reverse('budgetdb:list_account_transactions', kwargs={'pk': self.account.pk})
+        return reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': self.account.pk})
 
 
 ###################################################################################################################
@@ -787,10 +789,6 @@ class JoinedTransactionsConfigUpdateView(LoginRequiredMixin, UserPassesTestMixin
         return form
 
 
-def saveTransaction(request, transaction_id):
-    return HttpResponse("You're working on transaction %s." % transaction_id)
-
-
 class TransactionListView(LoginRequiredMixin, ListView):
     model = Transaction
     context_object_name = 'calendar_list'
@@ -821,8 +819,8 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
     template_name = 'budgetdb/transaction/base_transactions_list.html'
     
     # State variables
-    filter_type = 'account'
-    filter_model = Account
+    filter_type = ''
+    filter_model = None
     filter_q = None
 
     pk = None
@@ -873,8 +871,8 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         self.end = preference.slider_stop
         
         # 1. Handle Dates from URL (Overload)
-        date1 = self.kwargs.get('date1')
-        date2 = self.kwargs.get('date2')
+        date1 = self.request.GET.get('start')
+        date2 = self.request.GET.get('end')
         if date1 and date2:
             self.begin = datetime.strptime(date1, "%Y-%m-%d").date()
             self.end = datetime.strptime(date2, "%Y-%m-%d").date()
@@ -885,7 +883,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
 
     def _setup_account(self, preference):
         self.title = self.context_obj.name
-        statement_pk = self.kwargs.get('statement_pk')
+        statement_pk = self.request.GET.get('statement_pk')
         
         if statement_pk:
             statement = get_object_or_404(Statement, id=statement_pk)

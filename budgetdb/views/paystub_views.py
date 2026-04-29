@@ -185,4 +185,7 @@ def commit_paystub(request):
                 )
 
         messages.success(request, "Paystub finalized successfully.")
-        return redirect('budgetdb:transaction_list_view', filter_type='account', pk=profile.pay_account.pk, date1=pay_date,date2=pay_date)
+        base_url = reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': profile.pay_account.pk})
+        params = urlencode({'start': pay_date, 'end': pay_date})
+        return redirect(f"{base_url}?{params}")
+        
