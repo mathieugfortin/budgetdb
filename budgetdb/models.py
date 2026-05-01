@@ -1,3 +1,4 @@
+from auditlog.registry import auditlog
 from crum import get_current_user
 from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
@@ -1725,3 +1726,21 @@ class JoinedTransactions(MyMeta, BaseSoftDelete, UserPermissions):
     transactions = models.ManyToManyField(Transaction, related_name='joined_transactions') #was transactions
     budgetedevents = models.ManyToManyField(BudgetedEvent, related_name='joined_transactions') #was budgeted_events
     isrecurring = models.BooleanField('Is this a recurring event?', default=True)
+
+
+
+auditlog.register(Preference)
+auditlog.register(AccountHost)
+auditlog.register(Account)
+auditlog.register(AccountCategory)
+auditlog.register(CatType)
+auditlog.register(Cat1)
+auditlog.register(Cat2)
+auditlog.register(PaystubProfile)
+auditlog.register(PaystubMapping)
+auditlog.register(Vendor)
+auditlog.register(Template)
+auditlog.register(Transaction)
+auditlog.register(BudgetedEvent)
+auditlog.register(Statement)
+auditlog.register(JoinedTransactions)

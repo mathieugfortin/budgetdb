@@ -779,14 +779,7 @@ class JoinedTransactionsConfigUpdateView(LoginRequiredMixin, UserPassesTestMixin
     def handle_no_permission(self):
         raise PermissionDenied
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.helper.form_method = 'POST'
-        form.helper.add_input(Submit('submit', self.task, css_class='btn-primary'))
-        form.helper.add_input(Button('cancel', 'Cancel', css_class='btn-secondary',
-                              onclick="javascript:history.back();"))
-        form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
-        return form
+
 
 
 class TransactionListView(LoginRequiredMixin, ListView):
