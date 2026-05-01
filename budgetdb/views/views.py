@@ -1158,3 +1158,12 @@ class PreferencesUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
                               onclick="javascript:history.back();"))
         form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
         return form
+
+
+from auditlog.models import LogEntry
+
+
+def activity_feed(request):
+    # Fetch the 20 most recent changes
+    logs = LogEntry.objects.select_related('actor', 'content_type').all()[:20]
+    return render(request, 'budgetdb/activity.html', {'logs': logs})

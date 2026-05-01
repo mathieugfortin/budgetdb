@@ -1,0 +1,14 @@
+{% for log in logs %}
+  <div class="log-item">
+    <strong>{{ log.actor }}</strong> 
+    {{ log.get_action_display }}ed 
+    <strong>{{ log.object_repr }}</strong> 
+    on {{ log.timestamp }}
+    
+    <ul>
+      {% for field, values in log.changes_dict.items %}
+        <li>Changed <b>{{ field }}</b> from {{ values.0 }} to {{ values.1 }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endfor %}

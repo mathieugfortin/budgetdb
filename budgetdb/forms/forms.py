@@ -577,7 +577,17 @@ class RecurringBitmaps(forms.Form):
 
 
 class JoinedTransactionConfigForm(forms.ModelForm):
-    pass
+    class Meta:
+        model = JoinedTransactions
+        fields = (
+            'name',
+            'users_admin',
+            'users_view',
+            'comment',
+            'transactions',
+            'budgetedevents',
+            'is_deleted',
+        )
 
 
 class BudgetedEventForm(forms.ModelForm, RecurringBitmaps):

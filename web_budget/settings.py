@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'django_tables2',
     'django_filters',
     'django_select2',
+    'auditlog',
 ]
 
 AUTH_USER_MODEL = 'budgetdb.User'
@@ -86,7 +87,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware', 
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'crum.CurrentRequestUserMiddleware',                   
+    'crum.CurrentRequestUserMiddleware',           
+    'auditlog.middleware.AuditlogMiddleware',        
 ]
 
 ROOT_URLCONF = 'web_budget.urls'

@@ -15,29 +15,7 @@ class FourDigitYearConverter:
         return '%04d' % value
 
 
-class TwoDigitMonthConverter:
-    regex = '[0-9]{2}'
-
-    def to_python(self, value):
-        return int(value)
-
-    def to_url(self, value):
-        return '%04d' % value
-
-
-class TwoDigitDayConverter:
-    regex = '[0-9]{2}'
-
-    def to_python(self, value):
-        return int(value)
-
-    def to_url(self, value):
-        return '%04d' % value
-
-
 register_converter(FourDigitYearConverter, 'yyyy')
-register_converter(TwoDigitMonthConverter, 'mm')
-register_converter(TwoDigitDayConverter, 'dd')
 
 app_name = 'budgetdb'
 
@@ -76,6 +54,8 @@ urlpatterns = [
          name='password_update'),
     path('user/logout/', auth_views.LogoutView.as_view(template_name="budgetdb/user/user_logout.html"),
          name='logout'),
+    path('user/activity/', views.activity_feed,
+         name='activitylog'),
 
     #invitation
     path('invitation/', views.InvitationListView.as_view(),
