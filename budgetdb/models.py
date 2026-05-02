@@ -494,9 +494,9 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
 
     def __str__(self):
         user = get_current_user()
-        preference = Preference.objects.get(user=user.id)
+        preference = Preference.objects.get(user=user.id) if user else None
         star = ""
-        if preference.favorite_accounts.filter(favorites=preference.id, id=self.pk):
+        if preference and preference.favorite_accounts.filter(favorites=preference.id, id=self.pk):
             star = "★ "
         if user == self.owner:
             return star + self.account_host.name + " - " + self.name
