@@ -209,7 +209,7 @@ class BaseTransactionListTable(tables.Table):
         fields = ("addtransaction", "date_actual", "statement", "description", "recurencelinks",
                   "cat1", "cat2", "amount_actual", "verified", "receipt", "mybalance", "addaudit")
         attrs = {"class": "table table-hover"}
-        order_by = ('date_actual','-id')
+        order_by = ('-date_actual','id')
         per_page = 150
         row_attrs = {
             "id": lambda record: f'T{record.pk}',
