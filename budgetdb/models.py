@@ -458,7 +458,10 @@ class AccountReport():
         self.dividends += monthreport.dividends
         self.balance_end += monthreport.balance_end
         self.interests += monthreport.interests
-        self.rate = (self.interests / (self.balance_end - self.interests))*Decimal(100)
+        if self.balance_end - self.interests == Decimal('0.00'):
+            self.rate = Decimal('0')
+        else:
+            self.rate = (self.interests / (self.balance_end - self.interests))*Decimal(100)
 
 
 class Account(MyMeta, BaseSoftDelete, UserPermissions):
@@ -587,7 +590,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
     def get_balance(self, date):
         with transaction.atomic():
             self.tree_balances_needed_cleaning(date,date)
-        return AccountBalanceDB.objects.get(account=self, db_date=date)
+        return AccountBalanceDB.objects.filter(account=self, db_date=date).first()
 
     def save(self, *args, **kwargs):
         ############
@@ -628,7 +631,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
         if account_list.first() is None:
             # if it's a account without children, return a report with 12 months + total
             account_report = []
-            balance_beginning = self.get_balance(previous_day)
+            balance_beginning = self.get_balance(previous_day).balance if self.get_balance(previous_day) else None
             report_account_year = AccountReport(isaccountparent=False)
             for month in range(12):
                 report_current_month = self.build_report(year, month+1, balance_beginning)
@@ -676,7 +679,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             start_date = date(year, month, 1)
             end_date = start_date + relativedelta(day=+31)
 
-        balance_end = self.get_balance(end_date)
+        balance_end = self.get_balance(end_date).balance if self.get_balance(end_date) else Decimal('0')
         transactions = Transaction.view_objects.filter(date_actual__gt=start_date, date_actual__lte=end_date, is_deleted=False,)
         deposits = transactions.filter(account_destination=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
         withdrawals = transactions.filter(account_source=self, audit=False).aggregate(Sum('amount_actual'))['amount_actual__sum']
@@ -1622,6 +1625,8 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         if default_slider_stop < slider_stop:
             delta = default_slider_stop - slider_stop
             interval_length_months += 1 - round(delta.days / 30)
+        if self.budget_only:
+            begin_interval = date.now()
 
         transaction_dates = self.listPotentialTransactionDates(n=n,
                                                                begin_interval=begin_interval,

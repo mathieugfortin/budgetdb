@@ -70,6 +70,12 @@ CSRF_TRUSTED_ORIGINS = ['http://code-server.patatemagique.biz',
                         'http://code-server.patatemagique.biz:880',
                         'https://budget.patatemagique.biz',
                         ]
+IF_PROXY = env.bool('USE_PROXY', default=False)
+
+if IF_PROXY:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
