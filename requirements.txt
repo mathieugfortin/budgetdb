@@ -28,7 +28,7 @@ greenlet==3.3.1
 gunicorn==23.0.0
 holidays==0.93
 idna==3.16
-ijson==3.4.0.post0
+ijson==3.5.0
 iniconfig==2.3.0
 isort==6.0.1
 lxml==6.1.0
