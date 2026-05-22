@@ -175,10 +175,15 @@ def paystub_confirm_import(request, profile_id):
 def commit_paystub(request):
     if request.method == "POST":
         pay_date = request.POST.get('pay_date')
+        parsed_pay_date = parse_date(pay_date) if pay_date else None
+        if not parsed_pay_date:
+            messages.error(request, "Invalid pay date.")
+            return redirect(reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': request.user.preference.account_to_use.id}))
+        pay_date_str = parsed_pay_date.isoformat()
         manual_jt_id = request.POST.get('manual_jt_id')
         raw_text = request.session.get('raw_paystub_text')
         profile_id = request.POST.get('profile_id')
-        paystub_id = f'{pay_date}-{profile_id}'
+        paystub_id = f'{pay_date_str}-{profile_id}'
         matched_tx_ids = set()
         
         if manual_jt_id:
@@ -226,6 +231,6 @@ def commit_paystub(request):
 
         messages.success(request, "Paystub finalized successfully.")
         base_url = reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': profile.pay_account.pk})
-        params = urlencode({'start': pay_date, 'end': pay_date})
+        params = urlencode({'start': pay_date_str, 'end': pay_date_str})
         request.session.pop('raw_pdf_b64', None)
         return redirect(f"{base_url}?{params}")
