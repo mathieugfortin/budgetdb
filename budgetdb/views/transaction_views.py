@@ -30,7 +30,7 @@ from crispy_forms.layout import Layout, Div
 from ofxparse import OfxParser
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, BSModalDeleteView
 import json
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, urlencode
 
 
 ###################################################################################################################

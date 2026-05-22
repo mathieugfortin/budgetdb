@@ -83,3 +83,11 @@
     font-size: 0.7rem;
     padding: 0.2em 0.5em;
 }
+
+.thead-sticky th,
+.thead-sticky tr {
+    position: sticky;
+    top: 40px;
+    z-index: 1020;
+    background-color: var(--bs-body-bg);
+}

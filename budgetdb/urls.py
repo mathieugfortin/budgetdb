@@ -240,6 +240,9 @@ urlpatterns = [
     # PayStubs
     path('paystubprofile/add/', views.PayStubProfileCreateView.as_view(),
          name='create_paystubprofile'),
+    path('paystub/fetchpdf/', views.stream_paystub_pdf,
+         name='stream_paystub_pdf'),
+
 
     ##########################################################################################################
     # Preferences
