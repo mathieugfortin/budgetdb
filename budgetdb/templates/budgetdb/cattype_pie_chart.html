@@ -227,7 +227,7 @@
             drillDown(params.data.cat1_id);
         } else if (params.seriesName === 'Category 2') {
             // Construct the dynamic URL for the General View
-            const url = `/en-ca/transactions/cat2/${params.data.cat2_id}/${currentBegin}/${currentEnd}/`;
+            const url = `/en-ca/transactions/cat2/${params.data.cat2_id}/?start=${currentBegin}&end=${currentEnd}`;
             window.location.href = url;
         }
     });

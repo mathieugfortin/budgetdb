@@ -9,6 +9,8 @@ from dateutil import parser
 import pdfplumber
 import re
 from decimal import Decimal
+import unicodedata
+from collections import defaultdict
 
 class Calendar(HTMLCalendar):
     def __init__(self, year=None, month=None):
@@ -236,6 +238,13 @@ class PaystubEngine:
         self.tokenized_lines = self._tokenize_all()
         #self.token_dict = self._tokenize(self.raw_text)
 
+    def strip_accents(self, text):
+        # Decompose the characters
+        text = unicodedata.normalize('NFD', text)
+        # Filter out the combining accent marks
+        text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+        return text
+
     def _extract_text(self, pdf_file):
         """Internal helper to convert binary PDF to string text."""
         extracted_text = ""
@@ -248,6 +257,7 @@ class PaystubEngine:
         except Exception as e:
             print(f"PDF Extraction Error: {e}")
             return ""
+        extracted_text = self.strip_accents(extracted_text)
         return extracted_text
 
     def _tokenize_all(self):
@@ -349,38 +359,41 @@ class PaystubEngine:
         return f"{keyword} [{count}]"
 
     def get_active_mappings(self):
-        """Returns a dict of mapping_key -> tokens."""
-        active = {}
-        tokens_map = self.get_token_dict()
-        for keyword, occurrences in tokens_map.items():
-            for tokens in occurrences:
-                key = self.get_mapping_key(keyword, tokens)
-                active[key] = tokens
-        return active
+        """Returns a list of tuples: (mapping_key, tokens) preserving duplicates and order."""
+        active_list = []
+        
+        # self.tokenized_lines is already a list of lines in reading order
+        for parts in self.tokenized_lines:
+            keyword = parts[0]
+            key = self.get_mapping_key(keyword, parts)
+            active_list.append((key, parts))
+            
+        return active_list
 
     def get_unmapped_keys(self):
-        """
-        Returns a list of keys found in the PDF that are not 
-        fully configured in the database.
-        """
-        active_pdf_keys = self.get_active_mappings().keys()
-        existing_mappings = PaystubMapping.objects.filter(
-            profile=self.profile, 
-            line_keyword__in=active_pdf_keys
-        )
-
-        ready_keywords = set()
-        for m in existing_mappings:
-            is_metadata = m.is_ignored or m.is_header or m.is_date_line or m.is_net_pay
-            has_cat = m.category_id is not None
-            needs_destination = m.is_pass_through 
-            has_dest = m.destination_account_id is not None
+            """
+            Returns a list of keys found in the PDF that are not 
+            fully configured in the database.
+            """
+            # FIX: Extract unique keys from the list of tuples
+            active_pdf_keys = set(key for key, tokens in self.get_active_mappings())
             
-            if is_metadata or (has_cat and (not needs_destination or has_dest)):
-                ready_keywords.add(m.line_keyword)
+            existing_mappings = PaystubMapping.objects.filter(
+                profile=self.profile, 
+                line_keyword__in=active_pdf_keys
+            )
 
-        # Return the difference: keys in PDF but not in 'ready' set
-        return [key for key in active_pdf_keys if key not in ready_keywords]
+            ready_keywords = set()
+            for m in existing_mappings:
+                is_metadata = m.is_ignored or m.is_header or m.is_date_line or m.is_net_pay
+                has_cat = m.category_id is not None
+                needs_destination = m.is_pass_through 
+                has_dest = m.destination_account_id is not None
+                
+                if is_metadata or (has_cat and (not needs_destination or has_dest)):
+                    ready_keywords.add(m.line_keyword)
+
+            return [key for key in active_pdf_keys if key not in ready_keywords]
 
     def get_mapped_amounts(self):
         """
@@ -517,7 +530,8 @@ class PaystubEngine:
             existing_tx = Transaction.objects.filter(
                 account_source=target_source_account,
                 date_actual=pay_date,
-                cat2=cat2
+                cat2=cat2,
+                is_deleted=False,
             ).exclude(id__in=matched_tx_ids).first()
 
         action = {
@@ -602,54 +616,57 @@ class PaystubEngine:
         current_section = {"header": "General", "actions": []}
         all_discovered_jts = {}
         
-        # Mathematical counters
-        running_total = 0 # Sum of all earnings/deductions
-        reported_net_pay = 0 # The value of the specific 'Net Pay' line
+        running_total = 0 
+        reported_net_pay = 0 
         
-        # 1. Get all your saved rules
+        # Get all saved rules 
         mappings = PaystubMapping.admin_objects.filter(profile=self.profile).order_by('line_sequence')
-        matched_tx_ids = set()
-        # 2. Get the actual PDF data
-        pdf_active_map = self.get_active_mappings() 
+               
+        # Get the ordered list of PDF lines
+        pdf_active_lines = self.get_active_mappings() 
 
-        for mapping in mappings:
-            if mapping.is_header:
-                if current_section["actions"]:
-                    sections.append(current_section)
-                current_section = {"header": mapping.line_keyword, "actions": []}
-                continue
-            # 3. Pull the tokens for this line
-            tokens =  pdf_active_map.get(mapping.line_keyword)
-            if tokens and not mapping.is_ignored:
-                if mapping.is_date_line:
-                        continue
+        mapping_dict = defaultdict(list)
+        for m in mappings:
+            mapping_dict[m.line_keyword].append(m)
+        matched_tx_ids = set()
+
+        # 3. Loop over every single physical line found in the PDF
+        for key, tokens in pdf_active_lines:
+            rules = mapping_dict.get(key, [])
+            for mapping in rules:
+            
+                if not mapping:
+                    # Line on PDF doesn't have a matching database rule yet
+                    continue
+                    
+                if mapping.is_header:
+                    if current_section["actions"]:
+                        sections.append(current_section)
+                    current_section = {"header": mapping.line_keyword, "actions": []}
+                    continue
+                    
+                if mapping.is_ignored or mapping.is_date_line:
+                    continue
+
+                # 4. Process this unique line instance
                 action = self.process_mapping_line(mapping, pay_date, tokens, matched_tx_ids=matched_tx_ids)
-                # Add any JTs found in this line to the master list
+                
                 for jt in action.get('potential_jts', []):
                     all_discovered_jts[jt['id']] = jt['name']
 
                 current_section["actions"].append(action)
-                if mapping.is_net_pay:
-                    reported_net_pay = action['val']
-                else:
-                    running_total += action['val']
 
                 # --- THE MATH PART ---
-                # If this is the 'Net Pay' line, we store it separately to compare
                 if getattr(mapping, 'is_net_pay', False): 
                     reported_net_pay = action['val']
                 else:
-                    # Add/Subtract this line from our calculated total
                     running_total += action['val']
 
-        # Push the final section
         sections.append(current_section)
         
-        # 4. Final Verification
-        # Is what we calculated == what the PDF says was deposited?
         is_balanced = round(running_total, 2) == round(reported_net_pay, 2)
 
-        return sections, is_balanced, running_total, reported_net_pay, all_discovered_jts        
+        return sections, is_balanced, running_total, reported_net_pay, all_discovered_jts       
 
 
-        
+            
