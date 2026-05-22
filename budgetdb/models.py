@@ -1626,7 +1626,7 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
             delta = default_slider_stop - slider_stop
             interval_length_months += 1 - round(delta.days / 30)
         if self.budget_only:
-            begin_interval = date.now()
+            begin_interval = date.today()
 
         transaction_dates = self.listPotentialTransactionDates(n=n,
                                                                begin_interval=begin_interval,
@@ -1637,12 +1637,12 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
         else:
             return
 
-        for date in transaction_dates:
-            if Transaction.objects.filter(budgetedevent=self, date_planned=date).exists():
+        for tx_date in transaction_dates:
+            if Transaction.objects.filter(budgetedevent=self, date_planned=tx_date).exists():
                 # transaction already exists
                 continue
-            new_transaction = Transaction.objects.create(date_planned=date,
-                                                         date_actual=date,
+            new_transaction = Transaction.objects.create(date_planned=tx_date,
+                                                         date_actual=tx_date,
                                                          amount_actual=self.amount_planned,
                                                          amount_planned=self.amount_planned,
                                                          ismanual=self.ismanual,
@@ -1660,7 +1660,7 @@ class BudgetedEvent(MyMeta, BaseSoftDelete, BaseEvent, BaseRecurring, UserPermis
                                                          )
             new_transaction.save()
             # Needs a lot more work with these interval management  #######
-            self.generated_interval_stop = date
+            self.generated_interval_stop = tx_date
 
     def deleteUnverifiedTransaction(self):
         # don't delete if it's verified in a statement

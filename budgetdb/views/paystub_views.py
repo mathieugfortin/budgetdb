@@ -229,3 +229,4 @@ def commit_paystub(request):
         params = urlencode({'start': pay_date, 'end': pay_date})
         request.session.pop('raw_pdf_b64', None)
         return redirect(f"{base_url}?{params}")
+        
