@@ -32,7 +32,7 @@ from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, 
 import json
 import base64
 import io
-from urllib.parse import urlparse, urlunparse, urlencode
+from urllib.parse import urlencode
 
 
 import pdfplumber
