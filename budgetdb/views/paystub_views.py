@@ -8,7 +8,7 @@ from django.forms.models import modelformset_factory, inlineformset_factory, for
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict, FileResponse, Http404
+from django.http import FileResponse, Http404
 from django.db import transaction
 from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
 from django.shortcuts import render, redirect, get_object_or_404
