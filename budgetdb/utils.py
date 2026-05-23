@@ -6,6 +6,7 @@ from ofxparse import OfxParser
 from .models import Transaction, Vendor, PaystubMapping, Cat2, JoinedTransactions
 from django.db.models import Q
 from dateutil import parser
+from django.utils.dateparse import parse_date
 import pdfplumber
 import re
 from decimal import Decimal
@@ -485,6 +486,12 @@ class PaystubEngine:
     def process_mapping_line(self, mapping, pay_date, tokens, *, matched_tx_ids=None, commit=False, paystub_id=None, manual_jt_id=None):
         """ Compares extracted PDF data against the DB to propose an action or save, depending on commit.  """
         
+        # allow for a date range
+        if isinstance(pay_date, str):
+            pay_date = parse_date(pay_date)        
+        start_date = pay_date - timedelta(days=2)
+        end_date = pay_date + timedelta(days=2)
+
         # Initialize the set if not provided
         if matched_tx_ids is None:
             matched_tx_ids = set()
@@ -510,15 +517,17 @@ class PaystubEngine:
             target_source_account = self.profile.pay_account
             
         category = mapping.category.name if mapping.category else "No Category"
+        cat1_name =''
 
         if mapping.is_net_pay:
             existing_tx = Transaction.admin_objects.filter(
-                date_actual=pay_date,
+                date_actual__range=(start_date, end_date),
                 account_source=self.profile.pay_account,
                 cat2=Cat2.objects.get(name='transfer',system_object=True)
             ).exclude(id__in=matched_tx_ids).first()
             
             cat2 = Cat2.objects.get(name='transfer',system_object=True)
+            cat1_name = cat2.cat1.name
             category = cat2.name
             if existing_tx:
                 target_destination_account = existing_tx.account_destination or self.profile.checking_account
@@ -527,9 +536,10 @@ class PaystubEngine:
             target_source_account = self.profile.pay_account
         else:    
             cat2=mapping.category
+            cat1_name = cat2.cat1.name
             existing_tx = Transaction.objects.filter(
                 account_source=target_source_account,
-                date_actual=pay_date,
+                date_actual__range=(start_date, end_date),
                 cat2=cat2,
                 is_deleted=False,
             ).exclude(id__in=matched_tx_ids).first()
@@ -537,6 +547,8 @@ class PaystubEngine:
         action = {
             'mapping_id': mapping.id,
             'category': category,
+            'cat1_name': cat1_name,
+            'tx_date': pay_date,
             'destination_account': target_destination_account,
             'source_account': target_source_account,
             'val': final_amount,
@@ -545,6 +557,7 @@ class PaystubEngine:
         }
 
         if existing_tx:
+            action.update({'tx_date': existing_tx.date_actual})
             # Mark this transaction as "claimed" so duplicate lines don't grab it again
             matched_tx_ids.add(existing_tx.id)
             
