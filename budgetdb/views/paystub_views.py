@@ -167,7 +167,8 @@ def paystub_confirm_import(request, profile_id):
         'step': 'confirm',
         'profile':profile,
         'pay_date':pay_date,
-        'all_discovered_jts':all_jts
+        'all_discovered_jts':all_jts,
+        'has_pdf_preview': 'raw_pdf_b64' in request.session,
     })
 
 
@@ -231,7 +232,8 @@ def commit_paystub(request):
 
         messages.success(request, "Paystub finalized successfully.")
         base_url = reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': profile.pay_account.pk})
-        params = urlencode({'start': pay_date_str, 'end': pay_date_str})
+        start_date = parsed_pay_date - timedelta(days=2)
+        end_date = parsed_pay_date + timedelta(days=2)
+        params = urlencode({'start': start_date.isoformat(), 'end': end_date.isoformat()})
         request.session.pop('raw_pdf_b64', None)
         return redirect(f"{base_url}?{params}")
-        
