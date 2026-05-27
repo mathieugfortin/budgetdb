@@ -70,6 +70,7 @@ const TransactionManager = {
 
     saveCat1(e) {
         const $select = $(e.currentTarget);
+        const $wrapper = $select.closest('.cat1-wrapper');
         const txId = $select.closest('.cat1-wrapper').data('txid');
         const val = $select.val();
 
@@ -77,9 +78,17 @@ const TransactionManager = {
             'transaction_id': txId, 'cat_level': 1, 'category_id': val, 'csrfmiddlewaretoken': this.csrftoken
         }).done(() => {
             this.flashSuccess('#save-check-cat1' + txId);
+
+            $wrapper.attr('data-cat1-id', val); // Updates the DOM attribute to avoid the please select a category first
+            $wrapper.data('cat1-id', val);
+
             // Reset Cat2 sibling in same row
             const $cat2Disp = $select.closest('tr').find('.cat2-wrapper .cat-display');
             $cat2Disp.text('---------').addClass('pulse-warning');
+
+            // clear out any old Cat2 ID stored on the Cat2 wrapper
+            $select.closest('tr').find('.cat2-wrapper').attr('data-cat2-id', '').data('cat2-id', '');
+
             setTimeout(() => $cat2Disp.removeClass('pulse-warning'), 1500);
         });
     },
@@ -89,7 +98,8 @@ const TransactionManager = {
         const $wrapper = $span.closest('.cat2-wrapper');
         const txId = $wrapper.data('txid');
         const $cat1Wrapper = $span.closest('tr').find('.cat1-wrapper');
-        const cat1Id = $cat1Wrapper.attr('data-cat1-id') || $cat1Wrapper.data('cat1-id');
+
+        const cat1Id = $cat1Wrapper.attr('data-cat1-id')
 
         if (!cat1Id) return alert("Select a Category first.");
 
