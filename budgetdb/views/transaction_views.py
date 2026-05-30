@@ -930,10 +930,11 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
             date_actual__lte=self.end
         )
         sort = self.request.GET.get('sort', 'date_actual')
-        if sort == 'date_actual':
-            qs = qs.order_by('date_actual', '-id')
-        elif sort == '-date_actual':
-            qs = qs.order_by('-date_actual', 'id')
+        #commenting this, it's overloaded by the date_actual in the BaseTransactionListTable definition
+        #if sort == 'date_actual':
+         #   qs = qs.order_by('date_actual', '-audit', '-id')
+        #elif sort == '-date_actual':
+         #   qs = qs.order_by('-date_actual', '-audit', 'id')
 
         if self.filter_type == 'account' and 'date_actual' in sort:
             # clean up balances

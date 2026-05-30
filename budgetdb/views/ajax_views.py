@@ -564,15 +564,32 @@ def echartOptionTimeline2JSON(request):
             'symbol': 'circle',            # Standard dot
             'symbolSize': 4,
             'yAxisIndex': 0,
-            'data': linedata,
-            'markLine': {
-                'silent': True,
-                'symbol': 'none',
-                'label': {'show': True, 'position': 'end', 'formatter': 'Today'},
-                'lineStyle': {'color': '#ff4d4f', 'type': 'dashed', 'width': 2},
-                'data': [{'xAxis': today_str}] if today_str in x_axis else []
-            } if len(series) == 0 else None # Only add to the first series to avoid duplicates            
+            'data': linedata            
         })
+    series.append({
+        'name': 'ghost_today',
+        'type': 'line',
+        'data': [], # Empty data
+        'showSymbol': False,
+        'lineStyle': {'width': 0}, # Invisible line
+        'tooltip': {'show': False}, # Don't show in tooltip
+        'markLine': {
+            'silent': True,
+            'symbol': 'none',
+            'label': {
+                'show': True,
+                'formatter': 'Today',
+                'position': 'end',
+                'color': '#ff4d4f'
+            },
+            'lineStyle': {
+                'color': '#ff4d4f',
+                'type': 'solid',
+                'width': 2
+            },
+            'data': [{'xAxis': today_str}] if today_str in x_axis else []
+        }
+    })
 
     series.append({
         'name': 'GRAND TOTAL',
@@ -633,16 +650,9 @@ def echartOptionTimeline2JSON(request):
             }
         ],
         'series': series,
-        # Special 'Today' marker attached to the first series or as a standalone
-        'markLine': {
-            'silent': True,
-            'symbol': 'none',
-            'label': {'formatter': 'Today', 'position': 'end'},
-            'lineStyle': {'color': 'red', 'type': 'solid', 'width': 2},
-            'data': [{'xAxis': today_str}] if today_str in x_axis else []
-        },
+
         "custom_metadata": {
-            "total_series_count": len(series)
+            "total_series_count": len(series) - 1 # don't count the today line
         }
     }
 
