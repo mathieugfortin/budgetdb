@@ -33,7 +33,7 @@ from django.views.decorators.http import require_POST, require_GET
 from budgetdb.decorators import login_required_ajax
 from django_tables2 import SingleTableView  
 from rest_framework import serializers
-from urllib.parse import urlencode
+# from urllib.parse import urlencode
 
 # from budgetdb
 from budgetdb.forms import *
