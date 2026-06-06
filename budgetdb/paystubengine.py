@@ -463,7 +463,6 @@ class PaystubEngine:
                     running_total += Decimal(action['val']).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 if getattr(mapping, 'is_net_pay', False): 
                     reported_net_pay = Decimal(action['val']).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                pass
 
         sections.append(current_section)
         
