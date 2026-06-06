@@ -157,7 +157,6 @@ class BaseTransactionListTable(tables.Table):
     )
     description = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_description.html",
-        #orderable=False, 
         attrs={"td": {"class": "description-column"}}
     )
     recurencelinks = tables.TemplateColumn(
@@ -171,21 +170,18 @@ class BaseTransactionListTable(tables.Table):
         template_name="budgetdb/table2_columns/_transaction_list_render_cat1.html",
         verbose_name='Category',
         attrs=SHOW_DESKTOP_ONLY,
-        #orderable=False,
         empty_values=()
     )
     cat2 = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_cat2.html",
         verbose_name='Sub-Cat',
         attrs=SHOW_DESKTOP_ONLY,
-        #orderable=False,
         empty_values=()
     )   
     amount_actual = tables.TemplateColumn(
         template_name="budgetdb/table2_columns/_transaction_list_render_amount_actual.html",
         verbose_name='$',
         #attrs=HIDE_ON_VERTICAL_PHONE,
-        #orderable=False
         extra_context={'today': date.today()}
     )    
     receipt = tables.TemplateColumn(
@@ -300,6 +296,25 @@ class BaseTransactionListTable(tables.Table):
                            url=reverse_url
                            )
 
+    @classmethod
+    def get_sortable_fields(cls):
+        """
+        Iterates over the declared columns and returns those marked orderable.
+        """
+        model = cls.Meta.model
+        sortable = []
+        for name, column in cls.base_columns.items():
+            if column.orderable is not False:
+                try:
+                    field = model._meta.get_field(name)
+                    # Use verbose_name or help_text from the model
+                    # help_text is often better for descriptive dropdowns
+                    label = getattr(field, 'help_text', None) or field.verbose_name.title()
+                except:
+                    # Fallback if it's not a direct model field (like a TemplateColumn)
+                    label = getattr(column, 'verbose_name', name.replace('_', ' ').title())
+                sortable.append((name, label))
+        return sortable
 
 class AccountCategoryListTable(MySharingColumns, tables.Table):
     class Meta:
