@@ -299,6 +299,8 @@ class Preference(models.Model):
                                           related_name="currency_prefered"
                                           )
     favorite_accounts = models.ManyToManyField("Account", related_name="favorites", blank=True)
+    account_sort_default_field = models.CharField(max_length=100, default='date_actual')
+    account_sort_default_direction = models.BooleanField(default=False)
     theme = models.CharField('Color Mode',max_length=15, choices=COLOR_MODE, default='Dark')
     # add ordre of listing, old first/ new first
 
@@ -1269,7 +1271,7 @@ class BaseEvent(models.Model):
     amount_planned_foreign_currency = models.DecimalField(
         'original amount', decimal_places=2, max_digits=10, blank=True, null=True
     )
-    description = models.CharField('Description', max_length=200)
+    description = models.CharField('Description', max_length=200, help_text='Transaction Description')
     comment = models.CharField('Comment', max_length=200, blank=True, null=True)
     ismanual = models.BooleanField('Manual Intervention?', default=False)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
@@ -1280,9 +1282,9 @@ class BaseEvent(models.Model):
     joined_order = models.IntegerField('position in a joined transaction', blank=True,
                                        null=True)
     cat1 = models.ForeignKey(Cat1, on_delete=models.CASCADE, blank=True, null=True,
-                             verbose_name='Category', related_name='%(class)s_category')
+                             verbose_name='Category', related_name='%(class)s_category', help_text='Transaction Category')
     cat2 = models.ForeignKey(Cat2, on_delete=models.CASCADE, blank=True, null=True,
-                             verbose_name='Sub-Category', related_name='%(class)s_subcategory')
+                             verbose_name='Sub-Category', related_name='%(class)s_subcategory', help_text='Transaction Subcategory')
 
     def can_edit(self):
         user = get_current_user()
@@ -1344,17 +1346,17 @@ class Transaction(MyMeta, BaseSoftDelete, BaseEvent):
 
     budgetedevent = models.ForeignKey("BudgetedEvent", on_delete=models.CASCADE, blank=True, null=True)
     date_planned = models.DateField('planned date', blank=True, null=True)
-    date_actual = models.DateField('date of the transaction')
-    amount_actual = models.DecimalField('Amount', decimal_places=2, max_digits=10, default=Decimal('0.00'))
+    date_actual = models.DateField('date of the transaction',help_text='Transaction Date')
+    amount_actual = models.DecimalField('Amount', decimal_places=2, max_digits=10, default=Decimal('0.00'),help_text='Transaction Amount')
     amount_actual_foreign_currency = models.DecimalField('original amount', decimal_places=2, max_digits=10, default=Decimal('0.00'))
     #Fuel_L = models.DecimalField('Fuel quantity', decimal_places=3, max_digits=7, blank=True, null=True)
     #Fuel_price = models.DecimalField('Fuel cost per', decimal_places=3, max_digits=5, blank=True, null=True)
     Unit_QTY = models.DecimalField('Quantity', decimal_places=4, max_digits=9, blank=True, null=True)
     Unit_price = models.DecimalField('Price per', decimal_places=4, max_digits=9, blank=True, null=True)
-    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True, related_name="transactions")
-    verified = models.BooleanField('Verified in a statement', default=False)
-    audit = models.BooleanField('Audit', default=False)
-    receipt = models.BooleanField('Checked with receipt', default=False)
+    statement = models.ForeignKey("Statement", on_delete=models.CASCADE, blank=True, null=True, related_name="transactions", help_text='Transaction Statement Date')
+    verified = models.BooleanField('Verified in a statement', default=False, help_text='Transaction Verified state')
+    audit = models.BooleanField('Audit', default=False, help_text='Transaction Audit state')
+    receipt = models.BooleanField('Checked with receipt', default=False, help_text='Transaction Receipt state')
     fit_id = models.CharField(max_length=255, null=True, blank=True)
     fit_id_transfer = models.CharField(max_length=255, null=True, blank=True)
     paystub_id = models.CharField(max_length=255, null=True, blank=True)

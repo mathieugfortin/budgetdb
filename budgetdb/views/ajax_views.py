@@ -33,6 +33,7 @@ from django.views.decorators.http import require_POST, require_GET
 from budgetdb.decorators import login_required_ajax
 from django_tables2 import SingleTableView  
 from rest_framework import serializers
+from urllib.parse import urlencode
 
 # from budgetdb
 from budgetdb.forms import *
@@ -219,6 +220,12 @@ def GetAccountTransactionListURLJSON(request):
         if acc.owner != get_current_user():
             namestring = namestring + " - " + acc.owner.first_name.capitalize()
         namestring = namestring + " - " + acc.name
+        #url = reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': acc.pk})
+        #params = {
+        #    'sort': preference.account_sort_default_field,
+        #    'direction': 'desc' if preference.account_sort_default_direction else 'asc'
+        #}
+        # full_url = f"{url}?{urlencode(params)}"
         data.append({
             'name': namestring,
             'url': reverse('budgetdb:transaction_list_view', kwargs={'filter_type':'account', 'pk': acc.pk})

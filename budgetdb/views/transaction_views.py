@@ -780,8 +780,6 @@ class JoinedTransactionsConfigUpdateView(LoginRequiredMixin, UserPassesTestMixin
         raise PermissionDenied
 
 
-
-
 class TransactionListView(LoginRequiredMixin, ListView):
     model = Transaction
     context_object_name = 'calendar_list'
@@ -846,6 +844,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         self.filter_type = kwargs.get('filter_type', 'account')
         self.filter_model = self.model_map.get(self.filter_type)
         self.pk = kwargs.get('pk')
+        preference = Preference.objects.get(user=self.request.user)
         
         self.context_obj = None
         if self.filter_model:
@@ -853,13 +852,12 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
             self.authorized = self.context_obj.can_view()
             
         # 2. Run the logic to set titles, dates, and filter_q
-        self.setup_filter_context()
+        self.setup_filter_context(preference)
         
         return super().dispatch(request, *args, **kwargs)
 
-    def setup_filter_context(self):
+    def setup_filter_context(self, preference):
         """Sets up titles, dates, and the base Q object once."""
-        preference = Preference.objects.get(user=self.request.user)
         self.begin = preference.slider_start
         self.end = preference.slider_stop
         
@@ -978,8 +976,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
             )
             #print(qs.query)
         return qs
-
-        
+ 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Map the existing template variables so your old templates don't break
@@ -1000,17 +997,21 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
         context['cat1s_json'] = list(Cat1.admin_objects.values('id', 'name'))
         return context
 
-
     def get_table_kwargs(self):
-       return {
-           'filter_type': self.filter_type,
-           'filter_pk': self.pk,
-           'begin': self.begin,
-           'end': self.end,
-           'request': self.request,
-           'statement': self.statement_pk,
-           'model_map': self.model_map,
-       }        
+        kwargs = super().get_table_kwargs()
+        user_prefs = Preference.objects.get(user=self.request.user.id)
+        sort_field = user_prefs.account_sort_default_field
+        direction = "-" if user_prefs.account_sort_default_direction else ""
+        default_order = f"{direction}{sort_field}"
+        kwargs['order_by'] = self.request.GET.get('sort', default_order)
+        kwargs['filter_type'] =  self.filter_type
+        kwargs['filter_pk'] =  self.pk
+        kwargs['begin'] =  self.begin
+        kwargs['end'] =  self.end
+        kwargs['request'] =  self.request
+        kwargs['statement'] =  self.statement_pk
+        kwargs['model_map'] =  self.model_map
+        return kwargs
 
 ###################################################################################################################
 # checks

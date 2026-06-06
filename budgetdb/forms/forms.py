@@ -14,6 +14,7 @@ from django.utils.dateparse import parse_date
 from budgetdb.models import User, Preference, Invitation
 from budgetdb.models import Account, AccountCategory, AccountHost, Cat1, Cat2, CatBudget, CatType, Vendor, Statement, Template
 from budgetdb.models import BudgetedEvent, Transaction, JoinedTransactions, PaystubMapping, PaystubProfile
+from budgetdb.tables import BaseTransactionListTable
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder, Div, LayoutObject, TEMPLATE_PACK, HTML, Hidden, Row, Column
@@ -1140,6 +1141,13 @@ class PaystubProfileForm(forms.ModelForm):
 
 
 class PreferenceForm(forms.ModelForm):
+    account_sort_default_direction = forms.TypedChoiceField(
+        label="Sort Direction",
+        choices=[(False, 'Ascending'), (True, 'Descending')],
+        coerce=lambda x: x == 'True',  # Ensure it converts back to a boolean
+        widget=forms.Select
+    )
+
     class Meta:
         model = Preference
         fields = '__all__'
@@ -1175,6 +1183,10 @@ class PreferenceForm(forms.ModelForm):
         self.fields['timeline_stop'].label = 'Timeline End'
         self.fields['slider_start'].label = 'Start of time selection'
         self.fields['slider_stop'].label = 'End of time selection'
+        self.fields['account_sort_default_field'].choices = BaseTransactionListTable.get_sortable_fields()
+        self.fields['account_sort_default_field'].widget = forms.Select(
+            choices=self.fields['account_sort_default_field'].choices
+        )
         
         self.helper.layout = Layout(
             Row(
@@ -1193,6 +1205,10 @@ class PreferenceForm(forms.ModelForm):
                 Column('currency_prefered', css_class='col-4'),
                 Field('user', type="hidden"),
             ),
+            Row(
+                Column('account_sort_default_field', css_class='col-4'),
+                Column('account_sort_default_direction', css_class='col-4'),
+            ), 
             Row(
                 Column('favorite_accounts', css_class='col-4'),
             ),
