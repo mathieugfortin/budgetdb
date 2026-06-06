@@ -14,13 +14,21 @@
 
         
         {% if has_pdf_preview %}
-        <a href="{% url 'budgetdb:stream_paystub_pdf' %}" 
-           target="_blank" 
-           class="btn btn-outline-info d-inline-flex align-items-center gap-2 px-3 fw-bold shadow-sm"
-           title="Open original document reference in side-by-side split view">
-            <span class="material-symbols-outlined fs-5">open_in_new</span>
-            Open Source Paystub PDF
-        </a>
+            <a href="{% url 'budgetdb:stream_paystub_pdf' %}" 
+            target="_blank" 
+            class="btn btn-outline-info d-inline-flex align-items-center gap-2 px-3 fw-bold shadow-sm"
+            title="Open original document reference in side-by-side split view">
+                <span class="material-symbols-outlined fs-5">open_in_new</span>
+                Open Source Paystub PDF
+            </a>
+        {% endif %}
+        {% if not is_balanced or account.handbrake %}
+            <div class="alert alert-warning" role="alert">
+                <strong>Warning:</strong> 
+                {% if not is_balanced %}
+                    Account balance is not zero.
+                {% endif %}
+            </div>
         {% endif %}
    
     <div>

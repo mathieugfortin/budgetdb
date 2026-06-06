@@ -1,6 +1,9 @@
 import django_tables2 as tables
-from budgetdb.models import *
+from datetime import date
+from budgetdb.models import Account, Cat1, Cat2, Transaction, Statement, AccountCategory, AccountHost, BudgetedEvent, CatType, Invitation
+from budgetdb.models import JoinedTransactions, Vendor, Template
 from decimal import Decimal
+from django.core.exceptions import FieldDoesNotExist
 from django.utils.html import format_html
 from django.urls import reverse
 from crum import get_current_user
@@ -43,7 +46,7 @@ class MySharingColumns(tables.Table):
             )
         else:  # Case: Many
             first_name = users.first().first_name.capitalize()
-            others_count = user_count - 1
+            others_count = nb_users - 1
             return format_html(
                 _("Shared with {name} and {count} others"),
                 name=first_name,
@@ -82,7 +85,7 @@ class AccountListTable(MySharingColumns, tables.Table):
         categories = ''
         for category in record.account_categories.filter(is_deleted=False):
             if categories != '':
-                categories += f' / '
+                categories += ' / '
             categories += f'<a href={reverse("budgetdb:account_max_redirect", kwargs={"pk": category.id})}>{category.name}</a>'
 
         return mark_safe(categories)
@@ -310,7 +313,7 @@ class BaseTransactionListTable(tables.Table):
                     # Use verbose_name or help_text from the model
                     # help_text is often better for descriptive dropdowns
                     label = getattr(field, 'help_text', None) or field.verbose_name.title()
-                except:
+                except FieldDoesNotExist:
                     # Fallback if it's not a direct model field (like a TemplateColumn)
                     label = getattr(column, 'verbose_name', name.replace('_', ' ').title())
                 sortable.append((name, label))

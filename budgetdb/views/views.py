@@ -1,45 +1,40 @@
 
-import json
-import threading
 import calendar
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Submit
 from crum import get_current_user
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 #from decimal import *
 from decimal import Decimal
+from auditlog.models import LogEntry
 
 from django.apps import apps
-from django.conf import settings
-from django.contrib import messages
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth import views as auth_views
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.core.cache import cache
-from django.core.mail import send_mail
-from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
+from django.db.models import Case, When, Sum, F, DecimalField, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.utils.encoding import force_bytes, force_str
-from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from django.views.generic import CreateView, DetailView, TemplateView, UpdateView
 from django.views.generic.base import RedirectView
-from django.views.decorators.http import require_POST, require_GET
-from budgetdb.decorators import login_required_ajax
 from django_tables2 import SingleTableView  
-from rest_framework import serializers
 
 # from budgetdb
-from budgetdb.forms import *
-from budgetdb.models import *
-from budgetdb.tables import *
+from budgetdb.forms import AccountForm, PaystubProfileForm, PreferenceForm, AccountHostForm, AccountCategoryForm, Cat1Form, Cat2Form, CatTypeForm
+from budgetdb.forms import InvitationForm, VendorForm, StatementForm, TemplateForm, UserSignUpForm
+from budgetdb.models import Cat1, Cat2, CatType, Account, Preference, PaystubProfile, Transaction, AccountHost, AccountCategory, Messages, User
+from budgetdb.models import Template, Statement, Invitation, UserPermissions, Vendor, Currency
+from budgetdb.tables import AccountListTable, AccountCategoryListTable, AccountHostListTable, Cat1ListTable, Cat2ListTable, CatTypeListTable
+from budgetdb.tables import InvitationListTable, StatementListTable, VendorListTable, TemplateListTable
+
 from budgetdb.tokens import account_activation_token
-from budgetdb.scheduler import run_extend_ledgers
 
 
 def get_majority_year(start_date, end_date):
@@ -1077,9 +1072,6 @@ class PreferencesUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
                               onclick="javascript:history.back();"))
         form.helper.add_input(Submit('delete', 'Delete', css_class='btn-danger'))
         return form
-
-
-from auditlog.models import LogEntry
 
 
 def activity_feed(request):

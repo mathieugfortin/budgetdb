@@ -107,3 +107,18 @@ Run the Dynamic URL Test again: If any view fails with a 500, you missed a refer
 When it complains about "did you install mysqlclient?"  do this:
 sudo apt-get update
 sudo apt-get install -y libmariadb-dev
+
+
+
+To add a dependency:
+    Add it to requirements.in (for prod) or requirements-dev.in (for dev tools).
+    pip-compile requirements.in and pip-compile requirements-dev.in
+    pip-sync requirements.txt requirements-dev.txt
+
+To update versions:
+    pip-compile --upgrade requirements.in
+    pip-sync
+
+to update one:
+    pip-compile --upgrade-package <package-name> requirements.in
+    pip-sync requirements.txt requirements-dev.txt

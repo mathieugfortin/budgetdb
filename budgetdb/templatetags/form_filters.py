@@ -1,4 +1,5 @@
 from django import template
+from budgetdb.utils import format_money
 
 register = template.Library()
 
@@ -12,3 +13,7 @@ def has_no_numbers(value):
     
     # any() returns True if it finds a digit; we flip it with 'not'
     return not any(char.isdigit() for char in string_value)
+
+@register.filter
+def currency(value):
+    return format_money(value)

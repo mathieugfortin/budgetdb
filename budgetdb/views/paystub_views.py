@@ -1,42 +1,22 @@
 # paystub_views.py
-from crum import get_current_user
-from datetime import datetime, date, timedelta
-from dateutil.relativedelta import relativedelta
-from decimal import *
-from django import forms
-from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from datetime import timedelta
+from django.forms.models import modelformset_factory
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
 from django.http import FileResponse, Http404
 from django.db import transaction
-from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
+from django.db.models import Case, Value, When
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse, reverse_lazy
-from django.utils.safestring import mark_safe
+from django.urls import reverse
 from django.utils.dateparse import parse_date
-from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
-from budgetdb.utils import PaystubEngine
-from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference
+from budgetdb.paystubengine import PaystubEngine
+from budgetdb.models import Account, Preference
 from budgetdb.models import JoinedTransactions, PaystubMapping, PaystubProfile
 from budgetdb.forms import PaystubUploadForm, MappingRowForm, BaseMappingFormSet
 from collections import defaultdict
 
-
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Button
-from crispy_forms.layout import Layout, Div
-from ofxparse import OfxParser
-from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, BSModalDeleteView
-import json
 import base64
 import io
 from urllib.parse import urlencode
-
-
-import pdfplumber
-import re
 
 
 def stream_paystub_pdf(request):
