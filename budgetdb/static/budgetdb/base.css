@@ -1,7 +1,7 @@
 /* base.css */
 
 body {
-    padding-top: 75px;
+   
 }
 
 #logout-form {
@@ -17,7 +17,7 @@ body {
 }
 
 .navbar-nav .dropdown-menu {
-    max-height: 85vh;
+    max-height: 60vh;
     overflow-y: auto;
 }
 
@@ -32,7 +32,6 @@ body {
         width: 90%;    /* Only shrink to 90% on Desktops */
     }
 }
-
 .modal {
     overflow-y: scroll;
 }
@@ -165,4 +164,8 @@ td {
     right: -15px;
     bottom: -15px;
     background: transparent; /* Makes the clickable area much larger */
+}
+
+* {
+    outline: 1px solid red !important;
 }

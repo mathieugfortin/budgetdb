@@ -1,46 +1,25 @@
-
-import json
 import threading
-import calendar
 
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Button, Submit
 from crum import get_current_user
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-#from decimal import *
 from decimal import Decimal
 
-from django.apps import apps
-from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth import login, update_session_auth_hash
-from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.core.cache import cache
-from django.core.mail import send_mail
-from django.db.models import Case, Value, When, Sum, F, DecimalField, Q
+from django.db.models import Case, Value, When
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
-from django.utils.encoding import force_bytes, force_str
-from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
-from django.views.generic.base import RedirectView
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
-from budgetdb.decorators import login_required_ajax
-from django_tables2 import SingleTableView  
 from rest_framework import serializers
-# from urllib.parse import urlencode
 
 # from budgetdb
-from budgetdb.forms import *
-from budgetdb.models import *
-from budgetdb.tables import *
-from budgetdb.tokens import account_activation_token
+from budgetdb.decorators import login_required_ajax
+from budgetdb.models import Preference, Account, AccountCategory, CatType, Cat1, Cat2, MyCalendar, Template, AccountHost, Vendor, Transaction
 from budgetdb.scheduler import run_extend_ledgers
+from budgetdb.forms.validation_forms import CatType_begin_end_ValForm, CatType_Cat1_begin_end_ValForm
 
 
 class TemplateSerializer(serializers.ModelSerializer):
@@ -938,7 +917,8 @@ def MultiYearSummaryJSON(request):
     i = 1
     while True:
         p = request.GET.get(f'pk{i}')
-        if not p: break
+        if not p: 
+            break
         pks.append(p)
         i += 1
 

@@ -1,5 +1,5 @@
 from django import forms
-from budgetdb.models import *
+from budgetdb.models import CatType, Cat1
 
 class CatType_Cat1_begin_end_ValForm(forms.Form):
     cattype = forms.IntegerField(required=True)
@@ -47,7 +47,7 @@ class CatType_begin_end_ValForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
         cattype_pk = cleaned_data.get("cattype")
-        cat1_pk = cleaned_data.get("cat1")
+        # cat1_pk = cleaned_data.get("cat1")
         begin = cleaned_data.get("begin")
         end = cleaned_data.get("end")
 
@@ -76,7 +76,7 @@ class CatTy2pe_begin_end_ValForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
         cattype_pk = cleaned_data.get("cattype")
-        cat1_pk = cleaned_data.get("cat1")
+        # cat1_pk = cleaned_data.get("cat1")
         begin = cleaned_data.get("begin")
         end = cleaned_data.get("end")
 

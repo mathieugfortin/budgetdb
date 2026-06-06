@@ -1,0 +1,26 @@
+-c requirements.txt
+astroid
+codecov-cli
+coverage
+crispy-bootstrap5
+iniconfig
+isort
+lxml
+mccabe
+platformdirs
+pluggy
+pycodestyle
+pycparser
+pyee
+Pygments
+pylint
+pypdfium2
+pytest
+pytest-base-url
+pytest-cov
+pytest-django
+responses
+test_results_parser
+tomli
+tomlkit
+ruff

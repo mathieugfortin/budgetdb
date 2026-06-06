@@ -1,26 +1,26 @@
 from crum import get_current_user
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from decimal import *
-from django import forms
-from django.forms.models import modelformset_factory, inlineformset_factory, formset_factory
+from decimal import Decimal
+from django.forms.models import formset_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError, ObjectDoesNotExist
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, QueryDict
+from django.http import JsonResponse, QueryDict
 from django.db import transaction
 from django.db.models import Case, Value, When, Sum, F, DecimalField, Q, Window, OuterRef, Subquery, ExpressionWrapper, DateField
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from django.utils.dateparse import parse_date
-from django.views.generic import ListView, CreateView, UpdateView, View, DetailView
-from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data, PaystubEngine
-from budgetdb.views import MyUpdateView, MyCreateView, MyDetailView, MyListView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from budgetdb.utils import Calendar, serialize_ofx, analyze_ofx_serialized_data
+
+from budgetdb.views import MyDetailView, MyListView
 from budgetdb.tables import JoinedTransactionsListTable, TransactionListTable, BaseTransactionListTable
-from budgetdb.models import Cat1, Transaction, Cat2, BudgetedEvent, Vendor, Account, AccountCategory, Preference, CatType
-from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubMapping, PaystubProfile, Statement
-from budgetdb.forms import TransactionFormFull, TransactionFormShort, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
+from budgetdb.models import Cat1, Transaction, Cat2, Account, Preference, CatType
+from budgetdb.models import JoinedTransactions, AccountBalanceDB, PaystubProfile, Statement
+from budgetdb.forms import TransactionFormFull, JoinedTransactionsForm, TransactionFormSet, JoinedTransactionConfigForm
 from budgetdb.forms import TransactionModalForm, TransactionOFXImportForm
 from budgetdb.services import LedgerService
 
@@ -29,7 +29,6 @@ from crispy_forms.layout import Submit, Button
 from crispy_forms.layout import Layout, Div
 from ofxparse import OfxParser
 from bootstrap_modal_forms.generic import BSModalUpdateView, BSModalCreateView, BSModalDeleteView
-import json
 from urllib.parse import urlparse, urlunparse, urlencode
 
 
@@ -576,9 +575,9 @@ class TransactionAuditCreateModalViewFromDateAccount(LoginRequiredMixin, UserPas
         form_amount = self.kwargs.get('amount')
         if form_date is None:
             form_date = date.today().strftime("%Y-%m-%d")
-            form.initial['description'] = f'Ajustement du marché'
+            form.initial['description'] = 'Ajustement du marché'
         else:
-            form.initial['description'] = f'Confirmation de solde'
+            form.initial['description'] = 'Confirmation de solde'
             form_amount = form_amount.replace('N','-',1)
             length = len(form_amount)
             clean_amount = form_amount[:length-2] + '.' + form_amount[-2:]
@@ -657,7 +656,6 @@ class JoinedTransactionsDetailView(LoginRequiredMixin, UserPassesTestMixin, Deta
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs.get('pk')
         date = self.kwargs.get('date')
         joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.filter(is_deleted=False)
@@ -694,10 +692,10 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         context = self.get_context_data()
         transactions = context.get('formset')
 
-        for transaction in transactions:
-            if transaction.is_valid():
-                transaction.instance.date_actual = form.cleaned_data.get('common_date')
-                transaction.save()
+        for tx in transactions:
+            if tx.is_valid():
+                tx.instance.date_actual = form.cleaned_data.get('common_date')
+                tx.save()
 
         return super().form_valid(form)
 
@@ -722,9 +720,9 @@ class JoinedTransactionsUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pk = self.kwargs.get('pk')
+        # pk = self.kwargs.get('pk')
         datep = self.kwargs.get('datep')
-        datea = self.kwargs.get('datea')
+        # datea = self.kwargs.get('datea')
         joinedtransactions = context.get('joinedtransactions')
         transactions = joinedtransactions.transactions.all()
         transactionPlannedDate = datetime.strptime(datep, "%Y-%m-%d").date()

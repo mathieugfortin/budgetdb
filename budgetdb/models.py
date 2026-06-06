@@ -6,16 +6,16 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager 
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.mail import EmailMessage
 from django.db import models, transaction
-from django.db.models import Sum, Q, Window, F
-from django.db.models.functions import Cast, Coalesce, ExtractMonth, ExtractYear, RowNumber, TruncMonth
+from django.db.models import Sum, Q
+from django.db.models.functions import TruncMonth
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.translation import gettext_lazy as _
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode
 from django.urls import reverse
 
 from .tokens import account_activation_token
@@ -613,7 +613,7 @@ class Account(MyMeta, BaseSoftDelete, UserPermissions):
             old_date_closed = loaded.get('date_closed', self.date_closed)
 
             super(Account, self).save(*args, **kwargs)            
-            if self.date_closed != None and (old_date_closed is None or self.date_closed < old_date_closed):
+            if self.date_closed is not None and (old_date_closed is None or self.date_closed < old_date_closed):
                 #remove unused balances 
                 AccountBalanceDB.objects.filter(account=self,db_date__gt=self.date_closed).delete()
 
@@ -1025,7 +1025,6 @@ class CatType(BaseSoftDelete, UserPermissions):
         end = date(targetdate.year,targetdate.month+1,1)
         cat1s = Cat1.view_objects.filter(cattype=self)
         cat2s = Cat2.view_objects.filter(cattype=self)
-        accounts = Account.admin_objects.all()
         transactions = Transaction.view_objects.filter(date_actual__gte=start, date_actual__lt=end)
  
         cat1onlytransact = transactions.filter(cat1__in=cat1s,cat2__isnull=True) # .aggregate(Sum('amount_actual')).get('amount_actual__sum')

@@ -1,6 +1,4 @@
-from django.urls import path, re_path, register_converter, include
-from django.contrib.staticfiles.storage import staticfiles_storage
-from django.views.generic.base import RedirectView
+from django.urls import path, register_converter
 from django.contrib.auth import views as auth_views
 from . import views
 
