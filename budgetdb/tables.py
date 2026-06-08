@@ -267,8 +267,6 @@ class BaseTransactionListTable(tables.Table):
 
     def render_mybalance(self, value, record):
         balance = getattr(record, 'calculated_balance', None)
-        if record.amount_actual == Decimal(2766.92):
-            pass
         if not self.account or balance is None or record.audit:
             return mark_safe("")
         currency = record.account_source.currency if record.account_source else record.account_destination.currency
