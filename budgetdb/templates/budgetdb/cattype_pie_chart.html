@@ -128,7 +128,7 @@
             }));
 
             if (catData.length === 1) {
-                drillDown(catData[0].cat1_id,catData[0].name,catData[0].value, res.total);
+                drillDown(catData[0].cat1_id,catData[0].name,catData[0].value);
             }
             
             myChart.setOption({
@@ -272,7 +272,7 @@
     //  INSIDE CLICKS
     myChart.on('click', function(params) {
         if (params.seriesName === 'Category 1') {
-            drillDown(params.data.cat1_id, params.data.name, params.data.value, params.data.total);
+            drillDown(params.data.cat1_id, params.data.name, params.data.value);
         } else if (params.seriesName === 'Category 2') {
             // Construct the dynamic URL for the General View
             const url = `/en-ca/transactions/cat2/${params.data.cat2_id}/?start=${currentBegin}&end=${currentEnd}`;
