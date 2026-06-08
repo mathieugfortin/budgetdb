@@ -2,7 +2,6 @@
 astroid
 codecov-cli
 coverage
-crispy-bootstrap5
 iniconfig
 isort
 lxml
@@ -13,7 +12,6 @@ pycodestyle
 pycparser
 pyee
 Pygments
-pylint
 pypdfium2
 pytest
 pytest-base-url
