@@ -872,7 +872,7 @@ class BaseTransactionListView(UserPassesTestMixin, MyListView):
 
     def _setup_account(self, preference):
         self.title = self.context_obj.name
-        statement_pk = self.request.GET.get('statement_pk')
+        statement_pk = self.request.GET.get('statement')
         
         if statement_pk:
             statement = get_object_or_404(Statement, id=statement_pk)
