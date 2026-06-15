@@ -295,13 +295,15 @@ def GetCatTypeByCat1sTotalsJSON(request):
     cat1s_sums = cattype.get_cat1_totals(begin,end)
 
     chart_data = []
+    total = 0
     for cat in cat1s_sums:
+        total += float(cat['total'] or 0)
         chart_data.append({
             'value': float(cat['total'] or 0),
             'name': cat['cat1__name'],
             'cat1_id': cat['cat1_id']  
         })
-    return JsonResponse({'data': chart_data, 'cattype_name': cattype.name})
+    return JsonResponse({'data': chart_data, 'cattype_name': cattype.name,'total':total})
 
 @login_required_ajax
 @require_GET
@@ -327,7 +329,7 @@ def GetCatTypeByCat2sTotalsJSON(request):
             'cat2_id': cat['cat2_id']  
         })
 
-    return JsonResponse({'data': chart_data, 'title': f'{cattype.name} - {cat1.name}'})
+    return JsonResponse({'data': chart_data, 'cattype_name': f'{cattype.name}'})
 
 @login_required_ajax
 @require_GET

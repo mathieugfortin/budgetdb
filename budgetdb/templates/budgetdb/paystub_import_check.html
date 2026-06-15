@@ -22,11 +22,12 @@
                 Open Source Paystub PDF
             </a>
         {% endif %}
-        {% if not is_balanced or account.handbrake %}
+        {% if is_balanced != 0 %}
             <div class="alert alert-warning" role="alert">
                 <strong>Warning:</strong> 
-                {% if not is_balanced %}
-                    Account balance is not zero.
+                {% if is_balanced != 0 %}
+                    Account balance is not zero. Check the mapping.
+                    {{ is_balanced }}
                 {% endif %}
             </div>
         {% endif %}

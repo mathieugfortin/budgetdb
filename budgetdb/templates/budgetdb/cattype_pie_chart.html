@@ -126,10 +126,14 @@
                 realValue: item.value, // Keep the actual negative number here
                 value: Math.abs(item.value) // Use absolute value for the slice size
             }));
+
+            if (catData.length === 1) {
+                drillDown(catData[0].cat1_id,catData[0].name,catData[0].value);
+            }
             
             myChart.setOption({
                 backgroundColor: 'transparent', // Ensure chart doesn't force a background
-                title: { text: res.cattype_name, left: 'center' },
+                title: { text: res.cattype_name + ' - ' + res.total.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' }), left: 'center' },
                 tooltip: {
                     trigger: 'item',
                     backgroundColor: getTheme() === 'dark' ? '#333' : '#fff',
@@ -148,12 +152,25 @@
                     type: 'pie',
                     radius: ['30%', '60%'],
                     center: ['50%', '50%'], 
+                    minAngle: 0.1,
                     data: catData,
                     avoidLabelOverlap: true,
                     itemStyle: {
                         borderRadius: 6,
                         borderColor: getTheme() === 'dark' ? '#212529' : '#fff',
                         borderWidth: 2
+                    },
+                    label: {
+                        show: true,
+                        formatter: function(params) {
+                            // Format the number as currency
+                            let val = params.data.realValue.toLocaleString('en-CA', { 
+                                style: 'currency', 
+                                currency: 'CAD' 
+                            });
+                            return `${params.name}\n${val}`;
+                        },
+                        position: 'outside' // or 'inside' if you prefer
                     },
                     emphasis: {
                         itemStyle: {
@@ -171,8 +188,8 @@
             }, true); // 'true' tells ECharts to clear the previous Cat2 series if it exists
         });
     }
-
-    function drillDown(cat1Id, cat1Name) {
+ 
+    function drillDown(cat1Id, cat1Name, cat1Value) {
         currentLevel = 'cat2';
         myChart.showLoading(loadingOptions);
         const url = `{% url "budgetdb:cattype_by_cat2_totals_json" %}?begin=${currentBegin}&end=${currentEnd}&cattype=${catTypeId}&cat1=${cat1Id}`;
@@ -185,12 +202,31 @@
                 value: Math.abs(item.value) // Use absolute value for the slice size
             }));
             myChart.setOption({
+                title: { text: res.cattype_name + ' - ' + cat1Name + ' \n ' + cat1Value.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' }), left: 'center' },
                 series: [
                     {
                         // Update Cat 1 to move left
                         center: ['25%', '50%'],
                         radius: ['20%', '35%'],
-                        label: { show: false } // Hide labels to avoid clutter
+                        
+                        label: {
+                            show: false,
+                        },
+                        
+                        itemStyle: {
+                            opacity: 0.5
+                        },
+                        emphasis: {
+                            labelLine: { show: false },
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            },
+                            label: {
+                                show: false,
+                            }
+                        }
                     },
                     {
                         // Add Cat 2 to the right
@@ -203,6 +239,18 @@
                             borderRadius: 6,
                             borderColor: getTheme() === 'dark' ? '#212529' : '#fff',
                             borderWidth: 2
+                        },
+                        label: {
+                            show: true,
+                            formatter: function(params) {
+                                // Format the number as currency
+                                let val = params.data.realValue.toLocaleString('en-CA', { 
+                                    style: 'currency', 
+                                    currency: 'CAD' 
+                                });
+                                return `${params.name}\n${val}`;
+                            },
+                            position: 'outside' // or 'inside' if you prefer
                         },
                         emphasis: {
                             itemStyle: {
@@ -224,7 +272,7 @@
     //  INSIDE CLICKS
     myChart.on('click', function(params) {
         if (params.seriesName === 'Category 1') {
-            drillDown(params.data.cat1_id);
+            drillDown(params.data.cat1_id, params.data.name, params.data.value);
         } else if (params.seriesName === 'Category 2') {
             // Construct the dynamic URL for the General View
             const url = `/en-ca/transactions/cat2/${params.data.cat2_id}/?start=${currentBegin}&end=${currentEnd}`;

@@ -112,7 +112,8 @@ sudo apt-get install -y libmariadb-dev
 
 To add a dependency:
     Add it to requirements.in (for prod) or requirements-dev.in (for dev tools).
-    pip-compile requirements.in and pip-compile requirements-dev.in
+    pip-compile requirements.in
+    pip-compile requirements-dev.in
     pip-sync requirements.txt requirements-dev.txt
 
 To update versions:

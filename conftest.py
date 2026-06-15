@@ -2,11 +2,11 @@
 import pytest
 from datetime import date
 from crum import impersonate
-from budgetdb.models import Account, AccountHost, Currency, Preference, Cat1, Cat2, CatType
 
 @pytest.fixture
 def base_assets(db, users):
     """Sets up the foundational objects (Currency, Host, Preferences)"""
+    from budgetdb.models import AccountHost, Currency, Preference
     owner = users['owner']
     with impersonate(owner):
         cad = Currency.objects.create(name="Canadian Dollar", symbol="$", priority=1)
@@ -25,6 +25,8 @@ def base_assets(db, users):
 @pytest.fixture
 def hierarchy(db, users, base_assets):
     """Sets up the full complex Account and Category structure."""
+    from budgetdb.models import Account, Cat1, Cat2, CatType
+
     owner = users['owner']
     friend = users['friend']
     host = base_assets['host']
@@ -52,6 +54,8 @@ def hierarchy(db, users, base_assets):
     return {
         'acc_a': acc_a,
         'cat1_a': c1a,
+        'cat1_b': c1b,
         'cat2_a1': c2a1,
+        'cat2_a2': c2a2,
         'cat_type': cat_type
     }

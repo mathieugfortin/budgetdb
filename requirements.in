@@ -5,6 +5,7 @@ certifi
 cffi
 charset-normalizer
 click==8.4.1
+crispy-bootstrap5
 cryptography
 dill
 Django

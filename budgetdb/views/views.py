@@ -1025,6 +1025,7 @@ class PreferencesUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     contains_account = False
 
     def get_object(self):
+        user=get_current_user()
         try:
             preference = Preference.objects.get(user=self.user)
         except Preference.DoesNotExist:
