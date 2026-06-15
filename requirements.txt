@@ -6,7 +6,7 @@
 #
 apscheduler==3.11.2
     # via -r requirements.in
-asgiref==3.11.0
+asgiref==3.11.1
     # via
     #   -r requirements.in
     #   django
