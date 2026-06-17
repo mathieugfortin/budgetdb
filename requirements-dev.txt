@@ -83,7 +83,7 @@ pypdfium2==5.9.0
     # via
     #   -c requirements.txt
     #   -r requirements-dev.in
-pytest==9.0.3
+pytest==9.1.0
     # via
     #   -r requirements-dev.in
     #   codecov-cli
