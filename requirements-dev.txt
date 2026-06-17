@@ -8,7 +8,7 @@ anyio==4.13.0
     # via httpx
 astroid==4.0.4
     # via -r requirements-dev.in
-certifi==2026.5.20
+certifi==2026.6.17
     # via
     #   -c requirements.txt
     #   httpcore
