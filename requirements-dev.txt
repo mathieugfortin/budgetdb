@@ -111,7 +111,7 @@ requests==2.34.2
     #   responses
 responses==0.26.1
     # via -r requirements-dev.in
-ruff==0.15.16
+ruff==0.15.17
     # via -r requirements-dev.in
 smart-open==7.6.1
     # via codecov-cli
