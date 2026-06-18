@@ -102,7 +102,7 @@ packaging==26.2
     # via
     #   -r requirements.in
     #   gunicorn
-pdfminer-six==20251230
+pdfminer-six==20260107
     # via
     #   -r requirements.in
     #   pdfplumber
