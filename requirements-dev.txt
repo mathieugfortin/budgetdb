@@ -6,7 +6,7 @@
 #
 anyio==4.13.0
     # via httpx
-astroid==4.0.4
+astroid==4.1.2
     # via -r requirements-dev.in
 certifi==2026.5.20
     # via
@@ -83,7 +83,7 @@ pypdfium2==5.9.0
     # via
     #   -c requirements.txt
     #   -r requirements-dev.in
-pytest==9.0.3
+pytest==9.1.0
     # via
     #   -r requirements-dev.in
     #   codecov-cli
@@ -111,7 +111,7 @@ requests==2.34.2
     #   responses
 responses==0.26.1
     # via -r requirements-dev.in
-ruff==0.15.16
+ruff==0.15.17
     # via -r requirements-dev.in
 smart-open==7.6.1
     # via codecov-cli
