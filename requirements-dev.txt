@@ -133,7 +133,7 @@ urllib3==2.7.0
     #   -c requirements.txt
     #   requests
     #   responses
-wrapt==2.2.1
+wrapt==2.2.2
     # via
     #   -c requirements.txt
     #   smart-open
