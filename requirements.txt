@@ -84,7 +84,7 @@ greenlet==3.5.1
     # via -r requirements.in
 gunicorn==26.0.0
     # via -r requirements.in
-holidays==0.98
+holidays==0.99
     # via -r requirements.in
 idna==3.18
     # via
