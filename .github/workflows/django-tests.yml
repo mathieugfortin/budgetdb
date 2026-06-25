@@ -27,13 +27,13 @@ jobs:
           EMAIL_USE_SSL: "False"
           EMAIL_USE_TLS: "True"
           # Mapping your GitHub Secrets to Env Variables
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SECRET_KEY: "ci_dummy_secret_key"
+          DB_PASSWORD: "ci_dummy_test_password"
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: "ci_dummy_test_password"
           MYSQL_DATABASE: budget_db_test
         ports:
           - 3306:3306
