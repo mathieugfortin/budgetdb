@@ -34,8 +34,8 @@ urlpatterns = [
         name='trigger_rebuild_ledger'),
 
     # User
-    path('user/signup/', views.UserSignupView.as_view(),
-         name='signup'),
+    # path('user/signup/', views.UserSignupView.as_view(),
+    #     name='signup'),
     path('user/signup/<email>', views.UserSignupView.as_view(),
          name='signup_with_email'),
     path('user/verify/', views.UserVerifyEmailView.as_view(),
