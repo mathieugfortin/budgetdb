@@ -78,7 +78,7 @@ django-select2==8.4.8
     # via -r requirements.in
 django-tables2==3.0.0
     # via -r requirements.in
-djangorestframework==3.17.1
+djangorestframework==3.17.2
     # via -r requirements.in
 greenlet==3.5.1
     # via -r requirements.in
