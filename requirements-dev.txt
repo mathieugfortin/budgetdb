@@ -109,7 +109,7 @@ requests==2.34.2
     #   codecov-cli
     #   pytest-base-url
     #   responses
-responses==0.26.1
+responses==0.26.2
     # via -r requirements-dev.in
 ruff==0.15.20
     # via -r requirements-dev.in
