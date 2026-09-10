@@ -140,7 +140,7 @@ soupsieve==2.8.4
     # via
     #   -r requirements.in
     #   beautifulsoup4
-sqlparse==0.5.5
+sqlparse==0.6.0
     # via
     #   -r requirements.in
     #   django
