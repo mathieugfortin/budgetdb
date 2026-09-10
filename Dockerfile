@@ -32,6 +32,7 @@ RUN apk add --no-cache --virtual .build-deps \
         pkgconfig \
         mariadb-dev \
         python3-dev \
+    && pip install --no-cache-dir --upgrade pip setuptools \
     && pip install --no-cache-dir -r requirements.txt \
     && apk del .build-deps
 
