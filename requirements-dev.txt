@@ -40,7 +40,7 @@ idna==3.18
     #   anyio
     #   httpx
     #   requests
-ijson==3.5.0
+ijson==3.5.1
     # via
     #   -c requirements.txt
     #   codecov-cli
