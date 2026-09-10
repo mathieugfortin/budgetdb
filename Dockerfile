@@ -1,6 +1,7 @@
 # dockerfile
 # Use an official Python runtime as a parent image
-FROM python:alpine
+# FROM python:alpine
+FROM python:3.14-alpine3.22
 ARG BUILD_DATE
 ARG VERSION="0.8.5"
 ARG GIT_COMMIT="unknown"
