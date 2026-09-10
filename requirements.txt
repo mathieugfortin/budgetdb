@@ -32,13 +32,13 @@ click==8.4.1
     # via -r requirements.in
 crispy-bootstrap5==2026.3
     # via -r requirements.in
-cryptography==49.0.0
+cryptography==50.0.0
     # via
     #   -r requirements.in
     #   pdfminer-six
 dill==0.4.1
     # via -r requirements.in
-django==6.0.6
+django==6.0.7
     # via
     #   -r requirements.in
     #   crispy-bootstrap5
@@ -78,7 +78,7 @@ django-select2==8.4.8
     # via -r requirements.in
 django-tables2==3.0.0
     # via -r requirements.in
-djangorestframework==3.17.1
+djangorestframework==3.17.2
     # via -r requirements.in
 greenlet==3.5.1
     # via -r requirements.in
@@ -108,7 +108,7 @@ pdfminer-six==20260107
     #   pdfplumber
 pdfplumber==0.11.10
     # via -r requirements.in
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   -r requirements.in
     #   pdfplumber
@@ -140,7 +140,7 @@ soupsieve==2.8.4
     # via
     #   -r requirements.in
     #   beautifulsoup4
-sqlparse==0.5.5
+sqlparse==0.6.0
     # via
     #   -r requirements.in
     #   django

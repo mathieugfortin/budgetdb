@@ -83,7 +83,7 @@ pypdfium2==5.9.0
     # via
     #   -c requirements.txt
     #   -r requirements-dev.in
-pytest==9.1.0
+pytest==9.1.1
     # via
     #   -r requirements-dev.in
     #   codecov-cli
@@ -109,9 +109,9 @@ requests==2.34.2
     #   codecov-cli
     #   pytest-base-url
     #   responses
-responses==0.26.1
+responses==0.26.2
     # via -r requirements-dev.in
-ruff==0.15.17
+ruff==0.15.20
     # via -r requirements-dev.in
 smart-open==7.6.1
     # via codecov-cli
