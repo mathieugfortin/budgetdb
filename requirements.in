@@ -48,4 +48,4 @@ urllib3
 whitenoise
 wrapt
 msgpack>=1.2.1
-setuptools>=78.1.1
+setuptools>=84.0.0
