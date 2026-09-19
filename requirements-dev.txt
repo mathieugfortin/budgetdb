@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements-dev.in
 #
-anyio==4.13.0
+anyio==4.14.2
     # via httpx
 astroid==4.1.2
     # via -r requirements-dev.in
