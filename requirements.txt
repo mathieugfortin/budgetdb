@@ -94,7 +94,7 @@ ijson==3.5.1
     # via -r requirements.in
 lxml==6.1.1
     # via ofxparse
-msgpack==1.2.2
+msgpack==1.2.3
     # via -r requirements.in
 mysqlclient==2.2.8
     # via -r requirements.in
