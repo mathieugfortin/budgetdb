@@ -14,7 +14,7 @@ beautifulsoup4==4.15.0
     # via
     #   -r requirements.in
     #   ofxparse
-certifi==2026.6.17
+certifi==2026.10.18
     # via
     #   -r requirements.in
     #   requests
